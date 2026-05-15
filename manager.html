@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventario Jerseys</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+    body{background:#07111f;color:#fff;padding:40px}
+    .top-buttons{display:flex;gap:15px;margin-bottom:30px;flex-wrap:wrap}
+    button{border:none;cursor:pointer;transition:.2s ease}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .primary-btn,.add-btn{background:#2490ff;color:white;padding:14px 22px;border-radius:12px;font-size:15px;font-weight:700}
+    .primary-btn:hover,.add-btn:hover{background:#46a3ff}
+    .secondary-btn{background:#142238;color:white;padding:14px 22px;border-radius:12px;font-size:15px;font-weight:600;border:1px solid #23344f}
+    .secondary-btn:hover{background:#1c2f4d}
+    .danger-btn{background:#d64545;color:white;padding:14px 24px;border-radius:14px;font-size:15px;font-weight:700}
+    .danger-btn:hover{background:#ef5a5a}
+    .warning-btn{background:#f1a733;color:#081426;padding:14px 24px;border-radius:14px;font-size:15px;font-weight:700}
+    .cancel-btn{background:transparent;color:#d2dbea;padding:14px 20px;font-size:15px;font-weight:600}
+    .modal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);justify-content:center;align-items:center;padding:20px;overflow:auto}
+    .modal-content{background:#081426;width:100%;max-width:950px;border-radius:22px;border:1px solid #1f3350;padding:28px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.45);max-height:95vh;overflow:auto}
+    .small-modal{max-width:520px;text-align:center}
+    .close{position:absolute;right:25px;top:20px;color:#8aa4c7;font-size:28px;cursor:pointer}
+    .modal-title{font-size:34px;font-weight:700;margin-bottom:22px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .field-group{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+    label{color:#d5dff0;font-size:15px;font-weight:600}
+    input,select,textarea{background:#07101d;border:1px solid #203552;color:white;padding:14px 16px;border-radius:14px;outline:none;font-size:15px;width:100%}
+    input[readonly],textarea[readonly],select:disabled{opacity:.75;background:#0a1728}
+    input::placeholder,textarea::placeholder{color:#72839d}
+    textarea{resize:vertical;min-height:120px}
+    .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .upload-box{border:2px dashed #274160;border-radius:18px;min-height:230px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;background:#0a1728;cursor:pointer;transition:.2s;overflow:hidden}
+    .upload-box:hover{border-color:#3d8cff}
+    .upload-icon{font-size:42px;margin-bottom:15px}.upload-text{color:#dce7f7;font-weight:600;margin-bottom:6px}.upload-sub{color:#7084a1;font-size:13px}
+    .preview-img{width:100%;max-height:230px;object-fit:contain;border-radius:14px;margin-top:10px;background:#07101d}
+    .checkbox-row{display:flex;align-items:center;gap:10px;margin-top:8px}.checkbox-row input{width:18px;height:18px}
+    .modal-footer{display:flex;justify-content:flex-end;gap:14px;margin-top:26px;padding-top:22px;border-top:1px solid #1a2d46;flex-wrap:wrap}
+    .helper-text{color:#8aa4c7;line-height:1.5;margin-bottom:22px}.status-text{color:#9eb1ca;margin:12px 0;line-height:1.5}
+    .sku-summary{background:#0a1728;border:1px solid #1c314d;border-radius:18px;padding:18px;margin:18px 0;display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start}
+    .sku-summary img{width:160px;height:160px;object-fit:cover;border-radius:14px;background:#07101d}.sku-summary p{margin:0 0 8px;color:#dce7f7}.hidden{display:none!important}
+    @media(max-width:850px){body{padding:24px}.form-grid,.two-cols,.sku-summary{grid-template-columns:1fr}.modal-title{font-size:28px}.sku-summary img{width:100%;height:240px}}
+  </style>
+</head>
+<body>
+  <div class="top-buttons">
+    <button class="primary-btn" onclick="openAddModal()">Agregar Prenda</button>
+    <button class="secondary-btn" onclick="openManageModal()">Modificar / Eliminar Prenda</button>
+  </div>
+
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAddModal()">&times;</span>
+      <div class="modal-title">Añadir Prenda</div>
+      <form id="addForm">
+        <div class="form-grid">
+          <div>
+            <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo" placeholder="e.g., Argentina"></div>
+            <div class="two-cols">
+              <div class="field-group"><label>Año</label><input type="text" name="year" placeholder="e.g., 2022-23"></div>
+              <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio" placeholder="e.g., 500"></div>
+            </div>
+            <div class="two-cols">
+              <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option></select></div>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="addDisponible" name="venta" checked><label for="addDisponible">Disponible para venta</label></div>
+          </div>
+          <div>
+            <div class="field-group"><label>Imagen</label><label class="upload-box"><div class="upload-icon">⬆</div><div class="upload-text">Click para subir imagen</div><div class="upload-sub">JPG, PNG, WEBP max 5MB</div><input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen"></label></div>
+            <div class="field-group"><label>Notas</label><textarea name="notas" placeholder="Condición, etiquetas, historia..."></textarea></div>
+          </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="cancel-btn" onclick="closeAddModal()">Cancelar</button><button type="submit" class="add-btn" id="addSubmitBtn">Añadir</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="manageModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeManageModal()">&times;</span>
+      <div class="modal-title">Modificar / Eliminar Prenda</div>
+      <p class="helper-text">Ingresa el SKU para cargar sus datos desde Google Sheets.</p>
+      <div class="two-cols">
+        <div class="field-group"><label>SKU</label><input type="text" id="lookupSku" placeholder="e.g., C0001"></div>
+        <div class="field-group" style="justify-content:end"><button type="button" class="add-btn" id="lookupBtn" onclick="lookupSku()">Buscar SKU</button></div>
+      </div>
+      <div id="manageStatus" class="status-text"></div>
+      <div id="skuSummary" class="sku-summary hidden"></div>
+      <form id="editForm" class="hidden">
+        <div class="form-grid">
+          <div>
+            <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo"></div>
+            <div class="two-cols">
+              <div class="field-group"><label>Año</label><input type="text" name="year"></div>
+              <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio"></div>
+            </div>
+            <div class="two-cols">
+              <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option></select></div>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="editDisponible" name="venta"><label for="editDisponible">Disponible para venta</label></div>
+          </div>
+          <div>
+            <div class="field-group"><label>Imagen actual / nueva imagen</label><label class="upload-box"><div class="upload-text">Click para subir nueva imagen</div><div class="upload-sub">Si no subes imagen nueva, se conserva la actual.</div><img id="editImagePreview" class="preview-img" alt="Imagen actual"><input type="file" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen"></label></div>
+            <div class="field-group"><label>Notas</label><textarea name="notas"></textarea></div>
+          </div>
+        </div>
+      </form>
+      <div class="modal-footer" id="actionFooter">
+        <button type="button" class="cancel-btn" onclick="closeManageModal()">Cancelar</button>
+        <button type="button" class="add-btn hidden" id="updateBtn" onclick="showEditForm()">Actualizar</button>
+        <button type="button" class="warning-btn hidden" id="soldBtn" onclick="openConfirmModal('sold')">Marcar Como Vendida</button>
+        <button type="button" class="danger-btn hidden" id="deleteBtn" onclick="openConfirmModal('delete')">Eliminar</button>
+        <button type="button" class="add-btn hidden" id="confirmUpdateBtn" onclick="confirmUpdate()" disabled>Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="confirmModal">
+    <div class="modal-content small-modal">
+      <div class="modal-title" id="confirmTitle">Confirmar</div>
+      <p class="status-text" id="confirmText"></p>
+      <div class="modal-footer" style="justify-content:center">
+        <button type="button" class="cancel-btn" onclick="closeConfirmModal()">Cancelar</button>
+        <button type="button" class="danger-btn" id="confirmActionBtn">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyYvxBq3kwRTYD5Rye_ecXg6D7dlVfQkZ6O2ybU9nQYYh4h69mEcLoga9NmE9MFIQQAXg/exec";
+const PLACEHOLDER_IMAGE = "https://placehold.co/800x800/0A1728/DCE7F7?text=Sin+imagen";
+let currentItem = null;
+let editDirty = false;
+let jsonpCounter = 0;
+
+function $(id){return document.getElementById(id)}
+function safeText(v){return v === null || v === undefined ? "" : String(v)}
+function escapeHtml(v){return safeText(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;")}
+function normalizeSku(v){return safeText(v).trim().toUpperCase()}
+
+function openAddModal(){ $("addModal").style.display = "flex" }
+function closeAddModal(){ $("addModal").style.display = "none"; $("addForm").reset() }
+function openManageModal(){ resetManage(); $("manageModal").style.display = "flex" }
+function closeManageModal(){ $("manageModal").style.display = "none"; resetManage() }
+function closeConfirmModal(){ $("confirmModal").style.display = "none" }
+
+window.onclick = function(event){
+  if(event.target === $("addModal")) closeAddModal();
+  if(event.target === $("manageModal")) closeManageModal();
+  if(event.target === $("confirmModal")) closeConfirmModal();
+}
+
+function jsonpRequest(params){
+  return new Promise((resolve, reject) => {
+    const callbackName = "jsonpCallback_" + Date.now() + "_" + (++jsonpCounter);
+    const script = document.createElement("script");
+    const query = new URLSearchParams({...params, callback: callbackName});
+    window[callbackName] = function(data){
+      resolve(data);
+      cleanup();
+    };
+    script.onerror = function(){
+      reject(new Error("No se pudo conectar con Apps Script."));
+      cleanup();
+    };
+    function cleanup(){
+      delete window[callbackName];
+      script.remove();
+    }
+    script.src = WEB_APP_URL + "?" + query.toString();
+    document.body.appendChild(script);
+  });
+}
+
+async function postData(payload){
+  const response = await fetch(WEB_APP_URL, {method:"POST", body:JSON.stringify(payload)});
+  return response.json();
+}
+
+$("addForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  const submitBtn = $("addSubmitBtn");
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Guardando...";
+  try{
+    const formData = new FormData(this);
+    const imageFile = formData.get("imagen");
+    let imageBase64 = "";
+    let imageType = "";
+    if(imageFile && imageFile.size > 0){
+      imageType = imageFile.type;
+      imageBase64 = await toBase64(imageFile);
+    }
+    const result = await postData({
+      action:"addItem",
+      equipo:formData.get("equipo"),
+      year:formData.get("year"),
+      precio:formData.get("precio"),
+      talla:formData.get("talla"),
+      tipo:formData.get("tipo"),
+      disponible:formData.get("venta") ? true : false,
+      notas:formData.get("notas"),
+      imageBase64,
+      imageType
+    });
+    if(result.success){
+      alert(`Prenda agregada correctamente.\nSKU: ${result.sku}`);
+      closeAddModal();
+    }else{
+      alert("Error: " + result.error);
+    }
+  }catch(error){
+    console.error(error);
+    alert("Error al guardar.");
+  }
+  submitBtn.disabled = false;
+  submitBtn.innerText = "Añadir";
+});
+
+async function lookupSku(){
+  const sku = normalizeSku($("lookupSku").value);
+  if(!sku){ alert("Ingresa un SKU."); return; }
+  $("lookupBtn").disabled = true;
+  $("manageStatus").innerText = "Buscando SKU...";
+  hideActions();
+  $("editForm").classList.add("hidden");
+  $("skuSummary").classList.add("hidden");
+  try{
+    const result = await jsonpRequest({action:"getSku", sku});
+    if(!result.success){
+      currentItem = null;
+      $("manageStatus").innerText = result.error || "SKU no encontrado.";
+      return;
+    }
+    currentItem = result.item;
+    renderSkuSummary(currentItem);
+    $("manageStatus").innerText = "SKU encontrado.";
+    showActions();
+  }catch(error){
+    console.error(error);
+    $("manageStatus").innerText = "Error buscando SKU.";
+  }
+  $("lookupBtn").disabled = false;
+}
+
+function renderSkuSummary(item){
+  $("skuSummary").innerHTML = `
+    <img src="${escapeHtml(item.imagen || PLACEHOLDER_IMAGE)}" alt="Imagen de ${escapeHtml(item.sku)}" onerror="this.onerror=null;this.src=PLACEHOLDER_IMAGE;">
+    <div>
+      <p><strong>SKU:</strong> ${escapeHtml(item.sku)}</p>
+      <p><strong>Equipo:</strong> ${escapeHtml(item.equipo)}</p>
+      <p><strong>Año:</strong> ${escapeHtml(item.year)}</p>
+      <p><strong>Precio:</strong> Q${escapeHtml(item.precio)}</p>
+      <p><strong>Talla:</strong> ${escapeHtml(item.talla)}</p>
+      <p><strong>Tipo:</strong> ${escapeHtml(item.tipo)}</p>
+      <p><strong>Disponible:</strong> ${escapeHtml(item.disponible)}</p>
+      <p><strong>Estado:</strong> ${escapeHtml(item.estado)}</p>
+      <p><strong>Notas:</strong> ${escapeHtml(item.notas)}</p>
+    </div>`;
+  $("skuSummary").classList.remove("hidden");
+}
+
+function showActions(){
+  $("updateBtn").classList.remove("hidden");
+  $("soldBtn").classList.remove("hidden");
+  $("deleteBtn").classList.remove("hidden");
+  $("confirmUpdateBtn").classList.add("hidden");
+}
+function hideActions(){
+  ["updateBtn","soldBtn","deleteBtn","confirmUpdateBtn"].forEach(id => $(id).classList.add("hidden"));
+}
+
+function showEditForm(){
+  if(!currentItem) return;
+  const form = $("editForm");
+  form.equipo.value = currentItem.equipo || "";
+  form.year.value = currentItem.year || "";
+  form.precio.value = currentItem.precio || "";
+  form.talla.value = currentItem.talla || "";
+  form.tipo.value = currentItem.tipo || "";
+  form.venta.checked = currentItem.disponible === "Sí";
+  form.notas.value = currentItem.notas || "";
+  form.imagen.value = "";
+  $("editImagePreview").onerror = function(){ this.onerror = null; this.src = PLACEHOLDER_IMAGE; };
+  $("editImagePreview").src = currentItem.imagen || PLACEHOLDER_IMAGE;
+  form.classList.remove("hidden");
+  $("updateBtn").classList.add("hidden");
+  $("confirmUpdateBtn").classList.remove("hidden");
+  setDirty(false);
+}
+
+$("editForm").addEventListener("input", () => setDirty(true));
+$("editForm").addEventListener("change", () => setDirty(true));
+$("editForm").imagen.addEventListener("change", function(){
+  const file = this.files[0];
+  if(file){ $("editImagePreview").src = URL.createObjectURL(file); }
+  setDirty(true);
+});
+function setDirty(value){ editDirty = value; $("confirmUpdateBtn").disabled = !value; }
+
+async function confirmUpdate(){
+  if(!currentItem || !editDirty) return;
+  const form = $("editForm");
+  const formData = new FormData(form);
+  const imageFile = formData.get("imagen");
+  let imageBase64 = "";
+  let imageType = "";
+  $("confirmUpdateBtn").disabled = true;
+  $("confirmUpdateBtn").innerText = "Actualizando...";
+  try{
+    if(imageFile && imageFile.size > 0){
+      imageType = imageFile.type;
+      imageBase64 = await toBase64(imageFile);
+    }
+    const result = await postData({
+      action:"updateItem",
+      sku:currentItem.sku,
+      equipo:formData.get("equipo"),
+      year:formData.get("year"),
+      precio:formData.get("precio"),
+      talla:formData.get("talla"),
+      tipo:formData.get("tipo"),
+      disponible:formData.get("venta") ? true : false,
+      notas:formData.get("notas"),
+      imageBase64,
+      imageType
+    });
+    if(result.success){
+      alert("SKU actualizado correctamente.");
+      await lookupSku();
+      $("editForm").classList.add("hidden");
+      setDirty(false);
+    }else{
+      alert("Error: " + result.error);
+    }
+  }catch(error){
+    console.error(error);
+    alert("Error actualizando el SKU.");
+  }
+  $("confirmUpdateBtn").innerText = "Confirmar";
+  $("confirmUpdateBtn").disabled = !editDirty;
+}
+
+function openConfirmModal(type){
+  if(!currentItem) return;
+  const isDelete = type === "delete";
+  $("confirmTitle").innerText = isDelete ? "Confirmar eliminacion" : "Confirmar prenda vendida";
+  $("confirmText").innerText = `${currentItem.sku} - ${currentItem.equipo || "Sin equipo"}`;
+  $("confirmActionBtn").onclick = () => submitSkuAction(isDelete ? "markDeleted" : "markSold");
+  $("confirmModal").style.display = "flex";
+}
+
+async function submitSkuAction(action){
+  if(!currentItem) return;
+  const btn = $("confirmActionBtn");
+  btn.disabled = true;
+  btn.innerText = "Confirmando...";
+  try{
+    const result = await postData({action, sku:currentItem.sku});
+    if(result.success){
+      alert("SKU actualizado correctamente.");
+      closeConfirmModal();
+      closeManageModal();
+    }else{
+      alert("Error: " + result.error);
+    }
+  }catch(error){
+    console.error(error);
+    alert("Error actualizando el SKU.");
+  }
+  btn.disabled = false;
+  btn.innerText = "Confirmar";
+}
+
+function resetManage(){
+  currentItem = null;
+  editDirty = false;
+  $("lookupSku").value = "";
+  $("manageStatus").innerText = "";
+  $("skuSummary").innerHTML = "";
+  $("skuSummary").classList.add("hidden");
+  $("editForm").reset();
+  $("editForm").classList.add("hidden");
+  hideActions();
+}
+
+function toBase64(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+</script>
+</body>
+</html>

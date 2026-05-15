@@ -1,81 +1,237 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Catálogo Jerseys</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
-body{background:#07111f;color:white;padding:30px}
-.filters-container{background:#0b1729;border:1px solid #1d314d;border-radius:22px;padding:24px;margin-bottom:24px}
-.filters-grid{display:grid;grid-template-columns:2fr 1fr 1fr;gap:18px}
-.field-group{display:flex;flex-direction:column;gap:8px}
-label{font-size:14px;color:#d9e5f5;font-weight:600}
-input,select{width:100%;padding:14px 16px;border-radius:14px;border:1px solid #213754;background:#07101d;color:white;outline:none;font-size:15px}
-.checkbox-row{display:flex;align-items:center;gap:10px;margin-top:15px}
-.checkbox-row input{width:18px;height:18px}
-.search-btn{background:#2490ff;border:none;color:white;padding:14px 24px;border-radius:14px;font-weight:700;cursor:pointer;margin-top:20px}
-.search-btn:hover{background:#42a0ff}
-.catalog-info{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:0 0 16px;color:#9eb1ca;flex-wrap:wrap}
-.catalog-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:24px}
-.card{background:#081426;border:1px solid #1b2f49;border-radius:24px;overflow:hidden;position:relative;transition:.25s ease}
-.card:hover{transform:translateY(-4px);box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.card-image-container{position:relative;width:100%;height:300px;background:#0a1728}
-.card-image{width:100%;height:100%;object-fit:cover;display:block}
-.badge{position:absolute;top:14px;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.5px}
-.badge-available{left:14px;background:#2a9fff;color:#041426}
-.badge-sold{left:14px;background:#cfd5dd;color:#1f2c3e}
-.badge-type{right:14px;background:#232f43;color:white;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card-body{padding:18px}
-.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
-.team-info h2{font-size:21px;margin-bottom:4px;line-height:1.15}
-.team-info span{color:#8293ac;font-size:17px}
-.price{color:#1ea0ff;font-size:18px;font-weight:700;white-space:nowrap}
-.card-footer{border-top:1px solid #16253b;padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.size-badge{background:#132238;padding:8px 12px;border-radius:10px;color:#aebcd1;font-size:14px}
-.sku{color:#637791;font-size:13px;letter-spacing:.5px}
-.loading{text-align:center;padding:40px;color:#9eb1ca;grid-column:1/-1}
-.pagination{display:flex;justify-content:center;align-items:center;gap:10px;margin:28px 0 4px;flex-wrap:wrap}
-.page-btn{background:#132238;color:#dce7f7;border:1px solid #243852;border-radius:12px;padding:11px 15px;cursor:pointer;font-weight:700}
-.page-btn:disabled{opacity:.45;cursor:not-allowed}
-.page-btn.active{background:#2490ff;color:white;border-color:#2490ff}
-@media(max-width:850px){body{padding:18px}.filters-grid{grid-template-columns:1fr}.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.card{border-radius:16px}.card-image-container{height:185px}.badge{top:8px;padding:6px 8px;border-radius:8px;font-size:9px}.badge-available,.badge-sold{left:8px}.badge-type{right:8px}.card-body{padding:11px}.card-top{display:block;margin-bottom:10px}.team-info h2{font-size:15px;line-height:1.2}.team-info span{font-size:13px}.price{font-size:14px;margin-top:6px}.card-footer{padding-top:10px;align-items:flex-start;flex-direction:column;gap:6px}.size-badge{font-size:12px;padding:6px 8px}.sku{font-size:11px}}
-@media(max-width:380px){.card-image-container{height:155px}.team-info h2{font-size:14px}}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Catálogo Jerseys</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+  
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Comfortaa', Arial, Helvetica, sans-serif; }
+    body { background:#07111f; color:white; padding:30px; }
+    .filters-container { background:#0b1729; border:1px solid #1d314d; border-radius:22px; padding:24px; margin-bottom:24px; }
+    .filters-grid { display:grid; grid-template-columns:2fr 1fr 1fr; gap:18px; }
+    .field-group { display:flex; flex-direction:column; gap:8px; }
+    label { font-size:14px; color:#d9e5f5; font-weight:600; }
+    input, select { width:100%; padding:14px 16px; border-radius:14px; border:1px solid #213754; background:#07101d; color:white; outline:none; font-size:15px; }
+    .checkbox-row { display:flex; align-items:center; gap:10px; margin-top:15px; }
+    .checkbox-row input { width:18px; height:18px; }
+    .search-btn { background:#2490ff; border:none; color:white; padding:14px 24px; border-radius:14px; font-weight:700; cursor:pointer; margin-top:20px; }
+    .search-btn:hover { background:#42a0ff; }
+    .catalog-info { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:0 0 16px; color:#9eb1ca; flex-wrap:wrap; }
+    .catalog-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:24px; }
+    .card { background:#081426; border:1px solid #1b2f49; border-radius:24px; overflow:hidden; position:relative; transition:.25s ease; }
+    .card:hover { transform:translateY(-4px); box-shadow:0 10px 30px rgba(0,0,0,.35); }
+    .card-image-container { position:relative; width:100%; height:300px; background:#0a1728; }
+    .card-image { width:100%; height:100%; object-fit:cover; display:block; }
+    .badge { position:absolute; top:14px; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; letter-spacing:.5px; }
+    .badge-available { left:14px; background:#2a9fff; color:#041426; }
+    .badge-sold { left:14px; background:#cfd5dd; color:#1f2c3e; }
+    .badge-type { right:14px; background:#232f43; color:white; max-width:45%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .card-body { padding:18px; }
+    .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+    .team-info h2 { font-size:21px; margin-bottom:4px; line-height:1.15; }
+    .team-info span { color:#8293ac; font-size:17px; }
+    .price { color:#1ea0ff; font-size:18px; font-weight:700; white-space:nowrap; }
+    .card-footer { border-top:1px solid #16253b; padding-top:14px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+    .size-badge { background:#132238; padding:8px 12px; border-radius:10px; color:#aebcd1; font-size:14px; }
+    .sku { color:#637791; font-size:13px; letter-spacing:.5px; }
+    .loading { text-align:center; padding:40px; color:#9eb1ca; grid-column:1/-1; }
+    .pagination { display:flex; justify-content:center; align-items:center; gap:10px; margin:28px 0 4px; flex-wrap:wrap; }
+    .page-btn { background:#132238; color:#dce7f7; border:1px solid #243852; border-radius:12px; padding:11px 15px; cursor:pointer; font-weight:700; }
+    .page-btn:disabled { opacity:.45; cursor:not-allowed; }
+    .page-btn.active { background:#2490ff; color:white; border-color:#2490ff; }
+    @media(max-width:850px){ body{padding:18px} .filters-grid{grid-template-columns:1fr} .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px} .card{border-radius:16px} .card-image-container{height:185px} .badge{top:8px;padding:6px 8px;border-radius:8px;font-size:9px} .badge-available,.badge-sold{left:8px} .badge-type{right:8px} .card-body{padding:11px} .card-top{display:block;margin-bottom:10px} .team-info h2{font-size:15px;line-height:1.2} .team-info span{font-size:13px} .price{font-size:14px;margin-top:6px} .card-footer{padding-top:10px;align-items:flex-start;flex-direction:column;gap:6px} .size-badge{font-size:12px;padding:6px 8px} .sku{font-size:11px} }
+    @media(max-width:380px){ .card-image-container{height:155px} .team-info h2{font-size:14px} }
+  </style>
 </head>
 <body>
-<div class="filters-container">
-  <div class="filters-grid">
-    <div class="field-group"><label>Buscar SKU o Equipo</label><input type="text" id="searchInput" placeholder="e.g., C0001 o Argentina"></div>
-    <div class="field-group"><label>Filtrar por Talla</label><select id="sizeFilter"><option value="">Todas</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
-    <div class="field-group"><label>Tipo de Prenda</label><select id="typeFilter"><option value="">Todos</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option></select></div>
+  <div class="filters-container">
+    <div class="filters-grid">
+      <div class="field-group">
+        <label>Buscar SKU o Equipo</label>
+        <input type="text" id="searchInput" placeholder="e.g., C0001 o Argentina">
+      </div>
+      <div class="field-group">
+        <label>Filtrar por Talla</label>
+        <select id="sizeFilter">
+          <option value="">Todas</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option>
+        </select>
+      </div>
+      <div class="field-group">
+        <label>Tipo de Prenda</label>
+        <select id="typeFilter">
+          <option value="">Todos</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option>
+        </select>
+      </div>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="availableOnly" checked>
+      <label for="availableOnly">Únicamente disponibles</label>
+    </div>
+    <button class="search-btn" onclick="applyFilters()">Buscar</button>
   </div>
-  <div class="checkbox-row"><input type="checkbox" id="availableOnly" checked><label for="availableOnly">Únicamente disponibles</label></div>
-  <button class="search-btn" onclick="applyFilters()">Buscar</button>
-</div>
-<div class="catalog-info"><div id="resultCount">Cargando inventario...</div><div id="pageInfo"></div></div>
-<div class="catalog-grid" id="catalogGrid"><div class="loading">Cargando inventario...</div></div>
-<div class="pagination" id="pagination"></div>
-<script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx9qQPXir1x3k3yUQoRTGU6IWHqtiTJ9P7ITsT_uinMYuU4iKGYCf7-hvSb_SHM2DmwBg/exec";
-const PLACEHOLDER_IMAGE = "https://placehold.co/800x800/0A1728/DCE7F7?text=Sin+imagen";
-const ITEMS_PER_PAGE = 30;
-let allItems = [];
-let filteredItems = [];
-let currentPage = 1;
-let jsonpCounter = 0;
-function safeText(v){return v === null || v === undefined ? "" : String(v)}
-function escapeHtml(v){return safeText(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;")}
-function money(v){const n = Number(v); return Number.isFinite(n) ? n.toLocaleString() : escapeHtml(v)}
-function loadInventoryJsonp(){return new Promise((resolve,reject)=>{const callbackName='inventoryCallback_'+Date.now()+'_'+(++jsonpCounter);const script=document.createElement('script');window[callbackName]=function(data){resolve(data);cleanup()};script.onerror=function(){reject(new Error('No se pudo cargar inventario desde Apps Script.'));cleanup()};function cleanup(){delete window[callbackName];script.remove()}script.src=WEB_APP_URL+'?action=getInventory&callback='+encodeURIComponent(callbackName);document.body.appendChild(script)})}
-async function loadInventory(){const catalog=document.getElementById('catalogGrid');catalog.innerHTML='<div class="loading">Cargando inventario...</div>';try{const response=await loadInventoryJsonp();allItems=Array.isArray(response)?response:[];applyFilters();}catch(error){console.error(error);catalog.innerHTML='<div class="loading">Error cargando inventario.</div>';document.getElementById('resultCount').innerText='Error cargando inventario.';}}
-function applyFilters(){const search=safeText(document.getElementById('searchInput').value).toLowerCase().trim();const size=document.getElementById('sizeFilter').value;const type=document.getElementById('typeFilter').value;const availableOnly=document.getElementById('availableOnly').checked;filteredItems=allItems.filter(item=>{const sku=safeText(item.sku).toLowerCase();const equipo=safeText(item.equipo).toLowerCase();const matchesSearch=!search||sku.includes(search)||equipo.includes(search);const matchesSize=!size||safeText(item.talla)===size;const matchesType=!type||safeText(item.tipo)===type;const matchesAvailable=!availableOnly||safeText(item.disponible)==='Sí';const activeOnly=safeText(item.estado)!=='Eliminado';return matchesSearch&&matchesSize&&matchesType&&matchesAvailable&&activeOnly;});currentPage=1;renderPage();}
-function renderPage(){const catalog=document.getElementById('catalogGrid');const total=filteredItems.length;const totalPages=Math.max(1,Math.ceil(total/ITEMS_PER_PAGE));if(currentPage>totalPages)currentPage=totalPages;const start=(currentPage-1)*ITEMS_PER_PAGE;const pageItems=filteredItems.slice(start,start+ITEMS_PER_PAGE);document.getElementById('resultCount').innerText=total===1?'1 prenda encontrada':total+' prendas encontradas';document.getElementById('pageInfo').innerText=total?'Página '+currentPage+' de '+totalPages:'';if(!total){catalog.innerHTML='<div class="loading">No se encontraron resultados.</div>';document.getElementById('pagination').innerHTML='';return;}catalog.innerHTML=pageItems.map(renderCard).join('');renderPagination(totalPages);}
-function renderCard(item){const img=escapeHtml(item.imagen||PLACEHOLDER_IMAGE);const disponible=safeText(item.disponible)==='Sí';return `<div class="card"><div class="card-image-container"><img class="card-image" src="${img}" alt="${escapeHtml(item.sku)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}';">${disponible?'<div class="badge badge-available">AVAILABLE</div>':'<div class="badge badge-sold">SOLD / HIDDEN</div>'}<div class="badge badge-type">${escapeHtml(safeText(item.tipo).toUpperCase())}</div></div><div class="card-body"><div class="card-top"><div class="team-info"><h2>${escapeHtml(item.equipo)} <span>'${escapeHtml(item.anio)}</span></h2></div><div class="price">Q${money(item.precio)}</div></div><div class="card-footer"><div class="size-badge">Size: ${escapeHtml(item.talla)}</div><div class="sku">${escapeHtml(item.sku)}</div></div></div></div>`}
-function renderPagination(totalPages){const pagination=document.getElementById('pagination');if(totalPages<=1){pagination.innerHTML='';return;}let buttons=`<button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}>Anterior</button>`;const pages=[];for(let i=1;i<=totalPages;i++){if(i===1||i===totalPages||Math.abs(i-currentPage)<=2)pages.push(i);}let last=0;pages.forEach(p=>{if(p-last>1)buttons+='<span class="page-btn" style="cursor:default">...</span>';buttons+=`<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;last=p;});buttons+=`<button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Siguiente</button>`;pagination.innerHTML=buttons;}
-function goToPage(page){const totalPages=Math.max(1,Math.ceil(filteredItems.length/ITEMS_PER_PAGE));if(page<1||page>totalPages)return;currentPage=page;renderPage();window.scrollTo({top:0,behavior:'smooth'});}
-document.getElementById('searchInput').addEventListener('input',applyFilters);document.getElementById('sizeFilter').addEventListener('change',applyFilters);document.getElementById('typeFilter').addEventListener('change',applyFilters);document.getElementById('availableOnly').addEventListener('change',applyFilters);
-loadInventory();
-</script>
+  
+  <div class="catalog-info">
+    <div id="resultCount">Cargando inventario...</div>
+    <div id="pageInfo"></div>
+  </div>
+  
+  <div class="catalog-grid" id="catalogGrid">
+    <div class="loading">Cargando inventario...</div>
+  </div>
+  
+  <div class="pagination" id="pagination"></div>
+
+  <script>
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbx9qQPXir1x3k3yUQoRTGU6IWHqtiTJ9P7ITsT_uinMYuU4iKGYCf7-hvSb_SHM2DmwBg/exec";
+    const PLACEHOLDER_IMAGE = "https://placehold.co/800x800/0A1728/DCE7F7?text=Sin+imagen";
+    const ITEMS_PER_PAGE = 30;
+    
+    let allItems = [];
+    let filteredItems = [];
+    let currentPage = 1;
+    let jsonpCounter = 0;
+    
+    function safeText(v){ return v === null || v === undefined ? "" : String(v); }
+    function escapeHtml(v){ return safeText(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;"); }
+    function money(v){ const n = Number(v); return Number.isFinite(n) ? n.toLocaleString() : escapeHtml(v); }
+    
+    function loadInventoryJsonp(){
+      return new Promise((resolve,reject)=>{
+        const callbackName='inventoryCallback_'+Date.now()+'_'+(++jsonpCounter);
+        const script=document.createElement('script');
+        window[callbackName]=function(data){ resolve(data); cleanup(); };
+        script.onerror=function(){ reject(new Error('No se pudo cargar inventario desde Apps Script.')); cleanup(); };
+        function cleanup(){ delete window[callbackName]; script.remove(); }
+        script.src=WEB_APP_URL+'?action=getInventory&callback='+encodeURIComponent(callbackName);
+        document.body.appendChild(script);
+      });
+    }
+    
+    async function loadInventory(){
+      const catalog=document.getElementById('catalogGrid');
+      catalog.innerHTML='<div class="loading">Cargando inventario...</div>';
+      try {
+        const response = await loadInventoryJsonp();
+        allItems = Array.isArray(response) ? response : [];
+        applyFilters();
+      } catch(error) {
+        console.error(error);
+        catalog.innerHTML='<div class="loading">Error cargando inventario.</div>';
+        document.getElementById('resultCount').innerText='Error cargando inventario.';
+      }
+    }
+    
+    function applyFilters(){
+      const search = safeText(document.getElementById('searchInput').value).toLowerCase().trim();
+      const size = document.getElementById('sizeFilter').value;
+      const type = document.getElementById('typeFilter').value;
+      const availableOnly = document.getElementById('availableOnly').checked;
+      
+      filteredItems = allItems.filter(item => {
+        const sku = safeText(item.sku).toLowerCase();
+        const equipo = safeText(item.equipo).toLowerCase();
+        const matchesSearch = !search || sku.includes(search) || equipo.includes(search);
+        const matchesSize = !size || safeText(item.talla) === size;
+        const matchesType = !type || safeText(item.tipo) === type;
+        
+        // Fixed Availability Logic
+        const matchesAvailable = !availableOnly || safeText(item.disponible).trim().toUpperCase() === 'SÍ';
+        const activeOnly = safeText(item.estado) !== 'Eliminado';
+        
+        return matchesSearch && matchesSize && matchesType && matchesAvailable && activeOnly;
+      });
+      
+      currentPage = 1;
+      renderPage();
+    }
+    
+    function renderPage(){
+      const catalog=document.getElementById('catalogGrid');
+      const total=filteredItems.length;
+      const totalPages=Math.max(1,Math.ceil(total/ITEMS_PER_PAGE));
+      if(currentPage>totalPages) currentPage=totalPages;
+      const start=(currentPage-1)*ITEMS_PER_PAGE;
+      const pageItems=filteredItems.slice(start,start+ITEMS_PER_PAGE);
+      
+      document.getElementById('resultCount').innerText = total === 1 ? '1 prenda encontrada' : total + ' prendas encontradas';
+      document.getElementById('pageInfo').innerText = total ? 'Página ' + currentPage + ' de ' + totalPages : '';
+      
+      if(!total){
+        catalog.innerHTML='<div class="loading">No se encontraron resultados.</div>';
+        document.getElementById('pagination').innerHTML='';
+        return;
+      }
+      catalog.innerHTML=pageItems.map(renderCard).join('');
+      renderPagination(totalPages);
+    }
+    
+    function renderCard(item){
+      const img = escapeHtml(item.imagen || PLACEHOLDER_IMAGE);
+      // Fixed Availability Logic here as well
+      const disponible = safeText(item.disponible).trim().toUpperCase() === 'SÍ';
+      
+      return `
+        <div class="card">
+          <div class="card-image-container">
+            <img class="card-image" src="${img}" alt="${escapeHtml(item.sku)}" loading="lazy" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}';">
+            ${disponible ? '<div class="badge badge-available">AVAILABLE</div>' : '<div class="badge badge-sold">SOLD / HIDDEN</div>'}
+            <div class="badge badge-type">${escapeHtml(safeText(item.tipo).toUpperCase())}</div>
+          </div>
+          <div class="card-body">
+            <div class="card-top">
+              <div class="team-info">
+                <h2>${escapeHtml(item.equipo)} <span>'${escapeHtml(item.year || item.anio)}</span></h2>
+              </div>
+              <div class="price">Q${money(item.precio)}</div>
+            </div>
+            <div class="card-footer">
+              <div class="size-badge">Size: ${escapeHtml(item.talla)}</div>
+              <div class="sku">${escapeHtml(item.sku)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    
+    function renderPagination(totalPages){
+      const pagination=document.getElementById('pagination');
+      if(totalPages<=1){ pagination.innerHTML=''; return; }
+      
+      let buttons=`<button class="page-btn" onclick="goToPage(${currentPage-1})" ${currentPage===1?'disabled':''}>Anterior</button>`;
+      const pages=[];
+      for(let i=1; i<=totalPages; i++){
+        if(i===1 || i===totalPages || Math.abs(i-currentPage)<=2) pages.push(i);
+      }
+      
+      let last=0;
+      pages.forEach(p => {
+        if(p-last>1) buttons+='<span class="page-btn" style="cursor:default">...</span>';
+        buttons+=`<button class="page-btn ${p===currentPage?'active':''}" onclick="goToPage(${p})">${p}</button>`;
+        last=p;
+      });
+      buttons+=`<button class="page-btn" onclick="goToPage(${currentPage+1})" ${currentPage===totalPages?'disabled':''}>Siguiente</button>`;
+      pagination.innerHTML=buttons;
+    }
+    
+    function goToPage(page){
+      const totalPages=Math.max(1,Math.ceil(filteredItems.length/ITEMS_PER_PAGE));
+      if(page<1 || page>totalPages) return;
+      currentPage=page;
+      renderPage();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    
+    document.getElementById('searchInput').addEventListener('input',applyFilters);
+    document.getElementById('sizeFilter').addEventListener('change',applyFilters);
+    document.getElementById('typeFilter').addEventListener('change',applyFilters);
+    document.getElementById('availableOnly').addEventListener('change',applyFilters);
+    
+    loadInventory();
+  </script>
 </body>
 </html>

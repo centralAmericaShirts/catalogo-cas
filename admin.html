@@ -3,148 +3,241 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Panel de Administración - Jerseys</title>
+  <title>Panel Administrativo - Jerseys</title>
+  
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+  
   <style>
     * { margin:0; padding:0; box-sizing:border-box; font-family: 'Comfortaa', sans-serif; }
     body { background:#07111f; color:#fff; padding:40px; }
-    .top-buttons { display:flex; gap:15px; margin-bottom:30px; flex-wrap:wrap; }
-    button { border:none; cursor:pointer; transition:.2s ease; border-radius:12px; font-weight:700; }
-    button:disabled { opacity:.55; cursor:not-allowed; }
+    
+    .top-buttons { display:flex; gap:15px; margin-bottom:30px; }
+    button { border:none; cursor:pointer; transition:.2s ease; border-radius:12px; font-weight:700; font-size:14px; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    
     .primary-btn { background:#2490ff; color:white; padding:14px 22px; }
     .secondary-btn { background:#142238; color:white; padding:14px 22px; border:1px solid #23344f; }
-    .danger-btn { background:#d64545; color:white; padding:14px 24px; }
-    
-    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,14,28,0.95); display:none; justify-content:center; align-items:center; z-index:1000; padding:20px; }
-    .modal-content { background:#0b1729; border:1px solid #1d314d; border-radius:24px; padding:30px; width:100%; max-width:600px; max-height:90vh; overflow-y:auto; }
-    
-    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:20px; }
+    .danger-btn { background:#d64545; color:white; padding:12px 20px; }
+    .warning-btn { background:#f1a733; color:#081426; padding:12px 20px; }
+    .cancel-link { background:transparent; color:#8aa4c7; padding:12px 20px; }
+
+    /* Estilo del Resumen (Imagen de referencia) */
+    .sku-card { background:#0a1728; border:1px solid #1c314d; border-radius:18px; padding:25px; margin:20px 0; display:grid; grid-template-columns:200px 1fr; gap:25px; align-items:start; }
+    .sku-card img { width:100%; border-radius:14px; background:#07101d; }
+    .sku-details p { margin-bottom:8px; font-size:15px; color:#dce7f7; }
+    .sku-details strong { color:#8aa4c7; margin-right:5px; }
+
+    /* Formulario de Edición */
+    .edit-container { background:#0b1729; border:1px solid #243852; border-radius:20px; padding:30px; margin-top:20px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
     .field { display:flex; flex-direction:column; gap:8px; margin-bottom:15px; }
     .full { grid-column: 1 / -1; }
     label { font-size:13px; color:#9eb1ca; }
     input, select, textarea { background:#07101d; border:1px solid #213754; color:white; padding:12px; border-radius:10px; outline:none; }
     
-    .hidden { display: none; }
-    .status-msg { margin-top:10px; font-size:14px; font-weight:bold; }
+    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,14,28,0.95); display:none; justify-content:center; align-items:center; z-index:1000; padding:20px; }
+    .modal-content { background:#0b1729; border:1px solid #1d314d; border-radius:24px; padding:30px; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; }
+    
+    .hidden { display: none !important; }
+    .action-bar { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; align-items: center; }
+
+    @media(max-width:850px){ .sku-card, .form-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
 
-  <h1>Administración de Inventario</h1>
-  <p style="color:#9eb1ca; margin-bottom:20px;">Gestiona tus jerseys y existencias</p>
+  <h1>Gestión de Inventario</h1>
+  <p style="color:#8aa4c7; margin-bottom:30px;">Busca un SKU para modificarlo o marcarlo como vendido.</p>
 
   <div class="top-buttons">
-    <button class="primary-btn" onclick="openAddModal()">+ Agregar Nueva Prenda</button>
-    <button class="secondary-btn" onclick="openManageModal()">🔍 Gestionar SKU Existente</button>
-    <a href="index.html" style="text-decoration:none;"><button class="secondary-btn">Ver Catálogo Público</button></a>
+    <button class="primary-btn" onclick="location.reload()">+ Nueva Prenda</button>
+    <div style="flex-grow:1; display:flex; gap:10px;">
+        <input type="text" id="lookupSku" placeholder="Ingresa SKU (ej: C0011)" style="flex-grow:1;">
+        <button class="primary-btn" onclick="lookupSku()">Buscar SKU</button>
+    </div>
   </div>
 
-  <div id="addModal" class="modal">
-    <div class="modal-content">
-      <h2>Nueva Prenda</h2>
-      <form id="addForm">
+  <div id="statusMsg" style="margin:10px 0; font-weight:bold;"></div>
+
+  <div id="manageSection" class="hidden">
+    
+    <div id="summaryView" class="sku-card">
+      <img id="sumImg" src="" alt="Jersey">
+      <div class="sku-details">
+        <p><strong>SKU:</strong> <span id="sumSku"></span></p>
+        <p><strong>Equipo:</strong> <span id="sumEquipo"></span></p>
+        <p><strong>Año:</strong> <span id="sumYear"></span></p>
+        <p><strong>Precio:</strong> Q<span id="sumPrecio"></span></p>
+        <p><strong>Talla:</strong> <span id="sumTalla"></span></p>
+        <p><strong>Tipo:</strong> <span id="sumTipo"></span></p>
+        <p><strong>Disponible:</strong> <span id="sumDisp"></span></p>
+        <p><strong>Estado:</strong> <span id="sumEstado"></span></p>
+        <p><strong>Notas:</strong> <span id="sumNotas"></span></p>
+      </div>
+    </div>
+
+    <div id="initialActions" class="action-bar">
+        <button class="cancel-link" onclick="location.reload()">Cancelar</button>
+        <button class="primary-btn" onclick="showEditMode()">Actualizar</button>
+        <button class="warning-btn" onclick="quickAction('markSold')">Marcar Como Vendida</button>
+        <button class="danger-btn" onclick="quickAction('markDeleted')">Eliminar</button>
+    </div>
+
+    <div id="editMode" class="edit-container hidden">
+      <h3>Editando SKU: <span id="editingSkuTitle"></span></h3>
+      <form id="editForm" style="margin-top:20px;">
         <div class="form-grid">
-          <div class="field full"><label>Equipo</label><input type="text" name="equipo" required></div>
-          <div class="field"><label>Año</label><input type="text" name="year" placeholder="e.g. 2024"></div>
-          <div class="field"><label>Precio (Q)</label><input type="number" name="precio" required></div>
+          <div class="field full"><label>Equipo</label><input type="text" name="equipo" id="fEquipo"></div>
+          <div class="field"><label>Año</label><input type="text" name="year" id="fYear"></div>
+          <div class="field"><label>Precio (Q)</label><input type="number" name="precio" id="fPrecio"></div>
           <div class="field">
             <label>Talla</label>
-            <select name="talla">
+            <select name="talla" id="fTalla">
               <option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option>
             </select>
           </div>
           <div class="field">
             <label>Tipo</label>
-            <select name="tipo">
+            <select name="tipo" id="fTipo">
               <option>Casa</option><option>Visita</option><option>Entrenamiento</option><option>Firmada</option>
             </select>
           </div>
-          <div class="field full"><label>Imagen</label><input type="file" id="addFile" accept="image/*"></div>
+          <div class="field full">
+            <label>Nueva Imagen (Opcional)</label>
+            <input type="file" id="fImg" accept="image/*">
+          </div>
           <div class="field full">
             <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input type="checkbox" name="disponible" checked> ¿Está disponible para venta?
+              <input type="checkbox" name="disponible" id="fDisp"> ¿Está disponible para venta?
             </label>
           </div>
+          <div class="field full"><label>Notas</label><textarea name="notas" id="fNotas"></textarea></div>
         </div>
-        <div class="top-buttons" style="margin-top:20px;">
-          <button type="submit" class="primary-btn" id="saveAddBtn">Guardar Prenda</button>
-          <button type="button" class="secondary-btn" onclick="closeModal('addModal')">Cancelar</button>
+        <div class="action-bar">
+          <button type="button" class="cancel-link" onclick="hideEditMode()">Cancelar Edición</button>
+          <button type="submit" class="primary-btn" id="confirmBtn">Confirmar Actualización</button>
         </div>
-        <div id="addStatus" class="status-msg"></div>
       </form>
     </div>
-  </div>
 
-  <div id="manageModal" class="modal">
-    <div class="modal-content">
-      <h2>Buscar y Editar SKU</h2>
-      <div class="field full" style="margin-top:15px;">
-        <input type="text" id="lookupSku" placeholder="Ingresa SKU (ej: C0001)">
-        <button class="primary-btn" onclick="loadSku()" style="margin-top:10px;">Buscar</button>
-      </div>
-
-      <div id="editArea" class="hidden">
-        <form id="editForm">
-          <div class="form-grid">
-            <div class="field full"><label>Equipo</label><input type="text" id="editEquipo" name="equipo"></div>
-            <div class="field"><label>Precio</label><input type="number" id="editPrecio" name="precio"></div>
-            <div class="field">
-              <label style="display:flex; align-items:center; gap:10px; cursor:pointer; margin-top:30px;">
-                <input type="checkbox" id="editAvailable" name="disponible"> Disponible
-              </label>
-            </div>
-          </div>
-          <div class="top-buttons" style="margin-top:20px;">
-            <button type="submit" class="primary-btn">Actualizar Datos</button>
-            <button type="button" class="danger-btn" onclick="actionSku('markSold')">Marcar Vendido</button>
-          </div>
-        </form>
-      </div>
-      <button class="secondary-btn" onclick="closeModal('manageModal')" style="margin-top:10px; width:100%;">Cerrar</button>
-      <div id="manageStatus" class="status-msg"></div>
-    </div>
   </div>
 
   <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyQJiY7GWJKashY_gl57P_gQCaZknQpXBBLIOV8_6EXRRG9Zmv7wDjldSJZ_OEWpFlZMQ/exec";
+    let currentItem = null;
 
-    function openAddModal() { document.getElementById('addModal').style.display = 'flex'; }
-    function openManageModal() { document.getElementById('manageModal').style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    // BUSCAR SKU
+    async function lookupSku() {
+      const sku = document.getElementById('lookupSku').value.trim().toUpperCase();
+      if(!sku) return;
+      
+      const status = document.getElementById('statusMsg');
+      status.innerText = "Buscando...";
+      status.style.color = "#fff";
 
-    // CONVERT IMAGE TO BASE64
-    async function toBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
-      });
+      try {
+        const response = await fetch(`${WEB_APP_URL}?action=getSku&sku=${sku}`);
+        const res = await response.json();
+        
+        if(res.success) {
+          currentItem = res.item;
+          status.innerText = "SKU encontrado.";
+          status.style.color = "#2490ff";
+          renderSummary(res.item);
+          document.getElementById('manageSection').classList.remove('hidden');
+          hideEditMode(); // Asegurar que empezamos en vista resumen
+        } else {
+          status.innerText = "Error: " + res.error;
+          status.style.color = "#d64545";
+          document.getElementById('manageSection').classList.add('hidden');
+        }
+      } catch(e) {
+        status.innerText = "Error de conexión.";
+      }
     }
 
-    // ADD NEW ITEM
-    document.getElementById('addForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('saveAddBtn');
-      const status = document.getElementById('addStatus');
-      btn.disabled = true;
-      status.innerText = "Subiendo prenda...";
+    // MOSTRAR RESUMEN
+    function renderSummary(item) {
+      document.getElementById('sumImg').src = item.imagen || 'https://placehold.co/400';
+      document.getElementById('sumSku').innerText = item.sku;
+      document.getElementById('sumEquipo').innerText = item.equipo;
+      document.getElementById('sumYear').innerText = item.year;
+      document.getElementById('sumPrecio').innerText = item.precio;
+      document.getElementById('sumTalla').innerText = item.talla;
+      document.getElementById('sumTipo').innerText = item.tipo;
+      document.getElementById('sumDisp').innerText = item.disponible;
+      document.getElementById('sumEstado').innerText = item.estado;
+      document.getElementById('sumNotas').innerText = item.notas || "Ninguna";
+    }
 
-      const formData = new FormData(e.target);
-      const fileInput = document.getElementById('addFile');
+    // CAMBIAR A MODO EDICIÓN
+    function showEditMode() {
+      document.getElementById('summaryView').classList.add('hidden');
+      document.getElementById('initialActions').classList.add('hidden');
+      document.getElementById('editMode').classList.remove('hidden');
+      
+      // Precargar datos en el formulario
+      document.getElementById('editingSkuTitle').innerText = currentItem.sku;
+      document.getElementById('fEquipo').value = currentItem.equipo;
+      document.getElementById('fYear').value = currentItem.year;
+      document.getElementById('fPrecio').value = currentItem.precio;
+      document.getElementById('fTalla').value = currentItem.talla;
+      document.getElementById('fTipo').value = currentItem.tipo;
+      document.getElementById('fDisp').checked = (currentItem.disponible === 'Sí');
+      document.getElementById('fNotas').value = currentItem.notas || "";
+    }
+
+    function hideEditMode() {
+      document.getElementById('summaryView').classList.remove('hidden');
+      document.getElementById('initialActions').classList.remove('hidden');
+      document.getElementById('editMode').classList.add('hidden');
+    }
+
+    // ACCIONES RÁPIDAS (VENDIDA / ELIMINAR)
+    async function quickAction(action) {
+      const msg = action === 'markSold' ? "¿Marcar como vendida?" : "¿Eliminar permanentemente?";
+      if(!confirm(msg)) return;
+
+      const resp = await fetch(WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action, sku: currentItem.sku })
+      });
+      const res = await resp.json();
+      if(res.success) {
+        alert("¡Éxito!");
+        location.reload();
+      }
+    }
+
+    // GUARDAR ACTUALIZACIÓN
+    document.getElementById('editForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = true;
+      btn.innerText = "Actualizando...";
+
+      const fileInput = document.getElementById('fImg');
       let base64 = "";
-      if(fileInput.files[0]) base64 = await toBase64(fileInput.files[0]);
+      if(fileInput.files[0]) {
+        base64 = await new Promise(r => {
+          const rd = new FileReader();
+          rd.onload = () => r(rd.result);
+          rd.readAsDataURL(fileInput.files[0]);
+        });
+      }
 
       const payload = {
-        action: 'addItem',
-        equipo: formData.get('equipo'),
-        year: formData.get('year'),
-        precio: formData.get('precio'),
-        talla: formData.get('talla'),
-        tipo: formData.get('tipo'),
-        disponible: formData.get('disponible') === 'on',
+        action: 'updateItem',
+        sku: currentItem.sku,
+        equipo: document.getElementById('fEquipo').value,
+        year: document.getElementById('fYear').value,
+        precio: document.getElementById('fPrecio').value,
+        talla: document.getElementById('fTalla').value,
+        tipo: document.getElementById('fTipo').value,
+        disponible: document.getElementById('fDisp').checked,
+        notas: document.getElementById('fNotas').value,
         imageBase64: base64
       };
 
@@ -152,42 +245,15 @@
         const resp = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
         const res = await resp.json();
         if(res.success) {
-          alert("¡Éxito! SKU asignado: " + res.sku);
+          alert("Jersey actualizado correctamente.");
           location.reload();
         }
-      } catch(err) {
-        status.innerText = "Error al guardar.";
+      } catch(e) {
+        alert("Error al actualizar.");
         btn.disabled = false;
+        btn.innerText = "Confirmar Actualización";
       }
     };
-
-    // LOAD SKU DATA
-    async function loadSku() {
-      const sku = document.getElementById('lookupSku').value;
-      const status = document.getElementById('manageStatus');
-      status.innerText = "Buscando...";
-      
-      try {
-        const resp = await fetch(`${WEB_APP_URL}?action=getSku&sku=${sku}`);
-        const res = await resp.json();
-        if(res.success) {
-          document.getElementById('editArea').classList.remove('hidden');
-          document.getElementById('editEquipo').value = res.item.equipo;
-          document.getElementById('editPrecio').value = res.item.precio;
-          document.getElementById('editAvailable').checked = res.item.disponible;
-          status.innerText = "";
-        } else {
-          status.innerText = "SKU no encontrado.";
-        }
-      } catch(err) { status.innerText = "Error de conexión."; }
-    }
-
-    async function actionSku(action) {
-      const sku = document.getElementById('lookupSku').value;
-      const resp = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action, sku }) });
-      const res = await resp.json();
-      if(res.success) { alert("Acción completada."); location.reload(); }
-    }
   </script>
 </body>
 </html>

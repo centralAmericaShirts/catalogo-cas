@@ -18,40 +18,37 @@
     .checkbox-row { display:flex; align-items:center; gap:10px; margin-top:15px; }
     .search-btn { background:#2490ff; border:none; color:white; padding:14px 24px; border-radius:14px; font-weight:700; cursor:pointer; margin-top:20px; width:100%; }
     .catalog-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:24px; }
-    .card { background:#081426; border:1px solid #1b2f49; border-radius:24px; overflow:hidden; position:relative; }
+    .card { background:#081426; border:1px solid #1b2f49; border-radius:24px; overflow:hidden; position:relative; display:flex; flex-direction:column; }
     .card-image-container { position:relative; width:100%; height:300px; background:#0a1728; }
     .card-image { width:100%; height:100%; object-fit:cover; }
-    .badge { position:absolute; top:14px; padding:8px 14px; border-radius:10px; font-size:12px; font-weight:700; }
+    .badge { position:absolute; top:14px; padding:8px 14px; border-radius:10px; font-size:11px; font-weight:700; }
     .badge-available { left:14px; background:#2a9fff; color:#041426; }
     .badge-sold { left:14px; background:#cfd5dd; color:#1f2c3e; }
     .badge-type { right:14px; background:#232f43; color:white; }
-    .card-body { padding:18px; }
-    .price { color:#1ea0ff; font-size:18px; font-weight:700; }
+    .card-body { padding:18px; flex-grow:1; }
+    .price { color:#1ea0ff; font-size:20px; font-weight:700; margin:10px 0; }
+    .ws-btn { background:#25d366; color:white; text-decoration:none; display:block; text-align:center; padding:12px; border-radius:12px; font-weight:700; margin-top:10px; }
     .loading { text-align:center; padding:40px; color:#9eb1ca; grid-column:1/-1; }
-    .pagination { display:flex; justify-content:center; gap:10px; margin-top:20px; }
-    .page-btn { background:#132238; color:white; border:1px solid #243852; padding:10px; border-radius:8px; cursor:pointer; }
-    .page-btn.active { background:#2490ff; }
-    @media(max-width:850px){ .filters-grid{grid-template-columns:1fr} .catalog-grid{grid-template-columns:repeat(2,1fr); gap:10px;} .card-image-container{height:180px;} }
+    @media(max-width:850px){ .filters-grid{grid-template-columns:1fr} .catalog-grid{grid-template-columns:repeat(2,1fr); gap:12px;} .card-image-container{height:180px;} }
   </style>
 </head>
 <body>
   <div class="filters-container">
     <div class="filters-grid">
       <div class="field-group"><label>Buscar</label><input type="text" id="searchInput" placeholder="SKU o Equipo"></div>
-      <div class="field-group"><label>Talla</label><select id="sizeFilter"><option value="">Todas</option><option>S</option><option>M</option><option>L</option><option>XL</option></select></div>
-      <div class="field-group"><label>Tipo</label><select id="typeFilter"><option value="">Todos</option><option>Casa</option><option>Visita</option></select></div>
+      <div class="field-group"><label>Talla</label><select id="sizeFilter"><option value="">Todas</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select></div>
+      <div class="field-group"><label>Tipo</label><select id="typeFilter"><option value="">Todos</option><option>Casa</option><option>Visita</option><option>Entrenamiento</option><option>Firmada</option></select></div>
     </div>
     <div class="checkbox-row"><input type="checkbox" id="availableOnly" checked><label for="availableOnly">Solo Disponibles</label></div>
     <button class="search-btn" onclick="applyFilters()">Buscar</button>
   </div>
-  <div id="resultCount" style="margin-bottom:10px;">Cargando...</div>
-  <div class="catalog-grid" id="catalogGrid"><div class="loading">Iniciando...</div></div>
-  <div class="pagination" id="pagination"></div>
+  <div id="resultCount" style="margin-bottom:15px; color:#9eb1ca;">Cargando inventario...</div>
+  <div class="catalog-grid" id="catalogGrid"></div>
 
   <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyYvxBq3kwRTYD5Rye_ecXg6D7dlVfQkZ6O2ybU9nQYYh4h69mEcLoga9NmE9MFIQQAXg/exec";
-    let allItems = [], filteredItems = [], currentPage = 1;
-    const ITEMS_PER_PAGE = 30;
+    const WEB_APP_URL = "TU_URL_DE_APPS_SCRIPT_AQUI";
+    const WS_NUMBER = "502XXXXXXXX"; // Reemplaza con tu número (con código de país)
+    let allItems = [], filteredItems = [];
 
     async function loadInventory(){
       const cb = 'callback_' + Date.now();
@@ -79,17 +76,16 @@
         const matchesAvail = !onlyAvail || item.disponible === true;
         return matchesSearch && matchesSize && matchesType && matchesAvail && item.estado !== 'Eliminado';
       });
-      currentPage = 1;
       render();
     }
 
     function render(){
       const grid = document.getElementById('catalogGrid');
-      const start = (currentPage-1) * ITEMS_PER_PAGE;
-      const pageItems = filteredItems.slice(start, start + ITEMS_PER_PAGE);
       document.getElementById('resultCount').innerText = `${filteredItems.length} prendas encontradas`;
       
-      grid.innerHTML = pageItems.map(item => `
+      grid.innerHTML = filteredItems.map(item => {
+        const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
+        return `
         <div class="card">
           <div class="card-image-container">
             <img class="card-image" src="${item.imagen || 'https://placehold.co/400'}" loading="lazy">
@@ -97,12 +93,13 @@
             <div class="badge badge-type">${item.tipo.toUpperCase()}</div>
           </div>
           <div class="card-body">
-            <h3>${item.equipo} '${item.year}</h3>
+            <h3 style="font-size:16px;">${item.equipo} '${item.year}</h3>
             <div class="price">Q${item.precio}</div>
-            <div style="font-size:12px; color:#888; margin-top:5px;">Talla: ${item.talla} | SKU: ${item.sku}</div>
+            <div style="font-size:12px; color:#8293ac;">Talla: ${item.talla} | SKU: ${item.sku}</div>
+            <a href="https://wa.me/${WS_NUMBER}?text=${wsMsg}" class="ws-btn" target="_blank">Preguntar por WhatsApp</a>
           </div>
         </div>
-      `).join('');
+      `}).join('');
     }
     loadInventory();
   </script>

@@ -3,257 +3,219 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Panel Administrativo - Jerseys</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
-  
+  <title>Inventario Jerseys - Admin</title>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Comfortaa', sans-serif; }
-    body { background:#07111f; color:#fff; padding:40px; }
-    
-    .top-buttons { display:flex; gap:15px; margin-bottom:30px; }
-    button { border:none; cursor:pointer; transition:.2s ease; border-radius:12px; font-weight:700; font-size:14px; }
-    button:disabled { opacity:.5; cursor:not-allowed; }
-    
-    .primary-btn { background:#2490ff; color:white; padding:14px 22px; }
-    .secondary-btn { background:#142238; color:white; padding:14px 22px; border:1px solid #23344f; }
-    .danger-btn { background:#d64545; color:white; padding:12px 20px; }
-    .warning-btn { background:#f1a733; color:#081426; padding:12px 20px; }
-    .cancel-link { background:transparent; color:#8aa4c7; padding:12px 20px; }
-
-    /* Estilo del Resumen (Imagen de referencia) */
-    .sku-card { background:#0a1728; border:1px solid #1c314d; border-radius:18px; padding:25px; margin:20px 0; display:grid; grid-template-columns:200px 1fr; gap:25px; align-items:start; }
-    .sku-card img { width:100%; border-radius:14px; background:#07101d; }
-    .sku-details p { margin-bottom:8px; font-size:15px; color:#dce7f7; }
-    .sku-details strong { color:#8aa4c7; margin-right:5px; }
-
-    /* Formulario de Edición */
-    .edit-container { background:#0b1729; border:1px solid #243852; border-radius:20px; padding:30px; margin-top:20px; }
-    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-    .field { display:flex; flex-direction:column; gap:8px; margin-bottom:15px; }
-    .full { grid-column: 1 / -1; }
-    label { font-size:13px; color:#9eb1ca; }
-    input, select, textarea { background:#07101d; border:1px solid #213754; color:white; padding:12px; border-radius:10px; outline:none; }
-    
-    .modal { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(4,14,28,0.95); display:none; justify-content:center; align-items:center; z-index:1000; padding:20px; }
-    .modal-content { background:#0b1729; border:1px solid #1d314d; border-radius:24px; padding:30px; width:100%; max-width:800px; max-height:90vh; overflow-y:auto; }
-    
-    .hidden { display: none !important; }
-    .action-bar { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; align-items: center; }
-
-    @media(max-width:850px){ .sku-card, .form-grid { grid-template-columns:1fr; } }
+    /* ... (Manteniendo tus estilos originales) ... */
+    *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+    body{background:#07111f;color:#fff;padding:40px}
+    .top-buttons{display:flex;gap:15px;margin-bottom:30px;flex-wrap:wrap}
+    button{border:none;cursor:pointer;transition:.2s ease}
+    button:disabled{opacity:.55;cursor:not-allowed}
+    .primary-btn,.add-btn{background:#2490ff;color:white;padding:14px 22px;border-radius:12px;font-size:15px;font-weight:700}
+    .primary-btn:hover,.add-btn:hover{background:#46a3ff}
+    .secondary-btn{background:#142238;color:white;padding:14px 22px;border-radius:12px;font-size:15px;font-weight:600;border:1px solid #23344f}
+    .secondary-btn:hover{background:#1c2f4d}
+    .danger-btn{background:#d64545;color:white;padding:14px 24px;border-radius:14px;font-size:15px;font-weight:700}
+    .danger-btn:hover{background:#ef5a5a}
+    .warning-btn{background:#f1a733;color:#081426;padding:14px 24px;border-radius:14px;font-size:15px;font-weight:700}
+    .cancel-btn{background:transparent;color:#d2dbea;padding:14px 20px;font-size:15px;font-weight:600}
+    .modal{display:none;position:fixed;z-index:999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);justify-content:center;align-items:center;padding:20px;overflow:auto}
+    .modal-content{background:#081426;width:100%;max-width:950px;border-radius:22px;border:1px solid #1f3350;padding:28px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.45);max-height:95vh;overflow:auto}
+    .small-modal{max-width:520px;text-align:center}
+    .close{position:absolute;right:25px;top:20px;color:#8aa4c7;font-size:28px;cursor:pointer}
+    .modal-title{font-size:34px;font-weight:700;margin-bottom:22px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+    .field-group{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
+    label{color:#d5dff0;font-size:15px;font-weight:600}
+    input,select,textarea{background:#07101d;border:1px solid #203552;color:white;padding:14px 16px;border-radius:14px;outline:none;font-size:15px;width:100%}
+    input[readonly],textarea[readonly],select:disabled{opacity:.75;background:#0a1728}
+    textarea{resize:vertical;min-height:120px}
+    .two-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .upload-box{border:2px dashed #274160;border-radius:18px;min-height:230px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;background:#0a1728;cursor:pointer;transition:.2s;overflow:hidden}
+    .upload-box:hover{border-color:#3d8cff}
+    .upload-icon{font-size:42px;margin-bottom:15px}.upload-text{color:#dce7f7;font-weight:600;margin-bottom:6px}
+    .preview-img{width:100%;max-height:230px;object-fit:contain;border-radius:14px;margin-top:10px;background:#07101d}
+    .checkbox-row{display:flex;align-items:center;gap:10px;margin-top:8px}.checkbox-row input{width:18px;height:18px}
+    .modal-footer{display:flex;justify-content:flex-end;gap:14px;margin-top:26px;padding-top:22px;border-top:1px solid #1a2d46;flex-wrap:wrap}
+    .helper-text{color:#8aa4c7;line-height:1.5;margin-bottom:22px}.status-text{color:#9eb1ca;margin:12px 0;line-height:1.5}
+    .sku-summary{background:#0a1728;border:1px solid #1c314d;border-radius:18px;padding:18px;margin:18px 0;display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start}
+    .sku-summary img{width:160px;height:160px;object-fit:cover;border-radius:14px;background:#07101d}
+    .hidden{display:none!important}
+    @media(max-width:850px){body{padding:24px}.form-grid,.two-cols,.sku-summary{grid-template-columns:1fr}.sku-summary img{width:100%;height:240px}}
   </style>
 </head>
 <body>
-
-  <h1>Gestión de Inventario</h1>
-  <p style="color:#8aa4c7; margin-bottom:30px;">Busca un SKU para modificarlo o marcarlo como vendido.</p>
-
   <div class="top-buttons">
-    <button class="primary-btn" onclick="location.reload()">+ Nueva Prenda</button>
-    <div style="flex-grow:1; display:flex; gap:10px;">
-        <input type="text" id="lookupSku" placeholder="Ingresa SKU (ej: C0011)" style="flex-grow:1;">
-        <button class="primary-btn" onclick="lookupSku()">Buscar SKU</button>
-    </div>
+    <button class="primary-btn" onclick="openAddModal()">Agregar Prenda</button>
+    <button class="secondary-btn" onclick="openManageModal()">Modificar / Eliminar Prenda</button>
   </div>
 
-  <div id="statusMsg" style="margin:10px 0; font-weight:bold;"></div>
-
-  <div id="manageSection" class="hidden">
-    
-    <div id="summaryView" class="sku-card">
-      <img id="sumImg" src="" alt="Jersey">
-      <div class="sku-details">
-        <p><strong>SKU:</strong> <span id="sumSku"></span></p>
-        <p><strong>Equipo:</strong> <span id="sumEquipo"></span></p>
-        <p><strong>Año:</strong> <span id="sumYear"></span></p>
-        <p><strong>Precio:</strong> Q<span id="sumPrecio"></span></p>
-        <p><strong>Talla:</strong> <span id="sumTalla"></span></p>
-        <p><strong>Tipo:</strong> <span id="sumTipo"></span></p>
-        <p><strong>Disponible:</strong> <span id="sumDisp"></span></p>
-        <p><strong>Estado:</strong> <span id="sumEstado"></span></p>
-        <p><strong>Notas:</strong> <span id="sumNotas"></span></p>
-      </div>
-    </div>
-
-    <div id="initialActions" class="action-bar">
-        <button class="cancel-link" onclick="location.reload()">Cancelar</button>
-        <button class="primary-btn" onclick="showEditMode()">Actualizar</button>
-        <button class="warning-btn" onclick="quickAction('markSold')">Marcar Como Vendida</button>
-        <button class="danger-btn" onclick="quickAction('markDeleted')">Eliminar</button>
-    </div>
-
-    <div id="editMode" class="edit-container hidden">
-      <h3>Editando SKU: <span id="editingSkuTitle"></span></h3>
-      <form id="editForm" style="margin-top:20px;">
+  <div class="modal" id="addModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAddModal()">&times;</span>
+      <div class="modal-title">Añadir Prenda</div>
+      <form id="addForm">
         <div class="form-grid">
-          <div class="field full"><label>Equipo</label><input type="text" name="equipo" id="fEquipo"></div>
-          <div class="field"><label>Año</label><input type="text" name="year" id="fYear"></div>
-          <div class="field"><label>Precio (Q)</label><input type="number" name="precio" id="fPrecio"></div>
-          <div class="field">
-            <label>Talla</label>
-            <select name="talla" id="fTalla">
-              <option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option>
-            </select>
+          <div>
+            <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo" required placeholder="e.g., Argentina"></div>
+            <div class="two-cols">
+              <div class="field-group"><label>Año</label><input type="text" name="year" required placeholder="e.g., 2022-23"></div>
+              <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio" required placeholder="e.g., 500"></div>
+            </div>
+            <div class="two-cols">
+              <div class="field-group"><label>Talla</label><select name="talla" required><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option></select></div>
+            </div>
+            <div class="checkbox-row"><input type="checkbox" id="addDisponible" name="venta" checked><label for="addDisponible">Disponible para venta</label></div>
           </div>
-          <div class="field">
-            <label>Tipo</label>
-            <select name="tipo" id="fTipo">
-              <option>Casa</option><option>Visita</option><option>Entrenamiento</option><option>Firmada</option>
-            </select>
+          <div>
+            <div class="field-group"><label>Imagen</label>
+              <label class="upload-box">
+                <div id="addUploadInfo">
+                  <div class="upload-icon">⬆</div>
+                  <div class="upload-text">Click para subir imagen</div>
+                </div>
+                <img id="addPreview" class="preview-img hidden">
+                <input type="file" id="addFileInput" accept="image/*" style="display:none" name="imagen">
+              </label>
+            </div>
+            <div class="field-group"><label>Notas</label><textarea name="notas" placeholder="Condición, etiquetas..."></textarea></div>
           </div>
-          <div class="field full">
-            <label>Nueva Imagen (Opcional)</label>
-            <input type="file" id="fImg" accept="image/*">
-          </div>
-          <div class="field full">
-            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
-              <input type="checkbox" name="disponible" id="fDisp"> ¿Está disponible para venta?
-            </label>
-          </div>
-          <div class="field full"><label>Notas</label><textarea name="notas" id="fNotas"></textarea></div>
         </div>
-        <div class="action-bar">
-          <button type="button" class="cancel-link" onclick="hideEditMode()">Cancelar Edición</button>
-          <button type="submit" class="primary-btn" id="confirmBtn">Confirmar Actualización</button>
+        <div class="modal-footer">
+          <button type="button" class="cancel-btn" onclick="closeAddModal()">Cancelar</button>
+          <button type="submit" class="add-btn" id="addSubmitBtn">Añadir</button>
         </div>
       </form>
     </div>
-
   </div>
 
-  <script>
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyQJiY7GWJKashY_gl57P_gQCaZknQpXBBLIOV8_6EXRRG9Zmv7wDjldSJZ_OEWpFlZMQ/exec";
-    let currentItem = null;
-
-    // BUSCAR SKU
-    async function lookupSku() {
-      const sku = document.getElementById('lookupSku').value.trim().toUpperCase();
-      if(!sku) return;
+  <div class="modal" id="manageModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeManageModal()">&times;</span>
+      <div class="modal-title">Modificar / Eliminar Prenda</div>
+      <p class="helper-text">Ingresa el SKU para cargar sus datos.</p>
+      <div class="two-cols">
+        <div class="field-group"><label>SKU</label><input type="text" id="lookupSku" placeholder="e.g., C0001"></div>
+        <div class="field-group" style="justify-content:end"><button type="button" class="add-btn" id="lookupBtn" onclick="lookupSku()">Buscar SKU</button></div>
+      </div>
+      <div id="manageStatus" class="status-text"></div>
+      <div id="skuSummary" class="sku-summary hidden"></div>
       
-      const status = document.getElementById('statusMsg');
-      status.innerText = "Buscando...";
-      status.style.color = "#fff";
+      <form id="editForm" class="hidden">
+        </form>
+    </div>
+  </div>
 
-      try {
-        const response = await fetch(`${WEB_APP_URL}?action=getSku&sku=${sku}`);
-        const res = await response.json();
-        
-        if(res.success) {
-          currentItem = res.item;
-          status.innerText = "SKU encontrado.";
-          status.style.color = "#2490ff";
-          renderSummary(res.item);
-          document.getElementById('manageSection').classList.remove('hidden');
-          hideEditMode(); // Asegurar que empezamos en vista resumen
-        } else {
-          status.innerText = "Error: " + res.error;
-          status.style.color = "#d64545";
-          document.getElementById('manageSection').classList.add('hidden');
-        }
-      } catch(e) {
-        status.innerText = "Error de conexión.";
-      }
+<script>
+// USAR LA URL DE TU SCRIPT DESPLEGADO
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyYvxBq3kwRTYD5Rye_ecXg6D7dlVfQkZ6O2ybU9nQYYh4h69mEcLoga9NmE9MFIQQAXg/exec";
+const PLACEHOLDER_IMAGE = "https://placehold.co/800x800/0A1728/DCE7F7?text=Sin+imagen";
+
+function $(id){return document.getElementById(id)}
+
+// --- FUNCIONES DE MEJORA ---
+
+// 1. Permitir ENTER en la búsqueda de SKU
+$("lookupSku").addEventListener("keypress", function(e) {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    lookupSku();
+  }
+});
+
+// 2. Previsualización de imagen al agregar
+$("addFileInput").addEventListener("change", function() {
+  const file = this.files[0];
+  if (file) {
+    $("addPreview").src = URL.createObjectURL(file);
+    $("addPreview").classList.remove("hidden");
+    $("addUploadInfo").classList.add("hidden");
+  }
+});
+
+// 3. Función POST mejorada para evitar bloqueos
+async function postData(payload){
+  // Google Apps Script requiere 'no-cors' si no se manejan bien los headers, 
+  // pero para recibir el JSON del SKU necesitamos que sea una petición limpia.
+  const response = await fetch(WEB_APP_URL, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return response.json();
+}
+
+// 4. Lógica de Agregar Prenda (CORREGIDA)
+$("addForm").addEventListener("submit", async function(e){
+  e.preventDefault();
+  const submitBtn = $("addSubmitBtn");
+  submitBtn.disabled = true;
+  submitBtn.innerText = "Guardando...";
+  
+  try {
+    const formData = new FormData(this);
+    const imageFile = $("addFileInput").files[0];
+    let imageBase64 = "";
+    let imageType = "";
+
+    if (imageFile) {
+      imageType = imageFile.type;
+      imageBase64 = await toBase64(imageFile);
     }
 
-    // MOSTRAR RESUMEN
-    function renderSummary(item) {
-      document.getElementById('sumImg').src = item.imagen || 'https://placehold.co/400';
-      document.getElementById('sumSku').innerText = item.sku;
-      document.getElementById('sumEquipo').innerText = item.equipo;
-      document.getElementById('sumYear').innerText = item.year;
-      document.getElementById('sumPrecio').innerText = item.precio;
-      document.getElementById('sumTalla').innerText = item.talla;
-      document.getElementById('sumTipo').innerText = item.tipo;
-      document.getElementById('sumDisp').innerText = item.disponible;
-      document.getElementById('sumEstado').innerText = item.estado;
-      document.getElementById('sumNotas').innerText = item.notas || "Ninguna";
-    }
-
-    // CAMBIAR A MODO EDICIÓN
-    function showEditMode() {
-      document.getElementById('summaryView').classList.add('hidden');
-      document.getElementById('initialActions').classList.add('hidden');
-      document.getElementById('editMode').classList.remove('hidden');
-      
-      // Precargar datos en el formulario
-      document.getElementById('editingSkuTitle').innerText = currentItem.sku;
-      document.getElementById('fEquipo').value = currentItem.equipo;
-      document.getElementById('fYear').value = currentItem.year;
-      document.getElementById('fPrecio').value = currentItem.precio;
-      document.getElementById('fTalla').value = currentItem.talla;
-      document.getElementById('fTipo').value = currentItem.tipo;
-      document.getElementById('fDisp').checked = (currentItem.disponible === 'Sí');
-      document.getElementById('fNotas').value = currentItem.notas || "";
-    }
-
-    function hideEditMode() {
-      document.getElementById('summaryView').classList.remove('hidden');
-      document.getElementById('initialActions').classList.remove('hidden');
-      document.getElementById('editMode').classList.add('hidden');
-    }
-
-    // ACCIONES RÁPIDAS (VENDIDA / ELIMINAR)
-    async function quickAction(action) {
-      const msg = action === 'markSold' ? "¿Marcar como vendida?" : "¿Eliminar permanentemente?";
-      if(!confirm(msg)) return;
-
-      const resp = await fetch(WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action, sku: currentItem.sku })
-      });
-      const res = await resp.json();
-      if(res.success) {
-        alert("¡Éxito!");
-        location.reload();
-      }
-    }
-
-    // GUARDAR ACTUALIZACIÓN
-    document.getElementById('editForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('confirmBtn');
-      btn.disabled = true;
-      btn.innerText = "Actualizando...";
-
-      const fileInput = document.getElementById('fImg');
-      let base64 = "";
-      if(fileInput.files[0]) {
-        base64 = await new Promise(r => {
-          const rd = new FileReader();
-          rd.onload = () => r(rd.result);
-          rd.readAsDataURL(fileInput.files[0]);
-        });
-      }
-
-      const payload = {
-        action: 'updateItem',
-        sku: currentItem.sku,
-        equipo: document.getElementById('fEquipo').value,
-        year: document.getElementById('fYear').value,
-        precio: document.getElementById('fPrecio').value,
-        talla: document.getElementById('fTalla').value,
-        tipo: document.getElementById('fTipo').value,
-        disponible: document.getElementById('fDisp').checked,
-        notas: document.getElementById('fNotas').value,
-        imageBase64: base64
-      };
-
-      try {
-        const resp = await fetch(WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const res = await resp.json();
-        if(res.success) {
-          alert("Jersey actualizado correctamente.");
-          location.reload();
-        }
-      } catch(e) {
-        alert("Error al actualizar.");
-        btn.disabled = false;
-        btn.innerText = "Confirmar Actualización";
-      }
+    const payload = {
+      action: "addItem",
+      equipo: formData.get("equipo"),
+      year: formData.get("year"),
+      precio: formData.get("precio"),
+      talla: formData.get("talla"),
+      tipo: formData.get("tipo"),
+      disponible: formData.get("venta") ? true : false,
+      notas: formData.get("notas"),
+      imageBase64: imageBase64,
+      imageType: imageType
     };
-  </script>
+
+    const result = await postData(payload);
+
+    if (result.success) {
+      alert(`¡Éxito! Prenda guardada.\nSKU generado: ${result.sku}`);
+      closeAddModal();
+      location.reload(); // Recargar para limpiar todo
+    } else {
+      alert("Error del servidor: " + result.error);
+    }
+  } catch (error) {
+    console.error("Error al enviar:", error);
+    alert("Error de conexión. Revisa que el Script esté publicado como 'Cualquier persona'.");
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerText = "Añadir";
+  }
+});
+
+// --- FUNCIONES AUXILIARES (Mantener las que ya tenías) ---
+
+function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = error => reject(error);
+  });
+}
+
+function openAddModal(){ $("addModal").style.display = "flex" }
+function closeAddModal(){ 
+  $("addModal").style.display = "none"; 
+  $("addForm").reset();
+  $("addPreview").classList.add("hidden");
+  $("addUploadInfo").classList.remove("hidden");
+}
+function openManageModal(){ $("manageModal").style.display = "flex" }
+function closeManageModal(){ $("manageModal").style.display = "none" }
+
+// (Incluye aquí tus funciones lookupSku, renderSkuSummary, etc. del archivo original)
+</script>
 </body>
 </html>

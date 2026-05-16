@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Catálogo Jerseys</title>
+  <title>CAS</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -77,7 +77,7 @@
   <nav class="navbar">
     <div class="nav-brand">
       <img src="logo.png" alt="Logo" class="nav-logo">
-      <span class="nav-title">Catálogo Jerseys</span>
+      <span class="nav-title">Catálogo - Central America Shirts</span>
     </div>
   </nav>
 
@@ -85,8 +85,8 @@
     <div class="filters-container">
       <div class="filters-grid">
         <div class="field-group">
-          <label>Buscar Equipo o SKU</label>
-          <input type="text" id="searchInput" placeholder="Ej: Barcelona..." oninput="applyFilters()">
+          <label>Buscar por Equipo ó SKU</label>
+          <input type="text" id="searchInput" placeholder="Ej: Milan..." oninput="applyFilters()">
         </div>
         <div class="field-group">
           <label>Talla</label>
@@ -97,7 +97,7 @@
           </select>
         </div>
         <div class="field-group">
-          <label>Tipo</label>
+          <label>Tipo de Camisola</label>
           <select id="typeFilter" onchange="applyFilters()">
             <option value="">Todos</option>
             <option>Casa</option><option>Visita</option><option>Entrenamiento</option>
@@ -107,7 +107,7 @@
         <div class="field-group">
           <label>Ordenar por</label>
           <select id="sortOrder" onchange="applyFilters()">
-            <option value="none">Novedades</option>
+            <option value="none">ID de producto</option>
             <option value="p-low">Precio: Menor a Mayor</option>
             <option value="p-high">Precio: Mayor a Menor</option>
             <option value="az">A - Z</option>
@@ -118,7 +118,7 @@
       <div class="search-actions">
         <div class="checkbox-row">
           <input type="checkbox" id="availableOnly" checked onchange="applyFilters()">
-          <label for="availableOnly">Solo Disponibles</label>
+          <label for="availableOnly">Mostrar Únicamente Disponibles</label>
         </div>
         <button class="search-btn" onclick="applyFilters()">Actualizar Catálogo</button>
       </div>

@@ -86,7 +86,7 @@
 	
   <div class="container">
         <div class="home-message-group">
-        <h2>Listado de Camisolas disponibles en tienda.</h2>
+          <h2>Listado de Camisolas disponibles en tienda.</h2>
           <label2>Vía 4  1-17 Zona 4, 4 Grados Norte</label2>
         </div>    
   </div>     
@@ -95,7 +95,7 @@
     <div class="filters-container">
       <div class="filters-grid">
         <div class="field-group">
-          <label>Buscar por Equipo ó SKU</label>
+          <label>Buscar por Equipo ó Código</label>
           <input type="text" id="searchInput" placeholder="Ej: Milan..." oninput="applyFilters()">
         </div>
         <div class="field-group">
@@ -125,13 +125,15 @@
         </div>
       </div>
 
+      <!--
       <div class="search-actions">
         <div class="checkbox-row">
           <input type="checkbox" id="availableOnly" checked onchange="applyFilters()">
-          <label for="availableOnly">Mostrar Únicamente Disponibles</label>
+          <label for="availableOnly">Solo Disponibles</label>
         </div>
-        <button class="search-btn" onclick="applyFilters()">Actualizar Catálogo</button>
-      </div>
+         <button class="search-btn" onclick="applyFilters()">Actualizar Catálogo</button> 
+      </div> 
+      -->
     </div>
 
     <div id="resultCount" style="margin-bottom:15px; color:#9eb1ca; font-size: 14px;">Cargando...</div>
@@ -164,7 +166,8 @@
       const search = document.getElementById('searchInput').value.toLowerCase().trim();
       const size = document.getElementById('sizeFilter').value;
       const type = document.getElementById('typeFilter').value;
-      const onlyAvail = document.getElementById('availableOnly').checked;
+      // const onlyAvail = document.getElementById('availableOnly').checked;
+      const onlyAvail = true;
       const sort = document.getElementById('sortOrder').value;
 
       filteredItems = allItems.filter(item => {

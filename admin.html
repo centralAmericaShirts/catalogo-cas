@@ -74,11 +74,11 @@
               <label class="upload-box">
                 <div id="addUploadContainer">
                   <div class="upload-icon">⬆</div>
-                  <div class="upload-text">Click para subir imagen</div>
-                  <div class="upload-sub">JPG, PNG, WEBP max 5MB</div>
+                  <div class="upload-text">Click para subir imágenes</div>
+                  <div class="upload-sub">Selecciona una o más imágenes (JPG, PNG, WEBP)</div>
                 </div>
-                <img id="addPreview" class="preview-img hidden" alt="Previsualización">
-                <input type="file" id="addFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen">
+                <div id="addPreviewContainer" class="hidden" style="display: flex; gap: 10px; overflow-x: auto; margin-top: 10px;"></div>
+                <input type="file" id="addFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
               </label>
             </div>
             <div class="field-group"><label>Notas</label><textarea name="notas" placeholder="Condición, etiquetas, historia..."></textarea></div>

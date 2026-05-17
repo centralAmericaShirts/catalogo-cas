@@ -9,72 +9,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
   
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; font-family: 'Comfortaa', sans-serif; }
-    body { background:#07111f; color:white; padding-top: 90px; padding-bottom: 40px; }
-
-    /* NAVEGACIÓN */
-    .navbar {position: fixed;top: 0; left: 0; width: 100%;height: 70px; background: #0b1729; border-bottom: 1px solid #1d314d; display: flex; align-items: center; padding: 0 30px; z-index: 1000; justify-content: space-between}
-    .nav-brand {  display: flex;  align-items: center;  gap: 15px; }
-    .nav-text-container { display: flex; align-items: baseline; gap: 20px;}
-    .nav-logo { height: 45px; width: 45px; object-fit: contain; }
-    .nav-title { font-size: 20px; font-weight: 700; color: #2490ff; white-space: nowrap; }
-    .nav-slogan { margin: 0; color: white; }
-
-    @media (max-width: 768px) {
-       .navbar {   height: auto;   padding: 10px 15px; }
-      .nav-text-container {   flex-direction: column; gap: 2px;align-items: flex-start}
-      .nav-title {font-size: 16px;white-space: normal;}
-      .nav-slogan {font-size: 11px;}
-    }
-
-    /* FILTROS */
-    .container { padding: 0 20px; max-width: 1200px; margin: 0 auto; }
-    .filters-container { background:#0b1729; border:1px solid #1d314d; border-radius:22px; padding:24px; margin-bottom:24px; }
-    .filters-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:18px; align-items: end; }
-    .field-group { display:flex; flex-direction:column; gap:8px; }
-    .home-message-group { display:justify; gap:8px; text-align: center; padding:10px}
-    label { font-size:13px; color:#d9e5f5; font-weight:600; }
-    h2 { font-size:24px; color:#d9e5f5; font-weight:600; }
-    label2 { font-size:24px; color:#2490ff; font-weight:600; }
-    input, select { width:100%; padding:12px; border-radius:12px; border:1px solid #213754; background:#07101d; color:white; outline:none; font-size:14px; }
-    
-    /* CATALOGO */
-    .catalog-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:24px; }
-    .card { background:#081426; border:1px solid #1b2f49; border-radius:24px; overflow:hidden; position:relative; display:flex; flex-direction:column; transition: .2s; }
-    .card:hover { transform: translateY(-5px); }
-    
-    .card-image-container { position:relative; width:100%; height:300px; background:#0a1728; }
-    .card-image { width:100%; height:100%; object-fit:cover; }
-    
-    .badge { position:absolute; top:14px; padding:8px 14px; border-radius:10px; font-size:11px; font-weight:700; }
-    .badge-available { left:14px; background:#2a9fff; color:#041426; }
-    .badge-sold { left:14px; background:#cfd5dd; color:#1f2c3e; }
-    .badge-type { right:14px; background: rgba(35, 47, 67, 0.85); color:white; }
-    
-    .card-body { padding:18px; flex-grow:1; display: flex; flex-direction: column; }
-    .price { color:#1ea0ff; font-size:20px; font-weight:700; margin:10px 0; }
-    
-    /* BOTONES DE LA TARJETA */
-    .card-actions { display: flex; gap: 10px; margin-top: auto; }
-    .view-btn { background: #f1a733; color: #081426; flex-grow: 1; text-align: center; padding: 12px; border-radius: 12px; font-weight: 700; cursor: pointer; border: none; font-size: 14px; transition: 0.2s;}
-    .view-btn:hover { background: #ffbd4f; }
-    .ws-icon-btn { background: #25d366; color: white; display: flex; align-items: center; justify-content: center; width: 45px; border-radius: 12px; text-decoration: none; transition: 0.2s; }
-    .ws-icon-btn:hover { background: #20b858; }
-
-    .ws-btn-full { background:#25d366; color:white; text-decoration:none; display:block; text-align:center; padding:12px; border-radius:12px; font-weight:700; margin-top:30px; }
-    .loading { text-align:center; padding:40px; color:#9eb1ca; grid-column:1/-1; }
-
-    @media(max-width:850px){ 
-      .filters-grid { grid-template-columns: 1fr 1fr; }
-      .filters-grid .field-group:first-child { grid-column: span 2; }
-      .catalog-grid { grid-template-columns:repeat(2,1fr); gap: 12px; } 
-      .card-image-container { height:200px; } 
-      .nav-title { font-size: 16px; }
-    }
-  </style>
+  <link rel="stylesheet" href="style.css"> 
 </head>
-<body>
+
+<body class="index-page">
 
   <nav class="navbar">
     <div class="nav-brand">

@@ -232,5 +232,29 @@
 
     loadInventory();
   </script>
+	<div class="modal" id="productModal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; padding:20px;">
+	  <div class="modal-content" style="background:#081426; max-width:800px; width:100%; border-radius:22px; position:relative; display:flex; flex-direction:column; md:flex-row; overflow:hidden;">
+	    <span onclick="closeProductModal()" style="position:absolute; right:20px; top:15px; font-size:28px; color:white; cursor:pointer; z-index:10;">&times;</span>
+	    
+	    <div style="display:flex; flex-wrap:wrap;">
+	      <div style="flex:1; min-width:300px; background:#0a1728; position:relative;">
+	        <img id="modalMainImage" src="" style="width:100%; height:400px; object-fit:contain;">
+	        <div id="modalThumbnails" style="display:flex; overflow-x:auto; gap:10px; padding:10px; background:#07111f;">
+	           </div>
+	      </div>
+	      
+	      <div style="flex:1; min-width:300px; padding:30px;">
+	        <h2 id="modalTitle" style="color:#2490ff; margin-bottom:10px;"></h2>
+	        <div id="modalPrice" class="price" style="font-size:24px; margin-bottom:20px;"></div>
+	        <p style="color:#d9e5f5; margin-bottom:8px;"><strong>Talla:</strong> <span id="modalSize"></span></p>
+	        <p style="color:#d9e5f5; margin-bottom:8px;"><strong>Tipo:</strong> <span id="modalType"></span></p>
+	        <p style="color:#d9e5f5; margin-bottom:8px;"><strong>SKU:</strong> <span id="modalSku"></span></p>
+	        <p style="color:#9eb1ca; margin-top:20px; font-size:14px;" id="modalNotes"></p>
+	        
+	        <a id="modalWsBtn" href="#" class="ws-btn" target="_blank" style="margin-top:30px;">Consultar WhatsApp</a>
+	      </div>
+	    </div>
+	  </div>
+	</div>
 </body>
 </html>

@@ -164,10 +164,23 @@ textarea { resize: vertical; min-height: 120px; }
   .nav-slogan { font-size: 11px; }
 }
 
-.view-btn .txt-mobile { display: none; }
-.view-btn .txt-desc { display: inline; }
+/* =========================================
+   CONTROL DE TEXTO "VER PRODUCTO" / "VER"
+========================================= */
+/* Por defecto (Computador): Mostramos el largo, ocultamos el corto */
+.view-btn .txt-desktop { 
+  display: inline !important; 
+}
+.view-btn .txt-mobile { 
+  display: none !important; 
+}
 
+/* En pantallas móviles (Menores a 850px) */
 @media (max-width: 850px) {
-  .view-btn .txt-desktop { display: none; }
-  .view-btn .txt-mobile { display: inline; }
+  .view-btn .txt-desktop { 
+    display: none !important; /* Oculta "Ver Producto" */
+  }
+  .view-btn .txt-mobile { 
+    display: inline !important; /* Muestra "Ver" */
+  }
 }

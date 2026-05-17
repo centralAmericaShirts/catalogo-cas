@@ -161,12 +161,14 @@
         const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
         const isDisponible = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
         
-        return `
-        <div class="card">
-          <div class="card-image-container">
-            <div class="badge badge-type">${String(item.tipo).toUpperCase()}</div>
-          </div>
-          <div class="card-body">
+		return `
+		<div class="card">
+		  <div class="card-image-container">
+		    <img class="card-image" src="${item.imagen || 'https://placehold.co/400'}" loading="lazy">
+		    
+		    <div class="badge badge-type">${String(item.tipo).toUpperCase()}</div>
+		  </div>
+		  <div class="card-body">
             <h3 style="font-size:16px; margin-bottom: 5px;">${item.equipo} '${item.year}</h3>
             <div class="price">Q${item.precio}</div>
             <div style="font-size:12px; color:#8293ac; margin-bottom: 15px;">Talla: ${item.talla} | SKU: ${item.sku}</div>

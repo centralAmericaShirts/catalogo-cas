@@ -158,7 +158,7 @@
       }
 
       grid.innerHTML = filteredItems.map(item => {
-        const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
+        const wsMsg = encodeURIComponent(`Hola, me interesa esta prenda de ${item.equipo} '${item.year} (ID: ${item.sku})`);
         const isDisponible = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
         
 		return `

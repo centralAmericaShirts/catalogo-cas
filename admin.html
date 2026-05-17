@@ -34,16 +34,28 @@
     .upload-box{border:2px dashed #274160;border-radius:18px;min-height:230px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;background:#0a1728;cursor:pointer;transition:.2s;overflow:hidden}
     .upload-box:hover{border-color:#3d8cff}
     .upload-icon{font-size:42px;margin-bottom:15px}.upload-text{color:#dce7f7;font-weight:600;margin-bottom:6px}.upload-sub{color:#7084a1;font-size:13px}
-    .preview-img{width:100%;max-height:230px;object-fit:contain;border-radius:14px;margin-top:10px;background:#07101d}
+    .preview-img{width:100%;max-height:230px;object-fit:cover;border-radius:14px;margin-top:10px;background:#07101d}
     .checkbox-row{display:flex;align-items:center;gap:10px;margin-top:8px}.checkbox-row input{width:18px;height:18px}
     .modal-footer{display:flex;justify-content:flex-end;gap:14px;margin-top:26px;padding-top:22px;border-top:1px solid #1a2d46;flex-wrap:wrap}
     .helper-text{color:#8aa4c7;line-height:1.5;margin-bottom:22px}.status-text{color:#9eb1ca;margin:12px 0;line-height:1.5}
     .sku-summary{background:#0a1728;border:1px solid #1c314d;border-radius:18px;padding:18px;margin:18px 0;display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:start}
     .sku-summary img{width:160px;height:160px;object-fit:cover;border-radius:14px;background:#07101d}.sku-summary p{margin:0 0 8px;color:#dce7f7}.hidden{display:none!important}
+    
+    /* Loader Overlay */
+    .loader-overlay { display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(0,0,0,0.85); flex-direction:column; justify-content:center; align-items:center; color:white; }
+    .spinner { width: 60px; height: 60px; border: 6px solid #1f3350; border-top-color: #2490ff; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media(max-width:850px){body{padding:24px}.form-grid,.two-cols,.sku-summary{grid-template-columns:1fr}.modal-title{font-size:28px}.sku-summary img{width:100%;height:240px}}
   </style>
 </head>
 <body>
+
+  <div id="loaderOverlay" class="loader-overlay">
+    <div class="spinner"></div>
+    <h3 id="loaderText" style="font-size: 20px; font-weight: 600;">Procesando...</h3>
+  </div>
+
   <div class="top-buttons">
     <a href="index.html" class="secondary-btn" style="text-decoration: none; display: inline-flex; align-items: center;">← Regresar al catálogo</a>
     <button class="primary-btn" onclick="openAddModal()">Agregar Prenda</button>
@@ -70,14 +82,14 @@
           </div>
           <div>
             <div class="field-group">
-              <label>Imagen</label>
+              <label>Imágenes de la prenda</label>
               <label class="upload-box">
                 <div id="addUploadContainer">
                   <div class="upload-icon">⬆</div>
                   <div class="upload-text">Click para subir imágenes</div>
                   <div class="upload-sub">Selecciona una o más imágenes (JPG, PNG, WEBP)</div>
                 </div>
-                <div id="addPreviewContainer" class="hidden" style="display: flex; gap: 10px; overflow-x: auto; margin-top: 10px;"></div>
+                <div id="addPreviewContainer" class="hidden" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
                 <input type="file" id="addFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
               </label>
             </div>
@@ -117,12 +129,15 @@
           </div>
           <div>
             <div class="field-group">
-              <label>Imagen actual / nueva imagen</label>
+              <label>Imágenes actuales / nuevas imágenes</label>
               <label class="upload-box">
-                <div class="upload-text">Click para subir nueva imagen</div>
-                <div class="upload-sub">Si no subes imagen nueva, se conserva la actual.</div>
-                <img id="editImagePreview" class="preview-img" alt="Imagen actual">
-                <input type="file" id="editFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen">
+                <div id="editUploadContainer">
+                  <div class="upload-text">Click para subir nuevas imágenes</div>
+                  <div class="upload-sub">Si subes nuevas imágenes, reemplazarán la galería actual.</div>
+                  <img id="editImagePreview" class="preview-img" alt="Imagen actual">
+                </div>
+                <div id="editPreviewContainer" class="hidden" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+                <input type="file" id="editFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
               </label>
             </div>
             <div class="field-group"><label>Notas</label><textarea name="notas"></textarea></div>
@@ -162,11 +177,20 @@ function safeText(v){return v === null || v === undefined ? "" : String(v)}
 function escapeHtml(v){return safeText(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;")}
 function normalizeSku(v){return safeText(v).trim().toUpperCase()}
 
+function showLoader(text) {
+  $("loaderText").innerText = text || "Procesando...";
+  $("loaderOverlay").style.display = "flex";
+}
+function hideLoader() {
+  $("loaderOverlay").style.display = "none";
+}
+
 function openAddModal(){ $("addModal").style.display = "flex" }
 function closeAddModal(){ 
   $("addModal").style.display = "none"; 
   $("addForm").reset();
-  $("addPreview").classList.add("hidden");
+  const p = $("addPreviewContainer");
+  if(p) { p.innerHTML = ""; p.classList.add("hidden"); }
   $("addUploadContainer").classList.remove("hidden");
 }
 function openManageModal(){ resetManage(); $("manageModal").style.display = "flex" }
@@ -179,7 +203,6 @@ window.onclick = function(event){
   if(event.target === $("confirmModal")) closeConfirmModal();
 }
 
-// Escuchar la tecla "Enter" en la barra de búsqueda de SKU
 $("lookupSku").addEventListener("keypress", function(e) {
   if (e.key === "Enter") {
     e.preventDefault();
@@ -187,21 +210,47 @@ $("lookupSku").addEventListener("keypress", function(e) {
   }
 });
 
-// Previsualizar la imagen seleccionada al agregar
+// Previsualizar múltiples imágenes al agregar
 $("addFileInput").addEventListener("change", function() {
-  const file = this.files[0];
-  if(file) {
-    $("addPreview").src = URL.createObjectURL(file);
-    $("addPreview").classList.remove("hidden");
+  const container = $("addPreviewContainer");
+  container.innerHTML = ""; 
+  const files = this.files;
+  
+  if(files.length > 0) {
+    Array.from(files).forEach(file => {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      img.className = "preview-img";
+      img.style.width = "70px"; img.style.height = "70px"; img.style.marginTop = "0";
+      container.appendChild(img);
+    });
+    container.classList.remove("hidden");
     $("addUploadContainer").classList.add("hidden");
+  } else {
+    container.classList.add("hidden");
+    $("addUploadContainer").classList.remove("hidden");
   }
 });
 
-// Previsualizar la imagen seleccionada al editar
+// Previsualizar múltiples imágenes al editar
 $("editFileInput").addEventListener("change", function() {
-  const file = this.files[0];
-  if(file) {
-    $("editImagePreview").src = URL.createObjectURL(file);
+  const container = $("editPreviewContainer");
+  container.innerHTML = ""; 
+  const files = this.files;
+  
+  if(files.length > 0) {
+    Array.from(files).forEach(file => {
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(file);
+      img.className = "preview-img";
+      img.style.width = "70px"; img.style.height = "70px"; img.style.marginTop = "0";
+      container.appendChild(img);
+    });
+    container.classList.remove("hidden");
+    $("editUploadContainer").classList.add("hidden");
+  } else {
+    container.classList.add("hidden");
+    $("editUploadContainer").classList.remove("hidden");
   }
   setDirty(true);
 });
@@ -233,47 +282,52 @@ async function postData(payload){
   return response.json();
 }
 
+// Enviar formulario de Agregado con Array de Imágenes
 $("addForm").addEventListener("submit", async function(e){
   e.preventDefault();
   const submitBtn = $("addSubmitBtn");
   submitBtn.disabled = true;
-  submitBtn.innerText = "Guardando...";
+  showLoader("Subiendo imágenes y guardando prenda...");
+  
   try{
     const formData = new FormData(this);
-    const imageFile = $("addFileInput").files[0];
-    let imageBase64 = "";
-    let imageType = "";
+    const imageFiles = $("addFileInput").files;
+    let imagesArray = [];
     
-    if(imageFile){
-      imageType = imageFile.type;
-      imageBase64 = await toBase64(imageFile);
+    // Convertir todos los archivos a Base64
+    for (let i = 0; i < imageFiles.length; i++) {
+      let base64 = await toBase64(imageFiles[i]);
+      imagesArray.push({
+        base64: base64,
+        type: imageFiles[i].type
+      });
     }
     
     const result = await postData({
-      action:"addItem",
-      equipo:formData.get("equipo"),
-      year:formData.get("year"),
-      precio:formData.get("precio"),
-      talla:formData.get("talla"),
-      tipo:formData.get("tipo"),
+      action: "addItem",
+      equipo: formData.get("equipo"),
+      year: formData.get("year"),
+      precio: formData.get("precio"),
+      talla: formData.get("talla"),
+      tipo: formData.get("tipo"),
       disponible: $("addDisponible").checked,
-      notas:formData.get("notas"),
-      imageBase64,
-      imageType
+      notas: formData.get("notas"),
+      images: imagesArray 
     });
     
     if(result.success){
       alert(`Prenda agregada correctamente.\nSKU Generado: ${result.sku}`);
       closeAddModal();
     }else{
-      alert("Error: " + result.error);
+      alert("Error del servidor: " + result.error);
     }
   }catch(error){
     console.error(error);
-    alert("Error al guardar.");
+    alert("Hubo un error de conexión al guardar.");
   }
+  
+  hideLoader();
   submitBtn.disabled = false;
-  submitBtn.innerText = "Añadir";
 });
 
 async function lookupSku(){
@@ -339,9 +393,14 @@ function showEditForm(){
   form.tipo.value = currentItem.tipo || "";
   form.venta.checked = currentItem.disponible === "Sí";
   form.notas.value = currentItem.notas || "";
+  
   $("editFileInput").value = "";
   $("editImagePreview").onerror = function(){ this.onerror = null; this.src = PLACEHOLDER_IMAGE; };
   $("editImagePreview").src = currentItem.imagen || PLACEHOLDER_IMAGE;
+  $("editUploadContainer").classList.remove("hidden");
+  $("editPreviewContainer").innerHTML = "";
+  $("editPreviewContainer").classList.add("hidden");
+  
   form.classList.remove("hidden");
   $("updateBtn").classList.add("hidden");
   $("confirmUpdateBtn").classList.remove("hidden");
@@ -353,33 +412,41 @@ $("editForm").addEventListener("change", () => setDirty(true));
 
 function setDirty(value){ editDirty = value; $("confirmUpdateBtn").disabled = !value; }
 
+// Enviar formulario de Edición con Array de Imágenes
 async function confirmUpdate(){
   if(!currentItem || !editDirty) return;
   const form = $("editForm");
   const formData = new FormData(form);
-  const imageFile = $("editFileInput").files[0];
-  let imageBase64 = "";
-  let imageType = "";
+  const imageFiles = $("editFileInput").files;
+  
   $("confirmUpdateBtn").disabled = true;
-  $("confirmUpdateBtn").innerText = "Actualizando...";
+  showLoader("Actualizando datos y galería en Drive...");
+  
   try{
-    if(imageFile){
-      imageType = imageFile.type;
-      imageBase64 = await toBase64(imageFile);
+    let imagesArray = [];
+    if(imageFiles.length > 0){
+      for (let i = 0; i < imageFiles.length; i++) {
+        let base64 = await toBase64(imageFiles[i]);
+        imagesArray.push({
+          base64: base64,
+          type: imageFiles[i].type
+        });
+      }
     }
+    
     const result = await postData({
-      action:"updateItem",
-      sku:currentItem.sku,
-      equipo:formData.get("equipo"),
-      year:formData.get("year"),
-      precio:formData.get("precio"),
-      talla:formData.get("talla"),
-      tipo:formData.get("tipo"),
-      disponible:form.venta.checked,
-      notas:formData.get("notas"),
-      imageBase64,
-      imageType
+      action: "updateItem",
+      sku: currentItem.sku,
+      equipo: formData.get("equipo"),
+      year: formData.get("year"),
+      precio: formData.get("precio"),
+      talla: formData.get("talla"),
+      tipo: formData.get("tipo"),
+      disponible: form.venta.checked,
+      notas: formData.get("notas"),
+      images: imagesArray 
     });
+    
     if(result.success){
       alert("SKU actualizado correctamente.");
       await lookupSku();
@@ -390,16 +457,17 @@ async function confirmUpdate(){
     }
   }catch(error){
     console.error(error);
-    alert("Error actualizando el SKU.");
+    alert("Error de red actualizando el SKU.");
   }
-  $("confirmUpdateBtn").innerText = "Confirmar";
+  
+  hideLoader();
   $("confirmUpdateBtn").disabled = !editDirty;
 }
 
 function openConfirmModal(type){
   if(!currentItem) return;
   const isDelete = type === "delete";
-  $("confirmTitle").innerText = isDelete ? "Confirmar eliminacion" : "Confirmar prenda vendida";
+  $("confirmTitle").innerText = isDelete ? "Confirmar eliminación" : "Confirmar prenda vendida";
   $("confirmText").innerText = `${currentItem.sku} - ${currentItem.equipo || "Sin equipo"}`;
   $("confirmActionBtn").onclick = () => submitSkuAction(isDelete ? "markDeleted" : "markSold");
   $("confirmModal").style.display = "flex";
@@ -409,7 +477,8 @@ async function submitSkuAction(action){
   if(!currentItem) return;
   const btn = $("confirmActionBtn");
   btn.disabled = true;
-  btn.innerText = "Confirmando...";
+  showLoader("Procesando...");
+  
   try{
     const result = await postData({action, sku:currentItem.sku});
     if(result.success){
@@ -421,10 +490,11 @@ async function submitSkuAction(action){
     }
   }catch(error){
     console.error(error);
-    alert("Error actualizando el SKU.");
+    alert("Error de red actualizando el SKU.");
   }
+  
+  hideLoader();
   btn.disabled = false;
-  btn.innerText = "Confirmar";
 }
 
 function resetManage(){

@@ -1,7 +1,7 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por ambos)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyp4T1_9qQ9xah81zmTowPNlNkzIUfu0YyTqkWTjydLKFwcu21qu8ca6tRS9YZr07nbXw/exec"; // Reemplaza por tu URL real si cambia
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwec9_6ZQ9AX26x-5JkgOcIjyDpKhQrjBr9778eMgOJAbuY-yCQNTOuoJ83JqV_j98iJw/exec"; // Reemplaza por tu URL real si cambia
 const WS_NUMBER = "50231566415"; // Número de WhatsApp configurado
 
 let allItems = [], filteredItems = [];

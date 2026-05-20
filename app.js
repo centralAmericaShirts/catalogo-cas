@@ -6,7 +6,7 @@ const WS_NUMBER = "50231566415"; // Número de WhatsApp configurado
 
 let allItems = [], filteredItems = [];
 let currentPage = 1;
-let itemsPerPage = 25; // Default solicitado
+let itemsPerPage = 24; // Default solicitado
 let currentItem = null;
 let editDirty = false;
 
@@ -274,7 +274,7 @@ async function loadProductPage() {
 function renderProductPage(item) {
   const view = document.getElementById('productPageContent');
   const images = getProductImages(item);
-  const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
+  const wsMsg = encodeURIComponent(`Hola, me interesa la prenda de ${item.equipo} '${item.year} (ID: ${item.sku})`);
   const productUrl = getProductUrl(item.sku);
 
   document.title = `${item.equipo} ${item.year} | CAS`;

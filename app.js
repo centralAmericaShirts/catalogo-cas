@@ -1,12 +1,12 @@
 /* ==========================================================================
-   1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por ambos)
+   1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwec9_6ZQ9AX26x-5JkgOcIjyDpKhQrjBr9778eMgOJAbuY-yCQNTOuoJ83JqV_j98iJw/exec"; // Reemplaza por tu URL real si cambia
-const WS_NUMBER = "50231566415"; // Número de WhatsApp configurado
+const WS_NUMBER = "50258656376"; // Número de WhatsApp
 
 let allItems = [], filteredItems = [];
 let currentPage = 1;
-let itemsPerPage = 24; // Default solicitado
+let itemsPerPage = 24; 
 let currentItem = null;
 let editDirty = false;
 
@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
    3. LÓGICA PARA LA TIENDA PRINCIPAL (index.html)
    ========================================================================== */
 function showInventoryError(message) {
-  document.getElementById('resultCount').innerText = 'No se pudo cargar el inventario';
+  document.getElementById('resultCount').innerText = 'Hubo un error al cargar el inventario, una disculpa. Intenta nuevamente.';
   document.getElementById('catalogGrid').innerHTML = `<div class="loading">${message}</div>`;
 }
 
@@ -124,7 +124,6 @@ function changePage(delta) {
   if (currentPage > totalPages) currentPage = totalPages;
   
   render();
-  // Sube el scroll de forma suave hacia el contador de resultados
   document.getElementById('resultCount').scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
@@ -132,7 +131,7 @@ function applyFilters(){
   const search = document.getElementById('searchInput').value.toLowerCase().trim();
   const size = document.getElementById('sizeFilter').value;
   const type = document.getElementById('typeFilter').value;
-  const onlyAvail = true; // Forzado a solo disponibles según tu código original
+  const onlyAvail = true; 
   const sort = document.getElementById('sortOrder').value;
 
   filteredItems = allItems.filter(item => {
@@ -201,7 +200,6 @@ function render(){
     `;
   }).join('');
 
-  // Actualizar UI de paginación
   if (pagControls) {
     if (totalPages > 1) {
       pagControls.style.display = 'flex';

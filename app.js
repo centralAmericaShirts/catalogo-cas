@@ -1,7 +1,7 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por ambos)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbynTchtEIJ-HmdGR7EfxzKIGeq-F5nhepMUJSxTs9Xy8QtbDzEu_PYz7pS-SNgC0JvSeQ/exec"; // Reemplaza por tu URL real si cambia
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyp4T1_9qQ9xah81zmTowPNlNkzIUfu0YyTqkWTjydLKFwcu21qu8ca6tRS9YZr07nbXw/exec"; // Reemplaza por tu URL real si cambia
 const WS_NUMBER = "50231566415"; // Número de WhatsApp configurado
 
 let allItems = [], filteredItems = [];
@@ -104,7 +104,7 @@ async function loadInventory(){
   } catch(error) {
     const message = error.message === 'timeout'
       ? 'El inventario está tardando demasiado en responder. Intenta recargar la página.'
-      : 'Hubo un problema conectando con la base de datos.';
+      : 'Una disculpa. Hubo un problema conectando con la base de datos.';
     showInventoryError(message);
   }
 }
@@ -178,7 +178,7 @@ function render(){
   const paginatedItems = filteredItems.slice(start, end);
 
   grid.innerHTML = paginatedItems.map(item => {
-    const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
+    const wsMsg = encodeURIComponent(`Hola, me interesa la prenda de ${item.equipo} '${item.year} (ID: ${item.sku})`);
     
     return `
     <div class="card">

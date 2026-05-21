@@ -1,47 +1,99 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwec9_6ZQ9AX26x-5JkgOcIjyDpKhQrjBr9778eMgOJAbuY-yCQNTOuoJ83JqV_j98iJw/exec"; // Reemplaza por tu URL real si cambia
-const WS_NUMBER = "50258656376"; // Número de WhatsApp
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
+const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 
 let allItems = [], filteredItems = [];
 let currentPage = 1;
 let itemsPerPage = 24; 
+let currentCategory = "Todas las Prendas"; // Estado de la categoría seleccionada
 let currentItem = null;
 let editDirty = false;
+let addImages = [];
+let editImages = [];
+
+// Helper para seleccionar elementos como en jQuery
+const $ = (id) => document.getElementById(id);
 
 /* ==========================================================================
    2. ENRUTADOR AUTOMÁTICO (Detecta la página actual al cargar)
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
-    // Si el body tiene la clase de la tienda
+    setupSideMenu();
+
+    // Si el body tiene la clase de la tienda (index.html)
     if (document.body.classList.contains('index-page')) {
+        setupCategoryButtons(); 
         loadInventory(); 
         
-        // Listener opcional para cerrar modal de producto al hacer clic afuera
+        // Listener para cerrar modal de producto al hacer clic afuera
         window.addEventListener('click', function(e) {
-            const modal = document.getElementById('productModal');
+            const modal = $('productModal');
             if (e.target === modal) {
                 closeProductModal();
             }
         });
     } 
-    // Si el body tiene la clase de administración
+    // Si el body tiene la clase de administración (admin.html)
     else if (document.body.classList.contains('admin-page')) {
-        // Inicializa el comportamiento de arrastrar y soltar imágenes en el panel
         setupDragAndDrop();
         setupAdminForms();
-    } else if (document.body.classList.contains('product-page')) {
+    } 
+    // Si el body tiene la clase de producto individual (product.html)
+    else if (document.body.classList.contains('product-page')) {
         loadProductPage();
     }
 });
+
+function setupSideMenu() {
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeSideMenu();
+  });
+}
+
+function openSideMenu() {
+  const menu = $('sideMenu');
+  const overlay = $('sideMenuOverlay');
+  const toggle = document.querySelector('.menu-toggle');
+  if (!menu || !overlay) return;
+
+  menu.classList.add('open');
+  overlay.classList.add('open');
+  menu.setAttribute('aria-hidden', 'false');
+  toggle?.setAttribute('aria-expanded', 'true');
+}
+
+function closeSideMenu() {
+  const menu = $('sideMenu');
+  const overlay = $('sideMenuOverlay');
+  const toggle = document.querySelector('.menu-toggle');
+  if (!menu || !overlay) return;
+
+  menu.classList.remove('open');
+  overlay.classList.remove('open');
+  menu.setAttribute('aria-hidden', 'true');
+  toggle?.setAttribute('aria-expanded', 'false');
+}
+
+// Configura los clics en el acordeón del menú lateral
+function setupCategoryButtons() {
+  const buttons = document.querySelectorAll('.accordion-content a');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Remover emojis (como el 🔥) y limpiar espacios para tener el nombre real
+      let text = btn.innerText.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, "").trim();
+      selectCategory(text);
+    });
+  });
+}
 
 /* ==========================================================================
    3. LÓGICA PARA LA TIENDA PRINCIPAL (index.html)
    ========================================================================== */
 function showInventoryError(message) {
-  document.getElementById('resultCount').innerText = 'Hubo un error al cargar el inventario, una disculpa. Intenta nuevamente.';
-  document.getElementById('catalogGrid').innerHTML = `<div class="loading">${message}</div>`;
+  $('resultCount').innerText = 'Hubo un error al cargar el inventario.';
+  $('catalogGrid').innerHTML = `<div class="loading">${message}</div>`;
 }
 
 function normalizeInventoryPayload(data) {
@@ -109,13 +161,6 @@ async function loadInventory(){
   }
 }
 
-// Controladores de la paginación solicitada
-function changePerPage() {
-  itemsPerPage = parseInt(document.getElementById('perPage').value);
-  currentPage = 1; 
-  render();
-}
-
 function changePage(delta) {
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   currentPage += delta;
@@ -124,539 +169,679 @@ function changePage(delta) {
   if (currentPage > totalPages) currentPage = totalPages;
   
   render();
-  document.getElementById('resultCount').scrollIntoView({ behavior: 'smooth', block: 'end' });
+  $('resultCount').scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
-function applyFilters(){
-  const search = document.getElementById('searchInput').value.toLowerCase().trim();
-  const size = document.getElementById('sizeFilter').value;
-  const type = document.getElementById('typeFilter').value;
-  const onlyAvail = true; 
-  const sort = document.getElementById('sortOrder').value;
+function cleanText(str) {
+  return String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+function applyFilters() {
+  const search = $('searchInput').value.toLowerCase().trim();
+  const size = $('sizeFilter').value;
+  const type = $('typeFilter').value;
+  const onlyAvail = true;
+  const sort = $('sortOrder').value;
 
   filteredItems = allItems.filter(item => {
-    const matchesSearch = !search || 
-                         String(item.sku).toLowerCase().includes(search) || 
-                         String(item.equipo).toLowerCase().includes(search);
-    
+    // Filtros básicos
+    const matchesSearch = !search || String(item.sku).toLowerCase().includes(search) || String(item.equipo).toLowerCase().includes(search);
     const matchesSize = !size || String(item.talla) === size;
     const matchesType = !type || String(item.tipo) === type;
-    
     const isDisponible = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
     const matchesAvail = !onlyAvail || isDisponible;
-    const activeOnly = item.estado !== 'Eliminado';
 
-    return matchesSearch && matchesSize && matchesType && matchesAvail && activeOnly;
+    // Lógica de Categorías (Filtrado Inteligente)
+    let matchesCategory = true;
+    if (currentCategory !== "Todas las Prendas") {
+      
+      // Limpiamos la categoría seleccionada (quitamos espacios y tildes para comparar)
+      const selectedCatClean = cleanText(currentCategory).replace(/\s+/g, '');
+
+      // Caso especial: Ofertas
+      if (selectedCatClean === "ofertas") {
+        const oferta = item.precioOferta || item.Precio_Oferta;
+        matchesCategory = (oferta !== undefined && oferta !== null && oferta !== "" && oferta !== 0);
+      } 
+      else {
+        // Limpiamos el valor del item (quitamos espacios y tildes)
+        const itemRegionRaw = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || "";
+        const itemRegionClean = cleanText(itemRegionRaw).replace(/\s+/g, '');
+
+        if (selectedCatClean === "selecciones") {
+          matchesCategory = (itemRegionClean === "seleccion" || itemRegionClean === "selecciones");
+        } 
+        else if (selectedCatClean === "equiposeuropeos" || selectedCatClean === "europa") {
+          matchesCategory = (itemRegionClean === "europa" || itemRegionClean === "equiposeuropeos");
+        } 
+        // Aquí detectará "conmebol/concacaf" aunque el usuario elija "Conmebol / Concacaf"
+        else if (selectedCatClean === "conmebol/concacaf") {
+          matchesCategory = (itemRegionClean === "conmebol/concacaf");
+        } 
+        else {
+          matchesCategory = (itemRegionClean === selectedCatClean || itemRegionClean.includes(selectedCatClean));
+        }
+      }
+    }
+
+    return matchesSearch && matchesSize && matchesType && matchesAvail && matchesCategory;
   });
 
+  // Ordenamiento
   if (sort === 'p-low') filteredItems.sort((a, b) => Number(a.precio) - Number(b.precio));
   if (sort === 'p-high') filteredItems.sort((a, b) => Number(b.precio) - Number(a.precio));
   if (sort === 'az') filteredItems.sort((a, b) => a.equipo.localeCompare(b.equipo));
 
-  currentPage = 1; 
+  currentPage = 1;
   render();
 }
 
-function render(){
+function render() {
   const grid = document.getElementById('catalogGrid');
-  const pagControls = document.getElementById('paginationControls');
-  const totalItems = filteredItems.length;
-  
-  document.getElementById('resultCount').innerText = `${totalItems} prendas encontradas`;
-  
-  if(totalItems === 0) {
-    grid.innerHTML = '<div class="loading">No se encontraron resultados.</div>';
-    if(pagControls) pagControls.style.display = 'none';
+  if (!grid) return;
+
+  if (filteredItems.length === 0) {
+    document.getElementById('resultCount').innerText = '0 resultados';
+    grid.innerHTML = '<div class="loading">No se encontraron resultados en esta categoría.</div>';
+    document.getElementById('paginationControls').style.display = 'none';
     return;
   }
 
-  // Segmentación matemática para paginación
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  document.getElementById('resultCount').innerText = `${filteredItems.length} prendas encontradas`;
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  if (currentPage > totalPages) currentPage = totalPages;
+
   const start = (currentPage - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  const paginatedItems = filteredItems.slice(start, end);
+  const pageItems = filteredItems.slice(start, end);
 
-  grid.innerHTML = paginatedItems.map(item => {
-    const wsMsg = encodeURIComponent(`Hola, me interesa la prenda de ${item.equipo} '${item.year} (ID: ${item.sku})`);
+  grid.innerHTML = pageItems.map(item => {
+    const images = getProductImages(item);
     
+    // Lógica para mostrar Precio Normal vs Oferta
+    const oferta = item.precioOferta || item.Precio_Oferta;
+    const hasSale = oferta !== undefined && oferta !== null && String(oferta).trim() !== "" && Number(oferta) !== 0;
+    
+    const priceHTML = hasSale 
+        ? `<span style="text-decoration: line-through; color: #9eb1ca; font-size: 14px; margin-right: 6px;">Q${item.precio}</span>Q${oferta}`
+        : `Q${item.precio}`;
+
+    // Lógica para el botón directo de WhatsApp
+    const wsMessage = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
+    const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(wsMessage)}`;
+
     return `
-    <div class="card">
-      <div class="card-image-container" onclick="openProductModal('${item.sku}')" style="cursor: pointer;" title="Haz clic para ver detalles">
-        <img class="card-image" src="${item.imagen || 'image_unavailable.png'}" loading="lazy">
-        <div class="badge badge-type">${String(item.tipo).toUpperCase()}</div>
-      </div>
-      <div class="card-body">
-        <h3 style="font-size:16px; margin-bottom: 5px;">${item.equipo} '${item.year}</h3>
-        <div class="price">Q${item.precio}</div>
-        <div style="font-size:12px; color:#8293ac; margin-bottom: 15px;">Talla: ${item.talla} | SKU: ${item.sku}</div>
-        
-        <div class="card-actions" style="justify-content: flex-end;">
-            <a href="https://wa.me/${WS_NUMBER}?text=${wsMsg}" class="ws-icon-btn" target="_blank" title="Consultar por WhatsApp">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766 0 1.018.265 2.012.768 2.885l-.817 2.984 3.052-.801a5.727 5.727 0 002.765.713h.001c3.181 0 5.768-2.586 5.768-5.766 0-3.181-2.587-5.767-5.769-5.781zm3.167 8.351c-.173.488-.988.941-1.378 1.002-.389.061-.832.138-2.612-.598-2.115-.875-3.468-3.023-3.573-3.164-.105-.141-.853-1.135-.853-2.164 0-1.029.531-1.536.718-1.731.187-.195.405-.244.538-.244.133 0 .266.002.385.006.126.004.296-.048.455.337.173.418.59 1.439.643 1.545.053.106.088.23.018.371-.07.141-.105.23-.211.353-.105.123-.219.266-.314.354-.105.097-.215.203-.095.412.12.209.535.887 1.148 1.434.79.706 1.464.925 1.674 1.031.21.106.333.088.456-.053.123-.141.531-.618.675-.83.141-.212.282-.176.474-.106.192.071 1.215.572 1.425.678.21.106.35.159.4.247.05.088.05.512-.123 1.002zM12.002 2C6.478 2 2 6.477 2 12c0 1.761.463 3.42 1.306 4.887L2 22l5.233-1.354A9.957 9.957 0 0012.002 22c5.523 0 10-4.477 10-10S17.526 2 12.002 2z"/></svg>
+      <div class="product-card" onclick="window.location.href='product.html?sku=${item.sku}'" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s;">        <div class="product-image-wrapper" style="width: 100%; height: 280px; overflow: hidden; background: #07111f;">
+          <img src="${images[0]}" alt="${item.equipo}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+        </div>
+        <div class="product-info" style="padding: 15px;">
+          <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${item.sku}</div>
+          <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${item.equipo}</h3>
+          <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${item.talla} | ${item.tipo}</div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
+            <div class="product-price" style="color: #2490ff; font-size: 18px; font-weight: bold;">
+              ${priceHTML}
+            </div>
+            <a href="${wsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" aria-label="Consultar por WhatsApp" style="display: flex; align-items: center; justify-content: center; background: #25D366; border-radius: 8px; width: 34px; height: 34px; flex-shrink: 0; transition: opacity 0.2s;">
+              <img src="whatsapp_logo.png" alt="WhatsApp" style="width: 20px; height: 20px;">
             </a>
+          </div>
+
         </div>
       </div>
-    </div>
     `;
   }).join('');
 
-  if (pagControls) {
-    if (totalPages > 1) {
-      pagControls.style.display = 'flex';
-      document.getElementById('pageIndicator').innerText = `Página ${currentPage} de ${totalPages}`;
-      document.getElementById('prevPageBtn').disabled = currentPage === 1;
-      document.getElementById('nextPageBtn').disabled = currentPage === totalPages;
-    } else {
-      pagControls.style.display = 'none';
-    }
+  if (totalPages > 1) {
+    document.getElementById('paginationControls').style.display = 'flex';
+    document.getElementById('pageIndicator').innerText = `Página ${currentPage} de ${totalPages}`;
+    document.getElementById('prevPageBtn').disabled = (currentPage === 1);
+    document.getElementById('nextPageBtn').disabled = (currentPage === totalPages);
+  } else {
+    document.getElementById('paginationControls').style.display = 'none';
   }
 }
 
-function openProductModal(sku) {
-  const item = allItems.find(i => String(i.sku) === String(sku));
-  if (!item) return;
+/* ==========================================================================
+   NUEVAS FUNCIONES: NAVEGACIÓN DE CUADROS DE CATEGORÍAS (index.html)
+   ========================================================================== */
+function selectCategory(categoryName) {
+  if (categoryName.toLowerCase() === "todas las prendas") {
+    currentCategory = "Todas las Prendas";
+  } else {
+    currentCategory = categoryName;
+  }
 
-  document.getElementById('modalTitle').innerText = `${item.equipo} '${item.year}`;
-  document.getElementById('modalPrice').innerText = `Q${item.precio}`;
-  document.getElementById('modalSize').innerText = item.talla || '-';
-  document.getElementById('modalType').innerText = item.tipo || '-';
-  document.getElementById('modalNotes').innerText = item.notas || item.detalles || 'Sin detalles adicionales.';
-  document.getElementById('modalSku').innerText = item.sku;
+  const titleEl = $('currentCategoryTitle');
+  if (titleEl) titleEl.innerText = currentCategory;
 
-  const wsMsg = encodeURIComponent(`Hola, me interesa el jersey del ${item.equipo} '${item.year} (SKU: ${item.sku})`);
-  document.getElementById('modalWsBtn').href = `https://wa.me/${WS_NUMBER}?text=${wsMsg}`;
-  document.getElementById('modalFullPageBtn').href = getProductUrl(item.sku);
+  $('categoryGrid').style.display = 'none';
+  $('inventorySection').style.display = 'block';
 
-  // Configuración de la Galería interna del Modal
-  const mainImg = document.getElementById('modalMainImage');
-  const thumbContainer = document.getElementById('modalThumbnails');
+  // Ocultar o mostrar el cintillo superior de imágenes
+  const slider = document.querySelector('.slider-container');
+  if (slider) {
+    if (currentCategory === "Todas las Prendas") {
+      slider.style.display = "block";
+    } else {
+      slider.style.display = "none";
+    }
+  }
+
+  applyFilters();
+}
+
+function backToCategories() {
+  $('categoryGrid').style.display = 'grid';
+  $('inventorySection').style.display = 'none';
+
+  const slider = document.querySelector('.slider-container');
+  if (slider) slider.style.display = "block";
+  
+  // Limpiar filtros al regresar por comodidad del usuario
+  $('searchInput').value = '';
+  $('sizeFilter').value = '';
+  $('typeFilter').value = '';
+  $('sortOrder').value = 'none';
+}
+
+/* ==========================================================================
+   4. MODAL DETALLADO DE PRODUCTOS (index.html)
+   ========================================================================== */
+function openProductModal(item) {
+  const modal = $('productModal');
+  if (!modal) return;
+
   const images = getProductImages(item);
+  $('modalTitle').innerText = item.equipo;
+  $('modalPrice').innerText = `Q${item.precio}`;
+  $('modalSize').innerText = item.talla;
+  $('modalType').innerText = item.tipo;
+  $('modalSku').innerText = item.sku;
+  $('modalNotes').innerText = item.notas || 'Sin descripción adicional.';
 
+  const mainImg = $('modalMainImage');
   mainImg.src = images[0];
-  thumbContainer.innerHTML = images.map(src => 
-    `<img src="${src}" onclick="document.getElementById('modalMainImage').src='${src}'" 
-      style="width:70px; height:70px; object-fit:cover; border-radius:8px; cursor:pointer; border:2px solid transparent; transition:0.2s;" 
-      onmouseover="this.style.borderColor='#2490ff'" onmouseout="this.style.borderColor='transparent'">`
-  ).join('');
 
-  document.getElementById('productModal').style.display = "flex";
+  const thumbsContainer = $('modalThumbnails');
+  thumbsContainer.innerHTML = '';
+
+  if (images.length > 1) {
+    images.forEach((src, idx) => {
+      const thumb = document.createElement('img');
+      thumb.src = src;
+      thumb.style.cssText = "width:60px; height:60px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#0a1728; flex-shrink:0;";
+      if (idx === 0) thumb.style.borderColor = "#2490ff";
+      
+      thumb.onclick = () => {
+        mainImg.src = src;
+        Array.from(thumbsContainer.children).forEach(t => t.style.borderColor = "#1f3350");
+        thumb.style.borderColor = "#2490ff";
+      };
+      thumbsContainer.appendChild(thumb);
+    });
+    thumbsContainer.style.display = 'flex';
+  } else {
+    thumbsContainer.style.display = 'none';
+  }
+
+  // Generar enlace estructurado para WhatsApp
+  const message = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
+  $('modalWsBtn').href = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  $('modalFullPageBtn').href = getProductUrl(item.sku);
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
 }
 
 function closeProductModal() {
-  document.getElementById('productModal').style.display = "none";
+  const modal = $('productModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
 }
 
+/* ==========================================================================
+   5. VISTA DE PRODUCTO INDIVIDUAL (product.html)
+   ========================================================================== */
 async function loadProductPage() {
   const params = new URLSearchParams(window.location.search);
   const sku = params.get('sku');
-  const view = document.getElementById('productPageContent');
-
+  
   if (!sku) {
-    view.innerHTML = '<div class="loading">No se especifico un SKU para mostrar.</div>';
+    showProductPageError("No se especificó ningún SKU en la dirección web. Por favor, selecciona una prenda desde el catálogo.");
     return;
   }
 
   try {
-    const result = await getJsonp({ action: 'getSku', sku });
-    if (!result.success || !result.item) {
-      view.innerHTML = '<div class="loading">No encontramos una prenda con ese SKU.</div>';
+    const response = await getJsonp({ action: 'getSku', sku: sku });
+    
+    // Extract the item object securely
+    if (!response || response.success === false || !response.item) {
+      showProductPageError("La camisola solicitada no existe, fue eliminada o ya fue vendida.");
       return;
     }
+    
+    const itemData = response.item;
+    const images = getProductImages(itemData);
+    
+    // Using || '' ensures that if a field is blank, it doesn't print "undefined"
+    $('productTitle').innerText = itemData.equipo || 'Equipo Desconocido';
+    $('productSize').innerText = itemData.talla || 'N/A';
+    $('productType').innerText = itemData.tipo || 'N/A';
+    $('productSku').innerText = itemData.sku || sku;
+    $('productNotes').innerText = itemData.notas || 'Sin descripción adicional.';
 
-    renderProductPage(result.item);
-  } catch(error) {
-    view.innerHTML = '<div class="loading">Hubo un problema cargando esta prenda.</div>';
-  }
-}
-
-function renderProductPage(item) {
-  const view = document.getElementById('productPageContent');
-  const images = getProductImages(item);
-  const wsMsg = encodeURIComponent(`Hola, me interesa la prenda de ${item.equipo} '${item.year} (ID: ${item.sku})`);
-  const productUrl = getProductUrl(item.sku);
-
-  document.title = `${item.equipo} ${item.year} | CAS`;
-
-  view.innerHTML = `
-    <section class="product-detail-layout">
-      <div class="product-gallery">
-        <div class="product-main-image-wrap" id="productImageWrap">
-          <img id="productMainImage" src="${images[0]}" alt="${item.equipo} ${item.year}" class="product-main-image">
-        </div>
-        <div class="product-zoom-controls">
-          <button type="button" class="secondary-btn" onclick="setProductZoom(-0.25)">Alejar</button>
-          <span id="zoomLabel">100%</span>
-          <button type="button" class="secondary-btn" onclick="setProductZoom(0.25)">Acercar</button>
-        </div>
-        <div class="product-thumbnails">
-          ${images.map((src, index) => `
-            <button type="button" class="product-thumb ${index === 0 ? 'active' : ''}" onclick="selectProductImage('${src.replace(/'/g, "\\'")}', this)">
-              <img src="${src}" alt="Vista ${index + 1} de ${item.equipo}">
-            </button>
-          `).join('')}
-        </div>
-      </div>
-
-      <aside class="product-info-panel">
-        <a href="index.html" class="product-back-link">Regresar al catalogo</a>
-        <div class="product-type">${String(item.tipo || '').toUpperCase()}</div>
-        <h1>${item.equipo} '${item.year}</h1>
-        <div class="product-page-price">Q${item.precio}</div>
-
-        <div class="product-facts">
-          <div><span>Talla</span><strong>${item.talla || '-'}</strong></div>
-          <div><span>SKU</span><strong>${item.sku || '-'}</strong></div>
-          <div><span>Estado</span><strong>${item.disponible ? 'Disponible' : 'No disponible'}</strong></div>
-        </div>
-
-        <div class="product-notes">
-          <h2>Descripcion / Notas</h2>
-          <p>${item.notas || item.detalles || 'Sin notas adicionales.'}</p>
-        </div>
-
-        <a href="https://wa.me/${WS_NUMBER}?text=${wsMsg}" class="ws-btn-full" target="_blank">Consultar WhatsApp</a>
-        <button type="button" class="secondary-btn share-url-btn" onclick="copyProductUrl('${productUrl}')">Compartir URL</button>
-        <input id="productShareInput" class="product-share-input" type="text" value="${productUrl}" readonly>
-        <div id="copyStatus" class="copy-status" aria-live="polite"></div>
-      </aside>
-    </section>
-  `;
-}
-
-let productZoom = 1;
-function selectProductImage(src, button) {
-  document.getElementById('productMainImage').src = src;
-  productZoom = 1;
-  updateProductZoom();
-  document.querySelectorAll('.product-thumb').forEach(thumb => thumb.classList.remove('active'));
-  button.classList.add('active');
-}
-
-function setProductZoom(delta) {
-  productZoom = Math.min(2.5, Math.max(1, productZoom + delta));
-  updateProductZoom();
-}
-
-function updateProductZoom() {
-  const image = document.getElementById('productMainImage');
-  const label = document.getElementById('zoomLabel');
-  const wrap = document.getElementById('productImageWrap');
-  if (!image || !label || !wrap) return;
-
-  image.style.transform = `scale(${productZoom})`;
-  label.innerText = `${Math.round(productZoom * 100)}%`;
-  wrap.classList.toggle('is-zoomed', productZoom > 1);
-}
-
-async function copyProductUrl(url) {
-  const status = document.getElementById('copyStatus');
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(url);
+    // Logic for regular price vs sale price
+    const oferta = itemData.precioOferta || itemData.Precio_Oferta;
+    const hasSale = oferta !== undefined && oferta !== null && String(oferta).trim() !== "" && Number(oferta) !== 0;
+    
+    if (hasSale) {
+       $('productPrice').innerHTML = `<span style="text-decoration: line-through; color: #9eb1ca; font-size: 18px; margin-right: 10px;">Q${itemData.precio}</span>Q${oferta}`;
     } else {
-      copyTextFallback(url);
+       $('productPrice').innerHTML = `Q${itemData.precio || '0.00'}`;
     }
-    status.innerText = 'URL copiada al portapapeles.';
-  } catch(error) {
-    if (copyTextFallback(url)) {
-      status.innerText = 'URL copiada al portapapeles.';
-    } else {
-      const shareInput = document.getElementById('productShareInput');
-      if (shareInput) {
-        shareInput.focus();
-        shareInput.select();
+
+    const mainImg = $('mainProductImage');
+    if (mainImg) {
+        mainImg.src = images.length > 0 ? images[0] : 'placeholder.png'; // Prevents broken image icon
+    }
+
+    const thumbsContainer = $('productThumbnails');
+    if (thumbsContainer) {
+      thumbsContainer.innerHTML = '';
+      if (images.length > 1) {
+        images.forEach((src, idx) => {
+          const thumb = document.createElement('img');
+          thumb.src = src;
+          thumb.className = "thumb-img" + (idx === 0 ? " active" : "");
+          thumb.style.cssText = "width:70px; height:70px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#07111f; flex-shrink:0;";
+          if (idx === 0) thumb.style.borderColor = "#2490ff";
+          
+          thumb.onclick = () => {
+            mainImg.src = src;
+            Array.from(thumbsContainer.children).forEach(t => t.style.borderColor = "#1f3350");
+            thumb.style.borderColor = "#2490ff";
+          };
+          thumbsContainer.appendChild(thumb);
+        });
       }
-      status.innerText = 'No se pudo copiar automaticamente. La URL quedo seleccionada para copiarla manualmente.';
     }
+
+    const message = `¡Hola! Me interesa la camisola de ${itemData.equipo || ''} (Talla: ${itemData.talla || ''}, SKU: ${itemData.sku || sku}) que vi en su catálogo web. ¿Está disponible?`;
+    const wsBtn = $('productWsLink');
+    if (wsBtn) wsBtn.href = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+
+    $('productPageLoader').style.display = 'none';
+    $('productPageContent').style.display = 'grid';
+
+  } catch (err) {
+    showProductPageError("Error de conexión al cargar los datos de la prenda.");
   }
 }
 
-function copyTextFallback(text) {
-  const input = document.createElement('textarea');
-  input.value = text;
-  input.setAttribute('readonly', '');
-  input.style.position = 'fixed';
-  input.style.top = '0';
-  input.style.left = '-9999px';
-  document.body.appendChild(input);
-  input.focus();
-  input.select();
-  const copied = document.execCommand('copy');
-  input.remove();
-  return copied;
+function showProductPageError(msg) {
+  const loader = $('productPageLoader');
+  if (loader) loader.innerHTML = `<div style="color:#ff4a4a; font-weight:600;">${msg}<br><br><a href="index.html" class="secondary-btn" style="text-decoration:none; display:inline-block; margin-top:10px;">← Volver al catálogo</a></div>`;
 }
-
 
 /* ==========================================================================
-   4. LÓGICA PARA EL PANEL DE ADMINISTRACIÓN (admin.html)
+   6. PANEL DE ADMINISTRACIÓN (admin.html) - ENVÍOS POST Y BASE64
    ========================================================================== */
-function $(id) { return document.getElementById(id); }
-function getFormValue(form, name) { return form.elements[name]?.value || ""; }
-function setFormValue(form, name, value) {
-  if (form.elements[name]) form.elements[name].value = value || "";
-}
-
 function showLoader(text) {
-  $("loaderText").innerText = text;
-  $("loaderOverlay").style.display = "flex";
+  $('loaderText').innerText = text || "Procesando...";
+  $('loaderOverlay').classList.add('active');
 }
+
 function hideLoader() {
-  $("loaderOverlay").style.display = "none";
+  $('loaderOverlay').classList.remove('active');
 }
 
-function openAddModal() { $("addModal").style.display = "flex"; }
-function closeAddModal() {
-  $("addForm").reset();
-  $("addPreviewContainer").innerHTML = "";
-  $("addPreviewContainer").classList.add("hidden");
-  $("addUploadContainer").classList.remove("hidden");
-  base64Images = [];
-  $("addModal").style.display = "none";
-}
-
-function openManageModal() { $("manageModal").style.display = "flex"; resetManage(); }
-function closeManageModal() { $("manageModal").style.display = "none"; resetManage(); }
-
-function openConfirmModal(type) {
-  if(!currentItem) return;
-  const isDelete = type === "delete";
-  $("confirmTitle").innerText = isDelete ? "Confirmar eliminación" : "Confirmar prenda vendida";
-  $("confirmText").innerText = `${currentItem.sku} - ${currentItem.equipo || "Sin equipo"}`;
-  $("confirmActionBtn").onclick = () => submitSkuAction(isDelete ? "markDeleted" : "markSold");
-  $("confirmModal").style.display = "flex";
-}
-function closeConfirmModal() { $("confirmModal").style.display = "none"; }
-
-function showActions() {
-  $("updateBtn").classList.remove("hidden");
-  $("soldBtn").classList.remove("hidden");
-  $("deleteBtn").classList.remove("hidden");
-}
-function hideActions() {
-  $("updateBtn").classList.add("hidden");
-  $("soldBtn").classList.add("hidden");
-  $("deleteBtn").classList.add("hidden");
-  $("confirmUpdateBtn").classList.add("hidden");
-  $("confirmUpdateBtn").disabled = true;
-}
-
-// Gestión de Drag & Drop para imágenes en Administración
 function setupDragAndDrop() {
-    const dropZone = $("addUploadContainer");
-    const fileInput = $("addFileInput");
-    if(!dropZone || !fileInput) return;
+  const pairs = [
+    { zoneId: "addDropZone", fileId: "addFileInput", imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" },
+    { zoneId: "editDropZone", fileId: "editFileInput", imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" }
+  ];
 
-    dropZone.addEventListener("click", () => fileInput.click());
-    dropZone.addEventListener("dragover", (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
-    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
-    dropZone.addEventListener("drop", (e) => {
+  pairs.forEach(p => {
+    const zone = $(p.zoneId);
+    const input = $(p.fileId);
+    if (!zone || !input) return;
+
+    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', (e) => {
       e.preventDefault();
-      dropZone.classList.remove("dragover");
-      if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+      zone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        handleFiles(e.dataTransfer.files, p);
+      }
     });
-    fileInput.addEventListener("change", (e) => {
-      if(e.target.files.length) handleFiles(e.target.files);
-    });
+  });
 }
 
-let base64Images = [];
-let editImages = [];
-function handleFiles(files, options = {}) {
-  const images = options.images || base64Images;
-  const container = $(options.previewId || "addPreviewContainer");
-  const uploadContainer = $(options.uploadId || "addUploadContainer");
+function handleFiles(files, config) {
+  const filesArray = Array.from(files);
+  let loadedCount = 0;
 
-  if (uploadContainer) uploadContainer.classList.add("hidden");
-  container.classList.remove("hidden");
-  Array.from(files).forEach(file => {
-    if(!file.type.startsWith("image/")) return;
+  filesArray.forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    
     const reader = new FileReader();
     reader.onload = (e) => {
-      images.push({ type: file.type, base64: e.target.result });
-      const img = document.createElement("img");
+      // Redimensionar y comprimir la imagen en el canvas antes de mandarla
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max_size = 1200;
+
+        if (width > height) {
+          if (width > max_size) { height *= max_size / width; width = max_size; }
+        } else {
+          if (height > max_size) { width *= max_size / height; height = max_size; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        const base64Str = canvas.toDataURL('image/jpeg', 0.75);
+        config.imagesArray.push({ base64: base64Str, name: file.name });
+        
+        loadedCount++;
+        if (loadedCount === filesArray.length) {
+          renderPreviews(config);
+        }
+      };
       img.src = e.target.result;
-      img.className = "preview-img";
-      container.appendChild(img);
     };
     reader.readAsDataURL(file);
   });
 }
 
-async function postData(payload) {
-  const response = await fetch(WEB_APP_URL, {
+function renderPreviews(config) {
+  const container = $(config.previewId);
+  const uploadBox = $(config.uploadId);
+  if (!container) return;
+
+  container.innerHTML = config.imagesArray.map((img, idx) => `
+    <div class="preview-card" style="position:relative; display:inline-block; margin:5px;">
+      <img src="${img.base64}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; border:1px solid #1f3350;">
+      <span onclick="removeImageAt(${idx}, '${config.previewId}')" style="position:absolute; top:-6px; right:-6px; background:#ff4a4a; color:#fff; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; font-weight:bold;">&times;</span>
+    </div>
+  `).join('');
+
+  if (config.imagesArray.length > 0) {
+    container.classList.remove('hidden');
+    uploadBox.classList.add('hidden');
+  } else {
+    container.classList.add('hidden');
+    uploadBox.classList.remove('hidden');
+  }
+  markEditDirty();
+}
+
+function removeImageAt(index, previewContainerId) {
+  if (previewContainerId === 'addPreviewContainer') {
+    addImages.splice(index, 1);
+    renderPreviews({ imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" });
+  } else {
+    editImages.splice(index, 1);
+    renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
+  }
+}
+
+function setupAdminForms() {
+  $("addForm")?.addEventListener("submit", submitAdd);
+  $("editForm")?.addEventListener("submit", submitEdit);
+  $("editForm")?.addEventListener("input", markEditDirty);
+  $("editForm")?.addEventListener("change", markEditDirty);
+  $("editFileInput")?.addEventListener("change", (e) => {
+    if(e.target.files.length) {
+      handleFiles(e.target.files, { imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
+    }
+  });
+}
+
+function markEditDirty() {
+  editDirty = true;
+  const confirmBtn = $("confirmUpdateBtn");
+  if (confirmBtn) confirmBtn.disabled = false;
+}
+
+async function sendPostRequest(payload) {
+  return fetch(WEB_APP_URL, {
     method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload)
   });
-  return await response.json();
 }
 
 async function submitAdd(e) {
   e.preventDefault();
-  const btn = e.target.querySelector("button[type='submit']");
+  const btn = e.submitter || document.querySelector("#addForm button[type='submit']");
   btn.disabled = true;
-  showLoader("Guardando nueva prenda...");
+  showLoader("Subiendo camisola al inventario de Sheets...");
 
-  const form = e.target;
+  const formData = new FormData(e.target);
+  
+  // Note: We changed action to 'addItem' to match code.gs
+  // and added the missing year, precioOferta, and disponible fields.
   const payload = {
-    action: "addItem",
-    equipo: getFormValue(form, "equipo"),
-    year: getFormValue(form, "year"),
-    precio: getFormValue(form, "precio"),
-    talla: getFormValue(form, "talla"),
-    tipo: getFormValue(form, "tipo"),
-    disponible: form.elements.venta?.checked || false,
-    venta: form.elements.venta?.checked || false,
-    notas: getFormValue(form, "notas"),
-    detalles: getFormValue(form, "notas"),
-    images: base64Images
+    action: "addItem", 
+    equipo: formData.get("equipo"),
+    year: formData.get("year"),
+    precio: formData.get("precio"),
+    precioOferta: formData.get("precio_oferta"),
+    talla: formData.get("talla"),
+    tipo: formData.get("tipo"),
+    disponible: formData.get("venta") !== null, // Checkbox returns null if unchecked
+    tipoRegion: formData.get("tipo_region"), // Matches the name in HTML
+    notas: formData.get("notas"),
+    images: addImages
   };
 
   try {
-    const result = await postData(payload);
-    if(result.success) {
-      alert("Prenda agregada con éxito. SKU asignado: " + result.sku);
-      closeAddModal();
-    } else {
-      alert("Error del servidor: " + result.error);
-    }
-  } catch(error) {
-    console.error(error);
-    alert("Error de red al intentar conectar con la base de datos.");
+    await sendPostRequest(payload);
+    alert("¡Prenda subida exitosamente con sus imágenes!");
+    e.target.reset();
+    addImages = [];
+    renderPreviews({ imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" });
+    closeAddModal();
+  } catch (err) {
+    alert("Error de conexión al enviar.");
   }
   hideLoader();
   btn.disabled = false;
-  base64Images = [];
 }
 
 async function lookupSku() {
-  const sku = $("lookupSku").value.trim();
-  if(!sku) return;
-  showLoader("Buscando SKU...");
-  resetManageExceptSku();
+  // Convert search to uppercase to match how SKUs are stored
+  const sku = $("lookupSku").value.trim().toUpperCase(); 
+  if (!sku) return;
 
+  showLoader("Buscando código SKU...");
   try {
-    const result = await getJsonp({ action: 'getSku', sku });
+    const response = await getJsonp({ action: 'getSku', sku: sku });
     
-    if(result.success && result.item) {
-      currentItem = result.item;
-      showSkuSummary(result.item);
-      populateEditForm(result.item);
-      showActions();
+    // Check if the item was found correctly
+    if (!response || response.success === false || !response.item) {
+      $("manageStatus").innerText = "Código SKU no encontrado o hubo un error de conexión.";
+      resetManageExceptSku();
     } else {
-      $("manageStatus").innerText = "SKU no encontrado o error: " + (result.error || "Desconocido");
+      const itemData = response.item; 
+      currentItem = itemData;
+      
+      $("manageStatus").innerText = "Prenda cargada con éxito.";
+      
+      // Get images for the visual summary
+      const images = getProductImages(itemData);
+      const mainImage = images.length > 0 ? images[0] : 'placeholder.png';
+      
+      // Create a visual card similar to the product popup
+      let summaryHtml = `
+        <div style="display:flex; flex-wrap:wrap; gap:20px; background:#0a1728; padding:20px; border-radius:12px; border:1px solid #1f3350; margin-top:15px; margin-bottom:20px;">
+          <div style="width: 140px; flex-shrink: 0; background: #07111f; padding: 10px; border-radius: 8px;">
+            <img src="${mainImage}" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
+          </div>
+          <div style="flex:1; min-width: 200px; display: flex; flex-direction: column; justify-content: center;">
+            <h3 style="color:#2490ff; margin:0 0 10px 0; font-size: 22px;">${itemData.equipo}</h3>
+            <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 15px;">Q${itemData.precio}</div>
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size:15px; color:#d9e5f5;">
+              <div><strong>SKU:</strong> ${itemData.sku}</div>
+              <div><strong>Talla:</strong> ${itemData.talla}</div>
+              <div><strong>Tipo:</strong> ${itemData.tipo}</div>
+              <div><strong>Disponibilidad:</strong> ${itemData.disponible ? 'SÍ' : 'NO'}</div>
+              <div style="grid-column: 1 / -1;">
+                <strong>Estado:</strong> 
+                <span style="color: ${itemData.estado === 'Activo' ? '#25D366' : '#ff4a4a'}; font-weight: bold;">
+                  ${itemData.estado || 'Activo'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      $("skuSummary").innerHTML = summaryHtml;
+      $("skuSummary").classList.remove("hidden");
+
+      // Fill the hidden edit form fields so "Actualizar" has the right data
+      const form = $("editForm");
+      form.sku.value = itemData.sku;
+      form.equipo.value = itemData.equipo;
+      form.year.value = itemData.year || ""; 
+      form.precio.value = itemData.precio;
+      form.precio_oferta.value = itemData.precioOferta || itemData.Precio_Oferta || ""; 
+      form.talla.value = itemData.talla;
+      form.tipo.value = itemData.tipo;
+      form.venta.checked = itemData.disponible === true || String(itemData.disponible).toUpperCase() === 'SÍ'; 
+      form.tipo_region.value = itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "";
+      form.notas.value = itemData.notas || "";
+
+      // Render image previews in the edit form
+      const currentGallery = getProductImages(itemData);
+      editImages = currentGallery.map(url => ({ base64: url, name: "url-source" }));
+      renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
+
+      // Show the action buttons (Actualizar, Marcar Vendida, Eliminar)
+      showActions();
     }
-  } catch(error) {
-    console.error(error);
+  } catch (err) {
     $("manageStatus").innerText = "Error de red al buscar el SKU.";
   }
   hideLoader();
 }
 
-function showSkuSummary(item) {
-  const div = $("skuSummary");
-  div.innerHTML = `
-    <h4 style="margin-top:0;">Resumen Actual:</h4>
-    <img src="${item.imagen || 'image_unavailable.png'}" style="width:80px; height:80px; object-fit:cover; border-radius:8px; margin-bottom:8px;">
-    <p><strong>Prenda:</strong> ${item.equipo || '-'} '${item.year || '-'}</p>
-    <p><strong>Precio:</strong> Q${item.precio || '-'} | <strong>Talla:</strong> ${item.talla || '-'}</p>
-    <p><strong>Estado:</strong> ${item.estado || '-'}</p>
-  `;
-  div.classList.remove("hidden");
+function showActions() {
+  $("updateBtn").classList.remove("hidden");
+  $("soldBtn").classList.remove("hidden");
+  $("deleteBtn").classList.remove("hidden");
+  $("confirmUpdateBtn").classList.add("hidden");
+  $("editForm").classList.add("hidden");
 }
 
-function populateEditForm(item) {
-  const form = $("editForm");
-  setFormValue(form, "equipo", item.equipo);
-  setFormValue(form, "year", item.year);
-  setFormValue(form, "precio", item.precio);
-  setFormValue(form, "talla", item.talla);
-  setFormValue(form, "tipo", item.tipo);
-  setFormValue(form, "notas", item.notas || item.detalles);
-  if (form.elements.venta) {
-    form.elements.venta.checked = item.disponible === true || String(item.disponible).toUpperCase() === "SÍ";
-  }
-  $("editImagePreview").src = item.imagen || "image_unavailable.png";
-  
-  editDirty = false;
+function hideActions() {
+  $("updateBtn").classList.add("hidden");
+  $("soldBtn").classList.add("hidden");
+  $("deleteBtn").classList.add("hidden");
+  $("confirmUpdateBtn").classList.add("hidden");
 }
 
-function markEditDirty() { editDirty = true; }
 function showEditForm() {
   $("editForm").classList.remove("hidden");
   $("updateBtn").classList.add("hidden");
   $("confirmUpdateBtn").classList.remove("hidden");
-  $("confirmUpdateBtn").disabled = false;
+  editDirty = false;
+  $("confirmUpdateBtn").disabled = true;
 }
 
-function confirmUpdate() {
-  $("editForm").requestSubmit();
-}
-
-async function submitEdit(e) {
-  e.preventDefault();
-  if(!currentItem) return;
-  if(!editDirty) { alert("No has realizado cambios para guardar."); return; }
-
-  const btn = e.target.querySelector("button[type='submit']") || $("confirmUpdateBtn");
+async function confirmUpdate() {
+  if (!editDirty) return;
+  const btn = $("confirmUpdateBtn");
   btn.disabled = true;
-  showLoader("Modificando valores...");
+  showLoader("Guardando cambios y procesando imágenes en el Excel...");
 
+  const form = $("editForm");
+  
+  // Changed action to 'updateItem' to match code.gs
+  // and added the missing year, precioOferta, and disponible fields.
   const payload = {
     action: "updateItem",
-    sku: currentItem.sku,
-    equipo: getFormValue(e.target, "equipo"),
-    year: getFormValue(e.target, "year"),
-    precio: getFormValue(e.target, "precio"),
-    talla: getFormValue(e.target, "talla"),
-    tipo: getFormValue(e.target, "tipo"),
-    disponible: e.target.elements.venta?.checked || false,
-    venta: e.target.elements.venta?.checked || false,
-    notas: getFormValue(e.target, "notas"),
-    detalles: getFormValue(e.target, "notas"),
+    sku: currentItem.sku, // The original SKU is sent so code.gs can find the correct row
+    equipo: form.equipo.value,
+    year: form.year.value,
+    precio: form.precio.value,
+    precioOferta: form.precio_oferta.value,
+    talla: form.talla.value,
+    tipo: form.tipo.value,
+    disponible: form.venta.checked, // Retrieves true/false from the checkbox
+    tipoRegion: form.tipo_region.value,
+    notas: form.notas.value,
     images: editImages
   };
 
   try {
-    const result = await postData(payload);
-    if(result.success) {
-      alert("Prenda modificada con éxito.");
-      closeManageModal();
-    } else {
-      alert("Error: " + result.error);
-    }
-  } catch(error) {
-    console.error(error);
-    alert("Error de red guardando los cambios.");
+    await sendPostRequest(payload);
+    alert("¡Los datos de la prenda se actualizaron correctamente!");
+    closeManageModal();
+  } catch (err) {
+    alert("Error de conexión al procesar cambios.");
   }
   hideLoader();
   btn.disabled = false;
 }
 
-async function submitSkuAction(action){
-  if(!currentItem) return;
-  const btn = $("confirmActionBtn");
-  btn.disabled = true;
-  showLoader("Procesando...");
-  
-  try{
-    const result = await postData({action, sku:currentItem.sku});
-    if(result.success){
-      alert("SKU actualizado correctamente.");
-      closeConfirmModal();
-      closeManageModal();
-    }else{
-      alert("Error: " + result.error);
-    }
-  }catch(error){
-    console.error(error);
-    alert("Error de red actualizando el SKU.");
+async function submitEdit(e) { e.preventDefault(); }
+
+function openConfirmModal(type) {
+  const modal = $("confirmModal");
+  const title = $("confirmTitle");
+  const text = $("confirmText");
+  const actionBtn = $("confirmActionBtn");
+
+  if (type === 'sold') {
+    title.innerText = "Marcar Como Vendida";
+    text.innerText = `¿Seguro que deseas marcar la camisola SKU: ${currentItem.sku} como VENDIDA? Se ocultará automáticamente de la tienda de clientes.`;
+    actionBtn.onclick = () => executeStatusChange('markSold');
+  } else if (type === 'delete') {
+    title.innerText = "Eliminar Prenda";
+    text.innerText = `¿Deseas dar de baja por completo la camisola SKU: ${currentItem.sku} de la base de datos de Google Sheets?`;
+    actionBtn.onclick = () => executeStatusChange('markDeleted');
   }
-  
-  hideLoader();
-  btn.disabled = false;
+  modal.style.display = 'flex';
 }
 
-function resetManage(){
+function closeConfirmModal() {
+  $("confirmModal").style.display = 'none';
+}
+
+async function executeStatusChange(actionType) {
+  closeConfirmModal();
+  showLoader("Modificando estado de la fila...");
+  try {
+    await sendPostRequest({ action: actionType, sku: currentItem.sku });
+    alert("El estado de la prenda se modificó correctamente en Google Sheets.");
+    closeManageModal();
+  } catch (err) {
+    alert("Error de red.");
+  }
+  hideLoader();
+}
+
+function openAddModal() { $("addModal").style.display = "flex"; }
+function closeAddModal() { $("addModal").style.display = "none"; }
+function openManageModal() { $("manageModal").style.display = "flex"; resetManage(); }
+function closeManageModal() { $("manageModal").style.display = "none"; resetManage(); }
+
+function resetManage() {
   currentItem = null;
   editDirty = false;
   $("lookupSku").value = "";
@@ -672,7 +857,7 @@ function resetManage(){
   hideActions();
 }
 
-function resetManageExceptSku(){
+function resetManageExceptSku() {
   currentItem = null;
   editDirty = false;
   $("manageStatus").innerText = "";
@@ -687,19 +872,19 @@ function resetManageExceptSku(){
   hideActions();
 }
 
-function setupAdminForms() {
-  $("addForm")?.addEventListener("submit", submitAdd);
-  $("editForm")?.addEventListener("submit", submitEdit);
-  $("editForm")?.addEventListener("input", markEditDirty);
-  $("editForm")?.addEventListener("change", markEditDirty);
-  $("editFileInput")?.addEventListener("change", (e) => {
-    if(e.target.files.length) {
-      handleFiles(e.target.files, {
-        images: editImages,
-        previewId: "editPreviewContainer",
-        uploadId: "editUploadContainer"
-      });
-      markEditDirty();
-    }
-  });
+function showProductPageError(msg) {
+  const loader = document.getElementById('productPageLoader');
+  if (loader) loader.style.display = 'none';
+  
+  const content = document.getElementById('productPageContent');
+  if (content) {
+    content.style.display = 'block';
+    content.innerHTML = `
+      <div style="padding: 40px; text-align: center; color: #ff4d4d; background: #0a1728; border-radius: 12px; border: 1px solid #1f3350; grid-column: 1 / -1;">
+        <h2 style="margin-bottom: 15px;">Error al cargar la prenda</h2>
+        <p style="color: #d9e5f5; font-size: 16px; margin-bottom: 20px;">${msg}</p>
+        <a href="index.html" class="secondary-btn" style="text-decoration: none; display: inline-block;">Volver al catálogo</a>
+      </div>
+    `;
+  }
 }

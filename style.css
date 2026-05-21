@@ -9,7 +9,7 @@ body.admin-page { padding: 40px; }
 .menu-toggle span { width: 20px; height: 2px; border-radius: 999px; background: #d9e5f5; display: block; }
 .nav-brand { display: flex; align-items: center; gap: 15px; }
 .nav-home-link { color: inherit; text-decoration: none; min-width: 0; }
-.nav-text-container { display: flex; align-items: baseline; gap: 20px; }
+.nav-text-container { display: flex; align-items: left; gap: 20px; }
 .nav-logo { height: 45px; width: 45px; object-fit: contain; }
 .nav-title { font-size: 20px; font-weight: 700; color: #2490ff; white-space: nowrap; }
 .nav-slogan { margin: 0; color: white; font-weight: normal; }

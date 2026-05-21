@@ -285,7 +285,7 @@ function render() {
               ${priceHTML}
             </div>
             <a href="${wsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" aria-label="Consultar por WhatsApp" style="display: flex; align-items: center; justify-content: center; background: #25D366; border-radius: 8px; width: 34px; height: 34px; flex-shrink: 0; transition: opacity 0.2s;">
-              <img src="whatsapp_logo.png" alt="WhatsApp" style="width: 20px; height: 20px;">
+              <img src="whatsapp_logo.jpg" alt="WhatsApp" style="width: 20px; height: 20px;">
             </a>
           </div>
 

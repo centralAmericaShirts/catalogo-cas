@@ -66,6 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.body.classList.contains('index-page')) {
         hidePageLoader();
         setupCategoryButtons(); 
+        restoreCatalogStateFromUrl();
         loadInventory(); 
         
         // Listener para cerrar modal de producto al hacer clic afuera
@@ -157,6 +158,25 @@ function getProductUrl(sku) {
   return url.href;
 }
 
+function getProductUrlFromCatalog(sku) {
+  const url = new URL(getProductUrl(sku));
+  url.searchParams.set('category', currentCategory || 'Todas las Prendas');
+
+  const search = $('searchInput')?.value.trim();
+  const size = $('sizeFilter')?.value;
+  const type = $('typeFilter')?.value;
+  const sort = $('sortOrder')?.value;
+  const filtersOpen = !$('advancedFilters')?.hidden;
+
+  if (search) url.searchParams.set('search', search);
+  if (size) url.searchParams.set('size', size);
+  if (type) url.searchParams.set('type', type);
+  if (sort && sort !== 'none') url.searchParams.set('sort', sort);
+  if (filtersOpen) url.searchParams.set('filters', '1');
+
+  return url.href;
+}
+
 function getProductImages(item) {
   const gallery = item.galeria
     ? (typeof item.galeria === 'string' ? item.galeria.split(',') : item.galeria)
@@ -168,7 +188,7 @@ function getProductImages(item) {
 
 function openProductPage(sku) {
   showPageLoader();
-  window.location.href = getProductUrl(sku);
+  window.location.href = getProductUrlFromCatalog(sku);
 }
 
 function getJsonp(params, timeoutMs = 15000) {
@@ -246,6 +266,43 @@ function setSelectValue(select, value) {
   select.value = option ? option.value : '';
 }
 
+function setFilterPanelOpen(isOpen) {
+  const panel = $('advancedFilters');
+  const toggle = $('filterToggleBtn');
+  if (!panel || !toggle) return;
+
+  panel.hidden = !isOpen;
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.innerText = isOpen ? 'Ocultar filtros' : 'Filtros';
+}
+
+function toggleFilterPanel() {
+  const panel = $('advancedFilters');
+  if (!panel) return;
+  setFilterPanelOpen(panel.hidden);
+}
+
+function restoreCatalogStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const search = params.get('search');
+  const size = params.get('size');
+  const type = params.get('type');
+  const sort = params.get('sort');
+  const category = params.get('category');
+
+  if (search !== null && $('searchInput')) $('searchInput').value = search;
+  if (size !== null) setSelectValue($('sizeFilter'), size);
+  if (type !== null) setSelectValue($('typeFilter'), type);
+  if (sort !== null) setSelectValue($('sortOrder'), sort);
+
+  const hasAdvancedFilters = params.get('filters') === '1' || Boolean(size || type || (sort && sort !== 'none'));
+  setFilterPanelOpen(hasAdvancedFilters);
+
+  if (category) {
+    selectCategory(category);
+  }
+}
+
 function applyFilters() {
   if (isLoading) {
     renderCatalogLoading();
@@ -306,6 +363,7 @@ function applyFilters() {
   if (sort === 'p-low') filteredItems.sort((a, b) => Number(a.precio) - Number(b.precio));
   if (sort === 'p-high') filteredItems.sort((a, b) => Number(b.precio) - Number(a.precio));
   if (sort === 'az') filteredItems.sort((a, b) => a.equipo.localeCompare(b.equipo));
+  if (sort === 'za') filteredItems.sort((a, b) => b.equipo.localeCompare(a.equipo));
 
   currentPage = 1;
   render();
@@ -460,6 +518,7 @@ function backToCategories() {
   $('sizeFilter').value = '';
   $('typeFilter').value = '';
   $('sortOrder').value = 'none';
+  setFilterPanelOpen(false);
 }
 
 /* ==========================================================================
@@ -513,7 +572,7 @@ function openProductModal(item) {
   // Generar enlace estructurado para WhatsApp
   const message = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
   $('modalWsBtn').href = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
-  $('modalFullPageBtn').href = getProductUrl(item.sku);
+  $('modalFullPageBtn').href = getProductUrlFromCatalog(item.sku);
 
   modal.style.display = 'flex';
   document.body.style.overflow = 'hidden';
@@ -590,11 +649,13 @@ function renderProductPage(item, requestedSku) {
   const status = item.estado || 'Activo';
   const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
   const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  const returnUrl = getCatalogReturnUrl();
 
   document.title = `${title} | CAS`;
   content.innerHTML = `
     <div class="product-page-actions">
-      <a href="index.html" class="secondary-btn" style="text-decoration:none;">← Volver al catálogo</a>
+      <a href="${escapeHtml(returnUrl)}" class="secondary-btn" style="text-decoration:none;">← Regresar</a>
+      <a href="index.html" class="secondary-btn" style="text-decoration:none;">Ver todas las categorías</a>
     </div>
     <section class="product-detail" aria-label="Detalle de prenda">
       <div class="product-gallery-panel">
@@ -656,6 +717,23 @@ function renderProductPage(item, requestedSku) {
     });
     thumbsContainer.appendChild(thumb);
   });
+}
+
+function getCatalogReturnUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const url = new URL('index.html', window.location.href);
+  const passthrough = ['category', 'search', 'size', 'type', 'sort', 'filters'];
+
+  if (!params.has('category')) {
+    url.searchParams.set('category', 'Todas las Prendas');
+  }
+
+  passthrough.forEach(key => {
+    const value = params.get(key);
+    if (value !== null && value !== '') url.searchParams.set(key, value);
+  });
+
+  return url.href;
 }
 
 function showProductPageError(msg) {

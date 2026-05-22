@@ -4,7 +4,8 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 
-let allItems = [], filteredItems = [];
+let allItems = [];
+let filteredItems = [];
 let currentPage = 1;
 let itemsPerPage = 24; 
 let currentCategory = "Todas las Prendas"; // Estado de la categoría seleccionada
@@ -12,9 +13,48 @@ let currentItem = null;
 let editDirty = false;
 let addImages = [];
 let editImages = [];
+let isLoading = true;
 
 // Helper para seleccionar elementos como en jQuery
 const $ = (id) => document.getElementById(id);
+
+function ensurePageLoader() {
+  let overlay = $('pageLoadingOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'pageLoadingOverlay';
+    overlay.className = 'page-loading-overlay active';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.innerHTML = `
+      <img src="loading_gif.gif" alt="" class="page-loading-gif">
+      <div class="page-loading-text">cargando</div>
+    `;
+    document.body.prepend(overlay);
+  }
+  return overlay;
+}
+
+function showPageLoader() {
+  ensurePageLoader().classList.add('active');
+  document.body.classList.add('page-is-loading');
+}
+
+function hidePageLoader() {
+  const overlay = $('pageLoadingOverlay');
+  if (overlay) overlay.classList.remove('active');
+  document.body.classList.remove('page-is-loading');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
 
 /* ==========================================================================
    2. ENRUTADOR AUTOMÁTICO (Detecta la página actual al cargar)
@@ -24,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Si el body tiene la clase de la tienda (index.html)
     if (document.body.classList.contains('index-page')) {
+        hidePageLoader();
         setupCategoryButtons(); 
         loadInventory(); 
         
@@ -37,12 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
     } 
     // Si el body tiene la clase de administración (admin.html)
     else if (document.body.classList.contains('admin-page')) {
+        hidePageLoader();
         setupDragAndDrop();
         setupAdminForms();
     } 
     // Si el body tiene la clase de producto individual (product.html)
     else if (document.body.classList.contains('product-page')) {
+        showPageLoader();
         loadProductPage();
+    }
+    else {
+        hidePageLoader();
     }
 });
 
@@ -93,7 +139,8 @@ function setupCategoryButtons() {
    ========================================================================== */
 function showInventoryError(message) {
   $('resultCount').innerText = 'Hubo un error al cargar el inventario.';
-  $('catalogGrid').innerHTML = `<div class="loading">${message}</div>`;
+  $('catalogGrid').innerHTML = `<div class="catalog-state"><p>${escapeHtml(message)}</p></div>`;
+  $('paginationControls').style.display = 'none';
 }
 
 function normalizeInventoryPayload(data) {
@@ -115,7 +162,13 @@ function getProductImages(item) {
     ? (typeof item.galeria === 'string' ? item.galeria.split(',') : item.galeria)
     : [item.imagen || 'image_unavailable.png'];
 
-  return gallery.map(src => String(src).trim()).filter(Boolean);
+  const images = gallery.map(src => String(src).trim()).filter(Boolean);
+  return images.length ? images : ['image_unavailable.png'];
+}
+
+function openProductPage(sku) {
+  showPageLoader();
+  window.location.href = getProductUrl(sku);
 }
 
 function getJsonp(params, timeoutMs = 15000) {
@@ -149,15 +202,21 @@ function getJsonp(params, timeoutMs = 15000) {
 }
 
 async function loadInventory(){
+  isLoading = true;
+  renderCatalogLoading();
   try {
     const data = await getJsonp({ action: 'getInventory' });
     allItems = normalizeInventoryPayload(data);
+    isLoading = false;
     applyFilters();
   } catch(error) {
+    isLoading = false;
     const message = error.message === 'timeout'
       ? 'El inventario está tardando demasiado en responder. Intenta recargar la página.'
       : 'Una disculpa. Hubo un problema conectando con la base de datos.';
     showInventoryError(message);
+  } finally {
+    hidePageLoader();
   }
 }
 
@@ -176,7 +235,23 @@ function cleanText(str) {
   return String(str || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
+function cleanOptionText(str) {
+  return cleanText(str).replace(/\s+/g, '');
+}
+
+function setSelectValue(select, value) {
+  if (!select) return;
+  const desired = cleanOptionText(value);
+  const option = Array.from(select.options).find(opt => cleanOptionText(opt.value) === desired || cleanOptionText(opt.text) === desired);
+  select.value = option ? option.value : '';
+}
+
 function applyFilters() {
+  if (isLoading) {
+    renderCatalogLoading();
+    return;
+  }
+
   const search = $('searchInput').value.toLowerCase().trim();
   const size = $('sizeFilter').value;
   const type = $('typeFilter').value;
@@ -238,12 +313,11 @@ function applyFilters() {
 
 function render() {
   const grid = document.getElementById('catalogGrid');
+
   if (!grid) return;
 
   if (filteredItems.length === 0) {
-    document.getElementById('resultCount').innerText = '0 resultados';
-    grid.innerHTML = '<div class="loading">No se encontraron resultados en esta categoría.</div>';
-    document.getElementById('paginationControls').style.display = 'none';
+    renderEmptyCatalog();
     return;
   }
 
@@ -259,26 +333,21 @@ function render() {
   grid.innerHTML = pageItems.map(item => {
     const images = getProductImages(item);
     
-    // Lógica para mostrar Precio Normal vs Oferta
-    const oferta = item.precioOferta || item.Precio_Oferta;
-    const hasSale = oferta !== undefined && oferta !== null && String(oferta).trim() !== "" && Number(oferta) !== 0;
-    
-    const priceHTML = hasSale 
-        ? `<span style="text-decoration: line-through; color: #9eb1ca; font-size: 14px; margin-right: 6px;">Q${item.precio}</span>Q${oferta}`
-        : `Q${item.precio}`;
+    const priceHTML = getProductPriceHtml(item, 14);
 
     // Lógica para el botón directo de WhatsApp
     const wsMessage = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
     const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(wsMessage)}`;
 
     return `
-      <div class="product-card" onclick="window.location.href='product.html?sku=${item.sku}'" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s;">        <div class="product-image-wrapper" style="width: 100%; height: 280px; overflow: hidden; background: #07111f;">
-          <img src="${images[0]}" alt="${item.equipo}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+      <div class="product-card" data-sku="${escapeHtml(item.sku)}" role="link" tabindex="0" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s;">
+        <div class="product-image-wrapper" style="width: 100%; height: 280px; overflow: hidden; background: #07111f;">
+          <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <div class="product-info" style="padding: 15px;">
-          <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${item.sku}</div>
-          <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${item.equipo}</h3>
-          <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${item.talla} | ${item.tipo}</div>
+          <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${escapeHtml(item.sku)}</div>
+          <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)}</h3>
+          <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${escapeHtml(item.talla)} | ${escapeHtml(item.tipo)}</div>
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
             <div class="product-price" style="color: #2490ff; font-size: 18px; font-weight: bold;">
@@ -294,14 +363,60 @@ function render() {
     `;
   }).join('');
 
+  grid.querySelectorAll('.product-card').forEach(card => {
+    card.addEventListener('click', event => {
+      if (event.target.closest('a')) return;
+      openProductPage(card.dataset.sku);
+    });
+    card.addEventListener('keydown', event => {
+      if (event.target.closest('a')) return;
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        openProductPage(card.dataset.sku);
+      }
+    });
+  });
+
   if (totalPages > 1) {
     document.getElementById('paginationControls').style.display = 'flex';
-    document.getElementById('pageIndicator').innerText = `Página ${currentPage} de ${totalPages}`;
+    document.getElementById('pageIndicator').innerText = `${currentPage} de ${totalPages}`;
     document.getElementById('prevPageBtn').disabled = (currentPage === 1);
     document.getElementById('nextPageBtn').disabled = (currentPage === totalPages);
   } else {
     document.getElementById('paginationControls').style.display = 'none';
   }
+}
+
+function renderCatalogLoading() {
+  const grid = $('catalogGrid');
+  const resultCount = $('resultCount');
+  const pagination = $('paginationControls');
+  if (resultCount) resultCount.innerText = 'Cargando prendas...';
+  if (pagination) pagination.style.display = 'none';
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <div class="catalog-state">
+      <img src="loading_gif.gif" alt="">
+      <p>cargando</p>
+    </div>
+  `;
+}
+
+function renderEmptyCatalog() {
+  const grid = $('catalogGrid');
+  const resultCount = $('resultCount');
+  const pagination = $('paginationControls');
+  if (resultCount) resultCount.innerText = '0 resultados';
+  if (pagination) pagination.style.display = 'none';
+  if (!grid) return;
+
+  grid.innerHTML = `
+    <div class="catalog-state empty">
+      <img src="nothing_to_see_here.png" alt="">
+      <p>Parece que no hay nada por aqui</p>
+    </div>
+  `;
 }
 
 /* ==========================================================================
@@ -364,6 +479,10 @@ function openProductModal(item) {
 
   const mainImg = $('modalMainImage');
   mainImg.src = images[0];
+  mainImg.onerror = () => {
+    mainImg.onerror = null;
+    mainImg.src = 'image_unavailable.png';
+  };
 
   const thumbsContainer = $('modalThumbnails');
   thumbsContainer.innerHTML = '';
@@ -372,6 +491,10 @@ function openProductModal(item) {
     images.forEach((src, idx) => {
       const thumb = document.createElement('img');
       thumb.src = src;
+      thumb.onerror = () => {
+        thumb.onerror = null;
+        thumb.src = 'image_unavailable.png';
+      };
       thumb.style.cssText = "width:60px; height:60px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#0a1728; flex-shrink:0;";
       if (idx === 0) thumb.style.borderColor = "#2490ff";
       
@@ -406,11 +529,13 @@ function closeProductModal() {
    5. VISTA DE PRODUCTO INDIVIDUAL (product.html)
    ========================================================================== */
 async function loadProductPage() {
+  showPageLoader();
   const params = new URLSearchParams(window.location.search);
   const sku = params.get('sku');
   
   if (!sku) {
     showProductPageError("No se especificó ningún SKU en la dirección web. Por favor, selecciona una prenda desde el catálogo.");
+    hidePageLoader();
     return;
   }
 
@@ -424,66 +549,127 @@ async function loadProductPage() {
     }
     
     const itemData = response.item;
-    const images = getProductImages(itemData);
-    
-    // Using || '' ensures that if a field is blank, it doesn't print "undefined"
-    $('productTitle').innerText = itemData.equipo || 'Equipo Desconocido';
-    $('productSize').innerText = itemData.talla || 'N/A';
-    $('productType').innerText = itemData.tipo || 'N/A';
-    $('productSku').innerText = itemData.sku || sku;
-    $('productNotes').innerText = itemData.notas || 'Sin descripción adicional.';
-
-    // Logic for regular price vs sale price
-    const oferta = itemData.precioOferta || itemData.Precio_Oferta;
-    const hasSale = oferta !== undefined && oferta !== null && String(oferta).trim() !== "" && Number(oferta) !== 0;
-    
-    if (hasSale) {
-       $('productPrice').innerHTML = `<span style="text-decoration: line-through; color: #9eb1ca; font-size: 18px; margin-right: 10px;">Q${itemData.precio}</span>Q${oferta}`;
-    } else {
-       $('productPrice').innerHTML = `Q${itemData.precio || '0.00'}`;
-    }
-
-    const mainImg = $('mainProductImage');
-    if (mainImg) {
-        mainImg.src = images.length > 0 ? images[0] : 'placeholder.png'; // Prevents broken image icon
-    }
-
-    const thumbsContainer = $('productThumbnails');
-    if (thumbsContainer) {
-      thumbsContainer.innerHTML = '';
-      if (images.length > 1) {
-        images.forEach((src, idx) => {
-          const thumb = document.createElement('img');
-          thumb.src = src;
-          thumb.className = "thumb-img" + (idx === 0 ? " active" : "");
-          thumb.style.cssText = "width:70px; height:70px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#07111f; flex-shrink:0;";
-          if (idx === 0) thumb.style.borderColor = "#2490ff";
-          
-          thumb.onclick = () => {
-            mainImg.src = src;
-            Array.from(thumbsContainer.children).forEach(t => t.style.borderColor = "#1f3350");
-            thumb.style.borderColor = "#2490ff";
-          };
-          thumbsContainer.appendChild(thumb);
-        });
-      }
-    }
-
-    const message = `¡Hola! Me interesa la camisola de ${itemData.equipo || ''} (Talla: ${itemData.talla || ''}, SKU: ${itemData.sku || sku}) que vi en su catálogo web. ¿Está disponible?`;
-    const wsBtn = $('productWsLink');
-    if (wsBtn) wsBtn.href = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
-
-    $('productPageLoader').style.display = 'none';
-    $('productPageContent').style.display = 'grid';
+    renderProductPage(itemData, sku);
 
   } catch (err) {
     showProductPageError("Error de conexión al cargar los datos de la prenda.");
+  } finally {
+    hidePageLoader();
   }
 }
 
+function getProductPriceHtml(item, regularSize = 18) {
+  const oferta = item.precioOferta || item.Precio_Oferta;
+  const hasSale = oferta !== undefined && oferta !== null && String(oferta).trim() !== "" && Number(oferta) !== 0;
+  if (hasSale) {
+    return `<span style="text-decoration: line-through; color: #9eb1ca; font-size: ${regularSize}px; margin-right: 10px;">Q${escapeHtml(item.precio)}</span>Q${escapeHtml(oferta)}`;
+  }
+  return `Q${escapeHtml(item.precio || '0.00')}`;
+}
+
+function productDetailRow(label, value) {
+  const displayValue = value !== undefined && value !== null && String(value).trim() !== '' ? value : 'N/A';
+  return `
+    <div class="product-detail-row">
+      <dt>${escapeHtml(label)}</dt>
+      <dd>${escapeHtml(displayValue)}</dd>
+    </div>
+  `;
+}
+
+function renderProductPage(item, requestedSku) {
+  const content = $('productPageContent');
+  if (!content) return;
+
+  const images = getProductImages(item);
+  const title = item.equipo || 'Equipo Desconocido';
+  const sku = item.sku || requestedSku;
+  const notes = item.notas || 'Sin descripción adicional.';
+  const region = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || '';
+  const availability = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ' ? 'Disponible' : 'No disponible';
+  const status = item.estado || 'Activo';
+  const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
+  const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+
+  document.title = `${title} | CAS`;
+  content.innerHTML = `
+    <div class="product-page-actions">
+      <a href="index.html" class="secondary-btn" style="text-decoration:none;">← Volver al catálogo</a>
+    </div>
+    <section class="product-detail" aria-label="Detalle de prenda">
+      <div class="product-gallery-panel">
+        <div class="product-main-image-frame">
+          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='image_unavailable.png';">
+        </div>
+        <div id="productThumbnails" class="product-thumbnails${images.length <= 1 ? ' is-hidden' : ''}" aria-label="Galería de imágenes"></div>
+      </div>
+      <div class="product-info-panel">
+        <p class="product-page-sku">${escapeHtml(sku)}</p>
+        <h1 id="productTitle">${escapeHtml(title)}</h1>
+        <div id="productPrice" class="product-page-price">${getProductPriceHtml(item, 18)}</div>
+        <dl class="product-detail-list">
+          ${productDetailRow('SKU', sku)}
+          ${productDetailRow('Talla', item.talla)}
+          ${productDetailRow('Tipo', item.tipo)}
+          ${productDetailRow('Año', item.year)}
+          ${region ? productDetailRow('Categoría', region) : ''}
+          ${productDetailRow('Disponibilidad', availability)}
+          ${productDetailRow('Estado', status)}
+        </dl>
+        <div class="product-notes">
+          <h2>Descripción / Notas</h2>
+          <p>${escapeHtml(notes)}</p>
+        </div>
+        <div class="product-actions">
+          <a id="productWsLink" href="${escapeHtml(wsUrl)}" class="ws-detail-btn" target="_blank" rel="noopener">
+            <img src="whatsapp_logo.jpg" alt="">
+            Consultar por WhatsApp
+          </a>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const mainImg = $('mainProductImage');
+  const thumbsContainer = $('productThumbnails');
+  if (mainImg) {
+    mainImg.onerror = () => {
+      mainImg.onerror = null;
+      mainImg.src = 'image_unavailable.png';
+    };
+  }
+  if (!mainImg || !thumbsContainer || images.length <= 1) return;
+
+  images.forEach((src, idx) => {
+    const thumb = document.createElement('img');
+    thumb.src = src;
+    thumb.alt = `${title} ${idx + 1}`;
+    thumb.className = 'product-thumb' + (idx === 0 ? ' active' : '');
+    thumb.onerror = () => {
+      thumb.onerror = null;
+      thumb.src = 'image_unavailable.png';
+    };
+    thumb.addEventListener('click', () => {
+      mainImg.src = src;
+      Array.from(thumbsContainer.children).forEach(t => t.classList.remove('active'));
+      thumb.classList.add('active');
+    });
+    thumbsContainer.appendChild(thumb);
+  });
+}
+
 function showProductPageError(msg) {
-  const loader = $('productPageLoader');
-  if (loader) loader.innerHTML = `<div style="color:#ff4a4a; font-weight:600;">${msg}<br><br><a href="index.html" class="secondary-btn" style="text-decoration:none; display:inline-block; margin-top:10px;">← Volver al catálogo</a></div>`;
+  const content = $('productPageContent');
+  if (content) {
+    content.style.display = 'block';
+    content.innerHTML = `
+      <div style="padding: 40px; text-align: center; color: #ff4d4d; background: #0a1728; border-radius: 12px; border: 1px solid #1f3350;">
+        <h2 style="margin-bottom: 15px;">Error al cargar la prenda</h2>
+        <p style="color: #d9e5f5; font-size: 16px; margin-bottom: 20px;">${escapeHtml(msg)}</p>
+        <a href="index.html" class="secondary-btn" style="text-decoration: none; display: inline-block;">Volver al catálogo</a>
+      </div>
+    `;
+  }
 }
 
 /* ==========================================================================
@@ -523,12 +709,11 @@ function setupDragAndDrop() {
 }
 
 function handleFiles(files, config) {
-  const filesArray = Array.from(files);
+  const filesArray = Array.from(files).filter(file => file.type.startsWith('image/'));
+  if (!filesArray.length) return;
   let loadedCount = 0;
 
   filesArray.forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    
     const reader = new FileReader();
     reader.onload = (e) => {
       // Redimensionar y comprimir la imagen en el canvas antes de mandarla
@@ -551,7 +736,7 @@ function handleFiles(files, config) {
         ctx.drawImage(img, 0, 0, width, height);
         
         const base64Str = canvas.toDataURL('image/jpeg', 0.75);
-        config.imagesArray.push({ base64: base64Str, name: file.name });
+        config.imagesArray.push({ base64: base64Str, name: file.name, type: 'image/jpeg' });
         
         loadedCount++;
         if (loadedCount === filesArray.length) {
@@ -583,7 +768,17 @@ function renderPreviews(config) {
     container.classList.add('hidden');
     uploadBox.classList.remove('hidden');
   }
-  markEditDirty();
+  if (config.markDirty !== false) markEditDirty();
+}
+
+function renderCurrentImages(images) {
+  const container = $('editCurrentImages');
+  if (!container) return;
+  const visibleImages = images.filter(Boolean);
+  container.innerHTML = visibleImages.map(src => `
+    <img src="${escapeHtml(src)}" alt="Imagen actual" onerror="this.onerror=null; this.src='image_unavailable.png';">
+  `).join('');
+  container.classList.toggle('hidden', visibleImages.length === 0);
 }
 
 function removeImageAt(index, previewContainerId) {
@@ -601,6 +796,11 @@ function setupAdminForms() {
   $("editForm")?.addEventListener("submit", submitEdit);
   $("editForm")?.addEventListener("input", markEditDirty);
   $("editForm")?.addEventListener("change", markEditDirty);
+  $("addFileInput")?.addEventListener("change", (e) => {
+    if(e.target.files.length) {
+      handleFiles(e.target.files, { imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" });
+    }
+  });
   $("editFileInput")?.addEventListener("change", (e) => {
     if(e.target.files.length) {
       handleFiles(e.target.files, { imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
@@ -612,6 +812,10 @@ function markEditDirty() {
   editDirty = true;
   const confirmBtn = $("confirmUpdateBtn");
   if (confirmBtn) confirmBtn.disabled = false;
+}
+
+function getUploadImages(images) {
+  return images.filter(img => String(img.base64 || '').startsWith('data:image/'));
 }
 
 async function sendPostRequest(payload) {
@@ -644,7 +848,7 @@ async function submitAdd(e) {
     disponible: formData.get("venta") !== null, // Checkbox returns null if unchecked
     tipoRegion: formData.get("tipo_region"), // Matches the name in HTML
     notas: formData.get("notas"),
-    images: addImages
+    images: getUploadImages(addImages)
   };
 
   try {
@@ -682,27 +886,27 @@ async function lookupSku() {
       
       // Get images for the visual summary
       const images = getProductImages(itemData);
-      const mainImage = images.length > 0 ? images[0] : 'placeholder.png';
+      const mainImage = images.length > 0 ? images[0] : 'image_unavailable.png';
       
       // Create a visual card similar to the product popup
       let summaryHtml = `
         <div style="display:flex; flex-wrap:wrap; gap:20px; background:#0a1728; padding:20px; border-radius:12px; border:1px solid #1f3350; margin-top:15px; margin-bottom:20px;">
           <div style="width: 140px; flex-shrink: 0; background: #07111f; padding: 10px; border-radius: 8px;">
-            <img src="${mainImage}" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
+            <img src="${escapeHtml(mainImage)}" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
           </div>
           <div style="flex:1; min-width: 200px; display: flex; flex-direction: column; justify-content: center;">
-            <h3 style="color:#2490ff; margin:0 0 10px 0; font-size: 22px;">${itemData.equipo}</h3>
-            <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 15px;">Q${itemData.precio}</div>
+            <h3 style="color:#2490ff; margin:0 0 10px 0; font-size: 22px;">${escapeHtml(itemData.equipo)}</h3>
+            <div style="font-size: 20px; font-weight: bold; color: #fff; margin-bottom: 15px;">Q${escapeHtml(itemData.precio)}</div>
             
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size:15px; color:#d9e5f5;">
-              <div><strong>SKU:</strong> ${itemData.sku}</div>
-              <div><strong>Talla:</strong> ${itemData.talla}</div>
-              <div><strong>Tipo:</strong> ${itemData.tipo}</div>
+              <div><strong>SKU:</strong> ${escapeHtml(itemData.sku)}</div>
+              <div><strong>Talla:</strong> ${escapeHtml(itemData.talla)}</div>
+              <div><strong>Tipo:</strong> ${escapeHtml(itemData.tipo)}</div>
               <div><strong>Disponibilidad:</strong> ${itemData.disponible ? 'SÍ' : 'NO'}</div>
               <div style="grid-column: 1 / -1;">
                 <strong>Estado:</strong> 
                 <span style="color: ${itemData.estado === 'Activo' ? '#25D366' : '#ff4a4a'}; font-weight: bold;">
-                  ${itemData.estado || 'Activo'}
+                  ${escapeHtml(itemData.estado || 'Activo')}
                 </span>
               </div>
             </div>
@@ -720,16 +924,17 @@ async function lookupSku() {
       form.year.value = itemData.year || ""; 
       form.precio.value = itemData.precio;
       form.precio_oferta.value = itemData.precioOferta || itemData.Precio_Oferta || ""; 
-      form.talla.value = itemData.talla;
-      form.tipo.value = itemData.tipo;
+      setSelectValue(form.talla, itemData.talla);
+      setSelectValue(form.tipo, itemData.tipo);
       form.venta.checked = itemData.disponible === true || String(itemData.disponible).toUpperCase() === 'SÍ'; 
-      form.tipo_region.value = itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "";
+      setSelectValue(form.tipo_region, itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "");
       form.notas.value = itemData.notas || "";
 
       // Render image previews in the edit form
       const currentGallery = getProductImages(itemData);
-      editImages = currentGallery.map(url => ({ base64: url, name: "url-source" }));
-      renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
+      editImages = [];
+      renderCurrentImages(currentGallery);
+      renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer", markDirty: false });
 
       // Show the action buttons (Actualizar, Marcar Vendida, Eliminar)
       showActions();
@@ -785,7 +990,7 @@ async function confirmUpdate() {
     disponible: form.venta.checked, // Retrieves true/false from the checkbox
     tipoRegion: form.tipo_region.value,
     notas: form.notas.value,
-    images: editImages
+    images: getUploadImages(editImages)
   };
 
   try {
@@ -852,6 +1057,8 @@ function resetManage() {
   $("editForm").classList.add("hidden");
   $("editPreviewContainer").innerHTML = "";
   $("editPreviewContainer").classList.add("hidden");
+  $("editCurrentImages")?.classList.add("hidden");
+  if ($("editCurrentImages")) $("editCurrentImages").innerHTML = "";
   $("editUploadContainer").classList.remove("hidden");
   editImages = [];
   hideActions();
@@ -867,24 +1074,9 @@ function resetManageExceptSku() {
   $("editForm").classList.add("hidden");
   $("editPreviewContainer").innerHTML = "";
   $("editPreviewContainer").classList.add("hidden");
+  $("editCurrentImages")?.classList.add("hidden");
+  if ($("editCurrentImages")) $("editCurrentImages").innerHTML = "";
   $("editUploadContainer").classList.remove("hidden");
   editImages = [];
   hideActions();
-}
-
-function showProductPageError(msg) {
-  const loader = document.getElementById('productPageLoader');
-  if (loader) loader.style.display = 'none';
-  
-  const content = document.getElementById('productPageContent');
-  if (content) {
-    content.style.display = 'block';
-    content.innerHTML = `
-      <div style="padding: 40px; text-align: center; color: #ff4d4d; background: #0a1728; border-radius: 12px; border: 1px solid #1f3350; grid-column: 1 / -1;">
-        <h2 style="margin-bottom: 15px;">Error al cargar la prenda</h2>
-        <p style="color: #d9e5f5; font-size: 16px; margin-bottom: 20px;">${msg}</p>
-        <a href="index.html" class="secondary-btn" style="text-decoration: none; display: inline-block;">Volver al catálogo</a>
-      </div>
-    `;
-  }
 }

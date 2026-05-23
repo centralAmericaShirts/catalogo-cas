@@ -1,4 +1,4 @@
-/* ==========================================================================
+/* =========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 

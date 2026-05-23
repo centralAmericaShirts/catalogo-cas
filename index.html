@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CAS | Catálogo</title>
-  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 </head>
 <body class="index-page">
   <div id="pageLoadingOverlay" class="page-loading-overlay" role="status" aria-live="polite">
-    <img src="loading_gif.gif" alt="" class="page-loading-gif">
+    <img src="assets/loading_gif.gif" alt="" class="page-loading-gif">
     <div class="page-loading-text">cargando</div>
   </div>
 
@@ -21,14 +21,14 @@
       <span></span><span></span><span></span>
     </button>
     <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
-      <img src="logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+      <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
       <div class="nav-text-container">
         <span class="nav-title">Central America Shirts</span>
         <h5 class="nav-slogan">Llevando el fútbol de Guate a todo el mundo 🇧🇷🇦🇷🇨🇴🇺🇲🇨🇱🇲🇽</h5>
       </div>
     </a>
     <a href="https://www.instagram.com/centralamericashirts/" class="nav-social-link" target="_blank" rel="noopener" aria-label="Instagram">
-      <img src="instagram_logo.svg" alt="Instagram" class="nav-social-icon" width="24" height="24">
+      <img src="assets/assets/instagram_logo.svg" alt="Instagram" class="nav-social-icon" width="24" height="24">
     </a>
   </nav>
 
@@ -51,10 +51,10 @@
         </div>
       </details>
       <a href="https://wa.me/50258656376" target="_blank" rel="noopener" class="menu-icon-link">
-        <img src="whatsapp_logo.jpg" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
+        <img src="assets/whatsapp_logo.jpg.jpg" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
       </a>
       <a href="https://www.instagram.com/centralamericashirts/" target="_blank" rel="noopener" class="menu-icon-link">
-        <img src="instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
+        <img src="assets/assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
       </a>
       <a href="storeInfo.html" onclick="closeSideMenu()">Información de la tienda</a>
     </nav>
@@ -85,7 +85,7 @@
 
   <div class="container">
     <div class="category-cards-grid" id="categoryGrid">
-		<div class="cat-card" onclick="selectCategory('Todas las prendas')" style="background-image: url('logo_cas.png')">
+		<div class="cat-card" onclick="selectCategory('Todas las prendas')" style="background-image: url('assets/logo_cas.png')">
             <div class="cat-overlay"></div>
             <h3>Todas las prendas</h3>
         </div>
@@ -162,18 +162,18 @@
         
         <div class="catalog-grid" id="catalogGrid">
           <div class="catalog-state">
-            <img src="loading_gif.gif" alt="">
+            <img src="assets/loading_gif.gif" alt="">
             <p>cargando</p>
           </div>
         </div>
         <div class="pagination-controls" id="paginationControls" style="display: none;">
           <button class="secondary-btn" id="prevPageBtn" onclick="changePage(-1)">
-            <img src="flecha.png" alt="Anterior" class="btn-icon">
+            <img src="assets/flecha.png" alt="Anterior" class="btn-icon">
           </button>
           <span id="pageIndicator" style="color: #d9e5f5; font-weight: 600;"> 1 de 1</span>
           <!--<button class="secondary-btn" id="nextPageBtn" onclick="changePage(1)">Siguiente</button>-->
           <button class="secondary-btn" id="nextPageBtn" onclick="changePage(1)">
-            <img src="flecha.png" alt="Siguiente" class="btn-icon">
+            <img src="assets/flecha.png" alt="Siguiente" class="btn-icon">
           </button>
         </div>
     </div>
@@ -201,7 +201,7 @@
         </div>
         
         <a id="modalWsBtn" href="#" class="ws-btn-image" target="_blank">
-          <img src="whatsapp_logo.jpg" alt="Consultar por WhatsApp">
+          <img src="assets/whatsapp_logo.jpg.jpg" alt="Consultar por WhatsApp">
         </a>
         <a id="modalFullPageBtn" href="#" class="secondary-btn full-page-btn">Ver página completa</a>
       </div>

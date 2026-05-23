@@ -1,4 +1,4 @@
-/* =========================================================================
+/* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
@@ -7,7 +7,9 @@ const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 let allItems = [];
 let filteredItems = [];
 let currentPage = 1;
-let itemsPerPage = 24; 
+const DEFAULT_ITEMS_PER_PAGE = 24;
+let itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
+let showAllProducts = false;
 let currentCategory = "Todas las Prendas"; // Estado de la categoría seleccionada
 let currentItem = null;
 let editDirty = false;
@@ -69,6 +71,8 @@ function escapeHtml(value) {
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
     setupSideMenu();
+    setupSiteFooter();
+    setupStickyCategoryHeader();
 
     // Si el body tiene la clase de la tienda (index.html)
     if (document.body.classList.contains('index-page')) {
@@ -124,7 +128,10 @@ function ensureSharedNavigation() {
     navbar.className = 'navbar';
     navbar.innerHTML = `
       <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
-        <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+        <picture class="nav-logo-picture">
+          <source media="(max-width: 768px)" srcset="assets/logo_nav.png">
+          <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+        </picture>
         <div class="nav-text-container">
           <span class="nav-title">Central America Shirts</span>
           <h6 class="nav-slogan">Llevando el fútbol de Guate a todo el mundo</h6>
@@ -211,6 +218,41 @@ function closeSideMenu() {
   overlay.classList.remove('open');
   menu.setAttribute('aria-hidden', 'true');
   toggle?.setAttribute('aria-expanded', 'false');
+}
+
+function setupSiteFooter() {
+  if (document.querySelector('.site-footer')) return;
+
+  const footer = document.createElement('footer');
+  footer.className = 'site-footer';
+  footer.innerHTML = `
+    <div class="site-footer-content">
+      <span class="guatemala-flag" role="img" aria-label="Bandera de Guatemala">
+        <span></span><span></span><span></span>
+      </span>
+      <span>Guatemala, Guatemala</span>
+    </div>
+  `;
+  document.body.appendChild(footer);
+}
+
+function setupStickyCategoryHeader() {
+  updateStickyCategoryHeader();
+  window.addEventListener('scroll', updateStickyCategoryHeader, { passive: true });
+  window.addEventListener('resize', updateStickyCategoryHeader);
+}
+
+function updateStickyCategoryHeader() {
+  const stickyHeader = $('storeInfo');
+  const stickyTitle = $('stickyCategoryTitle');
+  const inventorySection = $('inventorySection');
+  if (!stickyHeader || !stickyTitle || !inventorySection) return;
+
+  const visibleCategory = currentCategory || $('currentCategoryTitle')?.innerText || 'Categoría';
+  stickyTitle.innerText = visibleCategory;
+
+  const inventoryIsOpen = inventorySection.style.display !== 'none';
+  stickyHeader.classList.toggle('show-category-title', inventoryIsOpen && window.scrollY > 12);
 }
 
 // Configura los clics en el acordeón del menú lateral
@@ -331,6 +373,8 @@ async function loadInventory(){
 }
 
 function changePage(delta) {
+  if (showAllProducts) return;
+
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   currentPage += delta;
   
@@ -339,6 +383,14 @@ function changePage(delta) {
   
   render();
   $('resultCount').scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
+function showAllCatalogProducts() {
+  if (filteredItems.length <= DEFAULT_ITEMS_PER_PAGE) return;
+
+  showAllProducts = true;
+  currentPage = 1;
+  render();
 }
 
 function cleanText(str) {
@@ -472,6 +524,7 @@ function render() {
 
   document.getElementById('resultCount').innerText = `${filteredItems.length} prendas encontradas`;
 
+  itemsPerPage = showAllProducts ? Math.max(filteredItems.length, DEFAULT_ITEMS_PER_PAGE) : DEFAULT_ITEMS_PER_PAGE;
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
   if (currentPage > totalPages) currentPage = totalPages;
 
@@ -526,14 +579,30 @@ function render() {
     });
   });
 
-  if (totalPages > 1) {
-    document.getElementById('paginationControls').style.display = 'flex';
-    document.getElementById('pageIndicator').innerText = `${currentPage} de ${totalPages}`;
-    document.getElementById('prevPageBtn').disabled = (currentPage === 1);
-    document.getElementById('nextPageBtn').disabled = (currentPage === totalPages);
-  } else {
-    document.getElementById('paginationControls').style.display = 'none';
-  }
+  updatePaginationControls(totalPages, pageItems.length, filteredItems.length);
+}
+
+function updatePaginationControls(totalPages, visibleCount, totalCount) {
+  const pagination = $('paginationControls');
+  const paginationNav = $('paginationNav');
+  const pageIndicator = $('pageIndicator');
+  const prevBtn = $('prevPageBtn');
+  const nextBtn = $('nextPageBtn');
+  const summary = $('paginationSummary');
+  const showAllBtn = $('showAllProductsBtn');
+  if (!pagination) return;
+
+  const canPaginate = totalCount > DEFAULT_ITEMS_PER_PAGE;
+  pagination.style.display = canPaginate ? 'flex' : 'none';
+  if (!canPaginate) return;
+
+  if (summary) summary.innerText = `Mostrando ${visibleCount} de ${totalCount} prendas`;
+  if (pageIndicator) pageIndicator.innerText = `${currentPage} de ${totalPages}`;
+  if (prevBtn) prevBtn.disabled = currentPage === 1;
+  if (nextBtn) nextBtn.disabled = currentPage === totalPages;
+  if (paginationNav) paginationNav.hidden = showAllProducts;
+  if (showAllBtn) showAllBtn.hidden = showAllProducts;
+  pagination.classList.toggle('is-expanded', showAllProducts);
 }
 
 function renderCatalogLoading() {
@@ -572,6 +641,9 @@ function renderEmptyCatalog() {
    NUEVAS FUNCIONES: NAVEGACIÓN DE CUADROS DE CATEGORÍAS (index.html)
    ========================================================================== */
 function selectCategory(categoryName) {
+  showAllProducts = false;
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
+
   if (categoryName.toLowerCase() === "todas las prendas") {
     currentCategory = "Todas las Prendas";
   } else {
@@ -580,6 +652,7 @@ function selectCategory(categoryName) {
 
   const titleEl = $('currentCategoryTitle');
   if (titleEl) titleEl.innerText = currentCategory;
+  updateStickyCategoryHeader();
 
   $('categoryGrid').style.display = 'none';
   $('inventorySection').style.display = 'block';
@@ -594,10 +667,13 @@ function selectCategory(categoryName) {
     }
   }
 
+  updateStickyCategoryHeader();
   applyFilters();
 }
 
 function backToCategories() {
+  showAllProducts = false;
+  itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
   $('categoryGrid').style.display = 'grid';
   $('inventorySection').style.display = 'none';
 
@@ -610,6 +686,7 @@ function backToCategories() {
   $('typeFilter').value = '';
   $('sortOrder').value = 'none';
   setFilterPanelOpen(false);
+  updateStickyCategoryHeader();
 }
 
 /* ==========================================================================
@@ -743,8 +820,11 @@ function renderProductPage(item, requestedSku) {
   document.title = `${title} | CAS`;
   content.innerHTML = `
     <div class="product-page-actions">
-      <a href="${escapeHtml(returnUrl)}" class="secondary-btn" style="text-decoration:none;">← Regresar</a>
-      <a href="index.html" class="secondary-btn" style="text-decoration:none;">Ver todas las categorías</a>
+      <a href="${escapeHtml(returnUrl)}" class="secondary-btn product-back-btn">
+        <img src="assets/flecha.png" alt="" class="product-back-icon">
+        <span>Regresar</span>
+      </a>
+      <a href="index.html" class="secondary-btn product-categories-btn">Ver todas las categorías</a>
     </div>
     <section class="product-detail" aria-label="Detalle de prenda">
       <div class="product-gallery-panel">

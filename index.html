@@ -21,7 +21,10 @@
       <span></span><span></span><span></span>
     </button>
     <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
-      <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+      <picture class="nav-logo-picture">
+        <source media="(max-width: 768px)" srcset="assets/logo_nav.png">
+        <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+      </picture>
       <div class="nav-text-container">
         <span class="nav-title">Central America Shirts</span>
         <h5 class="nav-slogan">Llevando el fútbol de Guate a todo el mundo 🇧🇷🇦🇷🇨🇴🇺🇲🇨🇱🇲🇽</h5>
@@ -78,7 +81,10 @@
   <div class="sticky-header" id="storeInfo">
     <div class="home-message-group">
       <h2>STOCK DISPONIBLE EN TIENDA - LA POPULAR</h2>
-      <label2>Vía 4 1-17 Zona 4, 4 Grados Norte</label2>
+      <div class="sticky-subtitle-stack" aria-live="polite">
+        <span class="sticky-subtitle sticky-address">Vía 4 1-17 Zona 4, 4 Grados Norte</span>
+        <span class="sticky-subtitle sticky-category" id="stickyCategoryTitle">Categoría</span>
+      </div>
       <hr style="margin-bottom: 2px; margin-top: 10px;">
     </div>    
   </div>
@@ -113,8 +119,11 @@
 
     <div id="inventorySection" style="display: none;">
         <div class="active-category-header">
-            <button class="secondary-btn" onclick="backToCategories()" style="justify-content:left;"> ← Volver a Categorías</button>
-            <h2 id="currentCategoryTitle" style="margin:0; color:#2490ff; justify-content: center;">Categoría</h2>
+            <button type="button" class="secondary-btn category-back-btn" onclick="backToCategories()" aria-label="Volver a categorías">
+              <img src="assets/flecha.png" alt="" class="btn-icon back-icon">
+            </button>
+            <h2 id="currentCategoryTitle">Categoría</h2>
+            <span class="category-header-spacer" aria-hidden="true"></span>
         </div>
 
         <div class="catalog-controls" id="catalogFilters">
@@ -167,14 +176,19 @@
           </div>
         </div>
         <div class="pagination-controls" id="paginationControls" style="display: none;">
-          <button class="secondary-btn" id="prevPageBtn" onclick="changePage(-1)">
-            <img src="assets/flecha.png" alt="Anterior" class="btn-icon">
-          </button>
-          <span id="pageIndicator" style="color: #d9e5f5; font-weight: 600;"> 1 de 1</span>
-          <!--<button class="secondary-btn" id="nextPageBtn" onclick="changePage(1)">Siguiente</button>-->
-          <button class="secondary-btn" id="nextPageBtn" onclick="changePage(1)">
-            <img src="assets/flecha.png" alt="Siguiente" class="btn-icon">
-          </button>
+          <div class="pagination-nav" id="paginationNav">
+            <button class="secondary-btn" id="prevPageBtn" onclick="changePage(-1)" aria-label="Página anterior">
+              <img src="assets/flecha.png" alt="" class="btn-icon">
+            </button>
+            <span id="pageIndicator">1 de 1</span>
+            <button class="secondary-btn" id="nextPageBtn" onclick="changePage(1)" aria-label="Página siguiente">
+              <img src="assets/flecha.png" alt="" class="btn-icon">
+            </button>
+          </div>
+          <div class="pagination-summary">
+            <span id="paginationSummary">Mostrando 24 de 24 prendas</span>
+            <button type="button" class="pagination-show-all-btn" id="showAllProductsBtn" onclick="showAllCatalogProducts()">Mostrar todos</button>
+          </div>
         </div>
     </div>
   </div>

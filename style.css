@@ -21,6 +21,7 @@ body.page-is-loading { overflow: hidden; }
 .nav-brand { display: flex; align-items: center; gap: 15px; }
 .nav-home-link { color: inherit; text-decoration: none; min-width: 0; }
 .nav-text-container { display: flex; align-items: left; gap: 20px; }
+.nav-logo-picture { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
 .nav-logo { height: 55px; width: 55px; object-fit: contain; }
 .nav-title { font-size: 20px; font-weight: 700; color: #2490ff; white-space: nowrap; }
 .nav-slogan { margin: 0; color: white; font-weight: normal; }
@@ -81,6 +82,20 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .home-message-group { text-align: center; padding: 10px; }
 .home-message-group h2 { font-size: 24px; color: #d9e5f5; }
 .home-message-group label2 { font-size: 24px; color: #2490ff; font-weight: 600; }
+.sticky-subtitle-stack { position: relative; min-height: 32px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.sticky-subtitle { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #2490ff; font-size: 24px; font-weight: 600; line-height: 1.2; text-align: center; transition: opacity .26s ease, transform .26s ease; }
+.sticky-address { opacity: 1; transform: translateY(0); }
+.sticky-category { opacity: 0; transform: translateY(10px); }
+.sticky-header.show-category-title .sticky-address { opacity: 0; transform: translateY(-10px); }
+.sticky-header.show-category-title .sticky-category { opacity: 1; transform: translateY(0); }
+
+/* PIE DE PÁGINA */
+.site-footer { margin: 44px auto 0; padding: 24px 20px 32px; border-top: 1px solid #1d314d; background: #050d18; color: #d9e5f5; display: flex; justify-content: center; align-items: center; }
+.site-footer-content { display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; line-height: 1.2; }
+.guatemala-flag { width: 34px; height: 22px; display: grid; grid-template-columns: 1fr 1fr 1fr; overflow: hidden; border: 1px solid rgba(217,229,245,.65); border-radius: 3px; box-shadow: 0 4px 12px rgba(0,0,0,.24); flex: 0 0 auto; }
+.guatemala-flag span:nth-child(1),
+.guatemala-flag span:nth-child(3) { background: #4997d0; }
+.guatemala-flag span:nth-child(2) { background: #f7fbff; }
 
 /* CINTILLO MARQUEE */
 .slider-container { width: 100%; overflow: hidden; padding: 10px 0 25px 0; }
@@ -96,7 +111,11 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .cat-card:hover { transform: translateY(-5px); border-color: #2490ff; }
 .cat-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 100%); }
 .cat-card h3 { position: absolute; bottom: 20px; left: 20px; color: #fff; font-size: 22px; font-weight: 700; z-index: 2; margin: 0; }
-.active-category-header { display: flex; align-items: center; gap: 20px; margin-bottom: 20px;}
+.active-category-header { display: grid; grid-template-columns: 45px minmax(0, 1fr) 45px; align-items: center; gap: 12px; margin-bottom: 20px; }
+#currentCategoryTitle { width: 100%; margin: 0; color: #2490ff; text-align: center; justify-self: center; min-width: 0; line-height: 1.2; overflow-wrap: break-word; }
+.category-back-btn { width: 45px; height: 45px; min-height: 45px; padding: 0; justify-self: start; }
+.secondary-btn.category-back-btn { margin: 0; padding: 0; }
+.category-header-spacer { width: 45px; height: 45px; }
 
 /* GRILLA INVENTARIO */
 .catalog-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 24px; }
@@ -143,14 +162,19 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 @media (max-width: 768px) {
   body.index-page { padding-top: 64px; }
   body.product-page { padding-top: 82px; }
-  .navbar { height: 64px; padding: 8px 14px; gap: 10px; }
-  .menu-toggle { width: 40px; height: 40px; }
-  .nav-text-container { flex-direction: column; gap: 2px; align-items: flex-start; }
-  .nav-title { font-size: 15px; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
-  .nav-social-link { width: 40px; height: 40px; }
+  .navbar { height: 64px; padding: 6px 14px; gap: 0; display: grid; grid-template-columns: 40px minmax(0, 1fr) 40px; }
+  .menu-toggle { width: 40px; height: 40px; justify-self: start; }
+  .nav-brand { justify-self: center; gap: 0; min-width: 0; }
+  .nav-text-container { display: none; }
+  .nav-logo { width: 78px; height: 52px; object-fit: contain; }
+  .nav-social-link { width: 40px; height: 40px; justify-self: end; }
   .cat-card { height: 120px; }
   .cat-card h3 { font-size: 16px; bottom: 12px; left: 12px; }
   .sticky-header { top: 64px; }
+  .home-message-group h2 { font-size: 16px; line-height: 1.25; }
+  .sticky-subtitle-stack { min-height: 26px; }
+  .sticky-subtitle { font-size: 16px; }
+  .site-footer { margin-top: 34px; padding-bottom: 26px; }
 }
 
 /* LOADER START*/
@@ -162,14 +186,27 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 @keyframes l1-1 {0% { translate: -500%; }to { translate: 500%; }}
 /* LOADER END*/
 
-.secondary-btn { display: inline-flex; align-items: center; justify-content: center;margin: 15px;}
+.secondary-btn { display: inline-flex; align-items: center; justify-content: center; margin: 15px; }
 .secondary-btn.filter-toggle-btn { flex: 0 0 45px; width: 45px; height: 45px; margin: 0; padding: 0; }
 .btn-icon {width: 40px; height: 20px; object-fit: contain;}
 #prevPageBtn .btn-icon {transform: rotate(180deg);}
+.back-icon { transform: rotate(180deg); }
+.pagination-controls { align-items: center; justify-content: center; gap: 14px; margin-top: 24px; flex-wrap: wrap; }
+.pagination-nav { display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+.pagination-controls .secondary-btn { width: 54px; height: 45px; min-height: 45px; margin: 0; padding: 0; }
+#pageIndicator { min-width: 72px; color: #d9e5f5; font-weight: 700; text-align: center; }
+.pagination-summary { min-height: 45px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 8px 6px 16px; background: rgba(8, 20, 38, .88); border: 1px solid #1f3350; border-radius: 12px; color: #d9e5f5; box-shadow: 0 10px 28px rgba(0,0,0,.18); }
+#paginationSummary { font-size: 14px; font-weight: 700; white-space: nowrap; }
+.pagination-show-all-btn { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; padding: 0 13px; background: #2490ff; color: white; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.pagination-show-all-btn:hover { background: #3ca0ff; transform: translateY(-1px); }
+.pagination-controls.is-expanded .pagination-summary { padding-right: 16px; }
 
 /* PRODUCT DETAIL PAGE */
 .product-page-container { width: min(1120px, calc(100% - 40px)); margin: 0 auto; }
-.product-page-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.product-page-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 10px; margin-bottom: 20px; }
+.product-page-actions .secondary-btn { min-height: 45px; margin: 0; padding: 0 14px; text-align: center; text-decoration: none; white-space: nowrap; }
+.product-back-btn { gap: 8px; }
+.product-back-icon { width: 28px; height: 16px; object-fit: contain; transform: rotate(180deg); flex: 0 0 auto; }
 .product-detail { display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(320px, .92fr); gap: 28px; align-items: start; }
 .product-gallery-panel,
 .product-info-panel { background: #081426; border: 1px solid #1f3350; border-radius: 18px; overflow: hidden; }
@@ -208,5 +245,22 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
   .product-page-container { width: min(100% - 24px, 1120px); }
   .product-info-panel { padding: 20px; }
   .product-detail-row { grid-template-columns: 1fr; gap: 5px; }
+  .pagination-controls { gap: 8px; }
+  .pagination-nav { gap: 4px; }
+  .pagination-controls .secondary-btn { width: 34px; height: 38px; min-height: 38px; }
+  .pagination-controls .btn-icon { width: 28px; height: 15px; }
+  #pageIndicator { display: none; }
+  .pagination-summary { min-height: 38px; gap: 5px; padding: 4px 4px 4px 7px; }
+  #paginationSummary { font-size: 10px; }
+  .pagination-show-all-btn { min-height: 28px; padding: 0 6px; font-size: 10px; }
+  .product-page-actions { gap: 8px; }
+  .product-page-actions .secondary-btn { font-size: 13px; padding: 0 10px; }
   .product-consult-btn { padding: 10px 12px; }
+}
+
+@media (max-width: 360px) {
+  .pagination-summary { width: 100%; }
+  .product-page-actions .secondary-btn { font-size: 11px; padding: 0 6px; }
+  .product-back-btn { gap: 5px; }
+  .product-back-icon { width: 22px; height: 14px; }
 }

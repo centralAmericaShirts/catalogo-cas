@@ -27,7 +27,7 @@ function ensurePageLoader() {
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML = `
-      <img src="loading_gif.gif" alt="" class="page-loading-gif">
+      <img src="assets/loading_gif.gif.gif" alt="" class="page-loading-gif">
       <div class="page-loading-text">cargando</div>
     `;
     document.body.prepend(overlay);
@@ -455,7 +455,7 @@ function renderCatalogLoading() {
 
   grid.innerHTML = `
     <div class="catalog-state">
-      <img src="loading_gif.gif" alt="">
+      <img src="assets/loading_gif.gif.gif" alt="">
       <p>cargando</p>
     </div>
   `;

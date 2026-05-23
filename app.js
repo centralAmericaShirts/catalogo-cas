@@ -471,7 +471,7 @@ function renderEmptyCatalog() {
 
   grid.innerHTML = `
     <div class="catalog-state empty">
-      <img src="nothing_to_see_here.png" alt="">
+      <img src="assets/nothing_to_see_here.png" alt="">
       <p>Parece que no hay nada por aqui</p>
     </div>
   `;

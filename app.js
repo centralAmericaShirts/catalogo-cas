@@ -1,4 +1,4 @@
-/* ==========================================================================
+/* =========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
@@ -178,7 +178,7 @@ function ensureSideMenuMarkup() {
         </div>
       </details>
       <a href="https://wa.me/50258656376" target="_blank" rel="noopener" class="menu-icon-link">
-        <img src="assets/whatsapp_logo.png" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
+        <img src="assets/whatsapp_logo.jpg" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
       </a>
       <a href="https://www.instagram.com/centralamericashirts/" target="_blank" rel="noopener" class="menu-icon-link">
         <img src="assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
@@ -503,7 +503,7 @@ function render() {
               ${priceHTML}
             </div>
             <a href="${wsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" aria-label="Consultar por WhatsApp" style="display: flex; align-items: center; justify-content: center; background: #25D366; border-radius: 8px; width: 34px; height: 34px; flex-shrink: 0; transition: opacity 0.2s;">
-              <img src="assets/whatsapp_logo.png" alt="WhatsApp" style="width: 20px; height: 20px;">
+              <img src="assets/whatsapp_logo.jpg" alt="WhatsApp" style="width: 20px; height: 20px;">
             </a>
           </div>
 
@@ -761,7 +761,7 @@ function renderProductPage(item, requestedSku) {
         <div class="product-price-row">
           <div id="productPrice" class="product-page-price">${getProductPriceHtml(item, 18)}</div>
           <a id="productWsLink" href="${escapeHtml(wsUrl)}" class="ws-detail-btn product-consult-btn" target="_blank" rel="noopener">
-            <img src="assets/whatsapp_logo.png" alt="">
+            <img src="assets/whatsapp_logo.jpg" alt="">
             Consultar
           </a>
         </div>

@@ -17,6 +17,14 @@ let isLoading = true;
 
 // Helper para seleccionar elementos como en jQuery
 const $ = (id) => document.getElementById(id);
+const MENU_CATEGORIES = [
+  ['Ofertas', 'Ofertas'],
+  ['Todas las Prendas', 'Todas las prendas'],
+  ['Selecciones', 'Selecciones'],
+  ['Equipos Europeos', 'Equipos Europeos'],
+  ['Conmebol / Concacaf', 'Conmebol / Concacaf'],
+  ['Otros', 'Otros']
+];
 
 function ensurePageLoader() {
   let overlay = $('pageLoadingOverlay');
@@ -27,7 +35,7 @@ function ensurePageLoader() {
     overlay.setAttribute('role', 'status');
     overlay.setAttribute('aria-live', 'polite');
     overlay.innerHTML = `
-      <img src="assets/loading_gif.gif" alt="" class="page-loading-gif">
+      <img src="loading_gif.gif" alt="" class="page-loading-gif">
       <div class="page-loading-text">cargando</div>
     `;
     document.body.prepend(overlay);
@@ -94,9 +102,91 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setupSideMenu() {
+  ensureSharedNavigation();
+  ensureSideMenuMarkup();
+
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSideMenu();
   });
+}
+
+function getCategoryHref(category) {
+  const url = new URL('index.html', window.location.href);
+  url.searchParams.set('category', category);
+  return url.href;
+}
+
+function ensureSharedNavigation() {
+  let navbar = document.querySelector('.navbar');
+
+  if (!navbar) {
+    navbar = document.createElement('nav');
+    navbar.className = 'navbar';
+    navbar.innerHTML = `
+      <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
+        <img src="logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+        <div class="nav-text-container">
+          <span class="nav-title">Central America Shirts</span>
+          <h6 class="nav-slogan">Llevando el fútbol de Guate a todo el mundo</h6>
+        </div>
+      </a>
+      <a href="https://www.instagram.com/centralamericashirts/" class="nav-social-link" target="_blank" rel="noopener" aria-label="Instagram">
+        <img src="instagram_logo.svg" alt="Instagram" class="nav-social-icon" width="24" height="24">
+      </a>
+    `;
+    document.body.prepend(navbar);
+  }
+
+  if (!navbar.querySelector('.menu-toggle')) {
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'menu-toggle';
+    toggle.setAttribute('onclick', 'openSideMenu()');
+    toggle.setAttribute('aria-label', 'Abrir menu');
+    toggle.setAttribute('aria-controls', 'sideMenu');
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = '<span></span><span></span><span></span>';
+    navbar.prepend(toggle);
+  }
+}
+
+function ensureSideMenuMarkup() {
+  if (!$('sideMenuOverlay')) {
+    const overlay = document.createElement('div');
+    overlay.className = 'side-menu-overlay';
+    overlay.id = 'sideMenuOverlay';
+    overlay.setAttribute('onclick', 'closeSideMenu()');
+    document.body.appendChild(overlay);
+  }
+
+  if ($('sideMenu')) return;
+
+  const menu = document.createElement('aside');
+  menu.className = 'side-menu';
+  menu.id = 'sideMenu';
+  menu.setAttribute('aria-hidden', 'true');
+  menu.innerHTML = `
+    <div class="side-menu-header">
+      <span>Menú</span>
+      <button type="button" class="side-menu-close" onclick="closeSideMenu()">&times;</button>
+    </div>
+    <nav class="side-menu-links">
+      <details class="side-menu-accordion">
+        <summary>Categorías</summary>
+        <div class="accordion-content">
+          ${MENU_CATEGORIES.map(([category, label]) => `<a href="${escapeHtml(getCategoryHref(category))}">${escapeHtml(label)}</a>`).join('')}
+        </div>
+      </details>
+      <a href="https://wa.me/50258656376" target="_blank" rel="noopener" class="menu-icon-link">
+        <img src="whatsapp_logo.jpg" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
+      </a>
+      <a href="https://www.instagram.com/centralamericashirts/" target="_blank" rel="noopener" class="menu-icon-link">
+        <img src="instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
+      </a>
+      <a href="storeInfo.html">Información de la tienda</a>
+    </nav>
+  `;
+  document.body.appendChild(menu);
 }
 
 function openSideMenu() {
@@ -180,10 +270,10 @@ function getProductUrlFromCatalog(sku) {
 function getProductImages(item) {
   const gallery = item.galeria
     ? (typeof item.galeria === 'string' ? item.galeria.split(',') : item.galeria)
-    : [item.imagen || 'assets/image_unavailable.png'];
+    : [item.imagen || 'image_unavailable.png'];
 
   const images = gallery.map(src => String(src).trim()).filter(Boolean);
-  return images.length ? images : ['assets/image_unavailable.png'];
+  return images.length ? images : ['image_unavailable.png'];
 }
 
 function openProductPage(sku) {
@@ -273,7 +363,8 @@ function setFilterPanelOpen(isOpen) {
 
   panel.hidden = !isOpen;
   toggle.setAttribute('aria-expanded', String(isOpen));
-  toggle.innerText = isOpen ? 'Ocultar filtros' : 'Filtros';
+  toggle.setAttribute('aria-label', isOpen ? 'Ocultar filtros' : 'Mostrar filtros');
+  toggle.title = isOpen ? 'Ocultar filtros' : 'Filtros';
 }
 
 function toggleFilterPanel() {
@@ -398,11 +489,11 @@ function render() {
     const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(wsMessage)}`;
 
     return `
-      <div class="product-card" data-sku="${escapeHtml(item.sku)}" role="link" tabindex="0" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s;">
+      <div class="product-card" data-sku="${escapeHtml(item.sku)}" role="link" tabindex="0" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s; display:flex; flex-direction:column; height:100%;">
         <div class="product-image-wrapper" style="width: 100%; height: 280px; overflow: hidden; background: #07111f;">
-          <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
+          <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
-        <div class="product-info" style="padding: 15px;">
+        <div class="product-info" style="padding: 15px; display:flex; flex-direction:column; flex:1;">
           <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${escapeHtml(item.sku)}</div>
           <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)}</h3>
           <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${escapeHtml(item.talla)} | ${escapeHtml(item.tipo)}</div>
@@ -412,7 +503,7 @@ function render() {
               ${priceHTML}
             </div>
             <a href="${wsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation();" aria-label="Consultar por WhatsApp" style="display: flex; align-items: center; justify-content: center; background: #25D366; border-radius: 8px; width: 34px; height: 34px; flex-shrink: 0; transition: opacity 0.2s;">
-              <img src="assets/whatsapp_logo.jpg.jpg" alt="WhatsApp" style="width: 20px; height: 20px;">
+              <img src="whatsapp_logo.jpg" alt="WhatsApp" style="width: 20px; height: 20px;">
             </a>
           </div>
 
@@ -455,7 +546,7 @@ function renderCatalogLoading() {
 
   grid.innerHTML = `
     <div class="catalog-state">
-      <img src="assets/loading_gif.gif" alt="">
+      <img src="loading_gif.gif" alt="">
       <p>cargando</p>
     </div>
   `;
@@ -471,7 +562,7 @@ function renderEmptyCatalog() {
 
   grid.innerHTML = `
     <div class="catalog-state empty">
-      <img src="assets/nothing_to_see_here.png" alt="">
+      <img src="nothing_to_see_here.png" alt="">
       <p>Parece que no hay nada por aqui</p>
     </div>
   `;
@@ -540,7 +631,7 @@ function openProductModal(item) {
   mainImg.src = images[0];
   mainImg.onerror = () => {
     mainImg.onerror = null;
-    mainImg.src = 'assets/image_unavailable.png';
+    mainImg.src = 'image_unavailable.png';
   };
 
   const thumbsContainer = $('modalThumbnails');
@@ -552,7 +643,7 @@ function openProductModal(item) {
       thumb.src = src;
       thumb.onerror = () => {
         thumb.onerror = null;
-        thumb.src = 'assets/image_unavailable.png';
+        thumb.src = 'image_unavailable.png';
       };
       thumb.style.cssText = "width:60px; height:60px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#0a1728; flex-shrink:0;";
       if (idx === 0) thumb.style.borderColor = "#2490ff";
@@ -645,8 +736,6 @@ function renderProductPage(item, requestedSku) {
   const sku = item.sku || requestedSku;
   const notes = item.notas || 'Sin descripción adicional.';
   const region = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || '';
-  const availability = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ' ? 'Disponible' : 'No disponible';
-  const status = item.estado || 'Activo';
   const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
   const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
   const returnUrl = getCatalogReturnUrl();
@@ -660,32 +749,32 @@ function renderProductPage(item, requestedSku) {
     <section class="product-detail" aria-label="Detalle de prenda">
       <div class="product-gallery-panel">
         <div class="product-main-image-frame">
-          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='image_unavailable.png';">
         </div>
         <div id="productThumbnails" class="product-thumbnails${images.length <= 1 ? ' is-hidden' : ''}" aria-label="Galería de imágenes"></div>
       </div>
       <div class="product-info-panel">
         <p class="product-page-sku">${escapeHtml(sku)}</p>
-        <h1 id="productTitle">${escapeHtml(title)}</h1>
-        <div id="productPrice" class="product-page-price">${getProductPriceHtml(item, 18)}</div>
+        <div class="product-heading-row">
+          <h1 id="productTitle">${escapeHtml(title)}</h1>
+        </div>
+        <div class="product-price-row">
+          <div id="productPrice" class="product-page-price">${getProductPriceHtml(item, 18)}</div>
+          <a id="productWsLink" href="${escapeHtml(wsUrl)}" class="ws-detail-btn product-consult-btn" target="_blank" rel="noopener">
+            <img src="whatsapp_logo.jpg" alt="">
+            Consultar
+          </a>
+        </div>
         <dl class="product-detail-list">
           ${productDetailRow('SKU', sku)}
           ${productDetailRow('Talla', item.talla)}
           ${productDetailRow('Tipo', item.tipo)}
           ${productDetailRow('Año', item.year)}
           ${region ? productDetailRow('Categoría', region) : ''}
-          ${productDetailRow('Disponibilidad', availability)}
-          ${productDetailRow('Estado', status)}
         </dl>
         <div class="product-notes">
           <h2>Descripción / Notas</h2>
           <p>${escapeHtml(notes)}</p>
-        </div>
-        <div class="product-actions">
-          <a id="productWsLink" href="${escapeHtml(wsUrl)}" class="ws-detail-btn" target="_blank" rel="noopener">
-            <img src="assets/whatsapp_logo.jpg.jpg" alt="">
-            Consultar por WhatsApp
-          </a>
         </div>
       </div>
     </section>
@@ -696,7 +785,7 @@ function renderProductPage(item, requestedSku) {
   if (mainImg) {
     mainImg.onerror = () => {
       mainImg.onerror = null;
-      mainImg.src = 'assets/image_unavailable.png';
+      mainImg.src = 'image_unavailable.png';
     };
   }
   if (!mainImg || !thumbsContainer || images.length <= 1) return;
@@ -708,7 +797,7 @@ function renderProductPage(item, requestedSku) {
     thumb.className = 'product-thumb' + (idx === 0 ? ' active' : '');
     thumb.onerror = () => {
       thumb.onerror = null;
-      thumb.src = 'assets/image_unavailable.png';
+      thumb.src = 'image_unavailable.png';
     };
     thumb.addEventListener('click', () => {
       mainImg.src = src;
@@ -854,7 +943,7 @@ function renderCurrentImages(images) {
   if (!container) return;
   const visibleImages = images.filter(Boolean);
   container.innerHTML = visibleImages.map(src => `
-    <img src="${escapeHtml(src)}" alt="Imagen actual" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+    <img src="${escapeHtml(src)}" alt="Imagen actual" onerror="this.onerror=null; this.src='image_unavailable.png';">
   `).join('');
   container.classList.toggle('hidden', visibleImages.length === 0);
 }
@@ -964,13 +1053,13 @@ async function lookupSku() {
       
       // Get images for the visual summary
       const images = getProductImages(itemData);
-      const mainImage = images.length > 0 ? images[0] : 'assets/image_unavailable.png';
+      const mainImage = images.length > 0 ? images[0] : 'image_unavailable.png';
       
       // Create a visual card similar to the product popup
       let summaryHtml = `
         <div style="display:flex; flex-wrap:wrap; gap:20px; background:#0a1728; padding:20px; border-radius:12px; border:1px solid #1f3350; margin-top:15px; margin-bottom:20px;">
           <div style="width: 140px; flex-shrink: 0; background: #07111f; padding: 10px; border-radius: 8px;">
-            <img src="${escapeHtml(mainImage)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
+            <img src="${escapeHtml(mainImage)}" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
           </div>
           <div style="flex:1; min-width: 200px; display: flex; flex-direction: column; justify-content: center;">
             <h3 style="color:#2490ff; margin:0 0 10px 0; font-size: 22px;">${escapeHtml(itemData.equipo)}</h3>

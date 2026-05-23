@@ -180,10 +180,10 @@ function getProductUrlFromCatalog(sku) {
 function getProductImages(item) {
   const gallery = item.galeria
     ? (typeof item.galeria === 'string' ? item.galeria.split(',') : item.galeria)
-    : [item.imagen || 'image_unavailable.png'];
+    : [item.imagen || 'assets/image_unavailable.png'];
 
   const images = gallery.map(src => String(src).trim()).filter(Boolean);
-  return images.length ? images : ['image_unavailable.png'];
+  return images.length ? images : ['assets/image_unavailable.png'];
 }
 
 function openProductPage(sku) {
@@ -400,7 +400,7 @@ function render() {
     return `
       <div class="product-card" data-sku="${escapeHtml(item.sku)}" role="link" tabindex="0" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s;">
         <div class="product-image-wrapper" style="width: 100%; height: 280px; overflow: hidden; background: #07111f;">
-          <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
+          <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <div class="product-info" style="padding: 15px;">
           <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${escapeHtml(item.sku)}</div>
@@ -540,7 +540,7 @@ function openProductModal(item) {
   mainImg.src = images[0];
   mainImg.onerror = () => {
     mainImg.onerror = null;
-    mainImg.src = 'image_unavailable.png';
+    mainImg.src = 'assets/image_unavailable.png';
   };
 
   const thumbsContainer = $('modalThumbnails');
@@ -552,7 +552,7 @@ function openProductModal(item) {
       thumb.src = src;
       thumb.onerror = () => {
         thumb.onerror = null;
-        thumb.src = 'image_unavailable.png';
+        thumb.src = 'assets/image_unavailable.png';
       };
       thumb.style.cssText = "width:60px; height:60px; object-fit:contain; border:2px solid #1f3350; border-radius:8px; cursor:pointer; background:#0a1728; flex-shrink:0;";
       if (idx === 0) thumb.style.borderColor = "#2490ff";
@@ -660,7 +660,7 @@ function renderProductPage(item, requestedSku) {
     <section class="product-detail" aria-label="Detalle de prenda">
       <div class="product-gallery-panel">
         <div class="product-main-image-frame">
-          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='image_unavailable.png';">
+          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
         </div>
         <div id="productThumbnails" class="product-thumbnails${images.length <= 1 ? ' is-hidden' : ''}" aria-label="Galería de imágenes"></div>
       </div>
@@ -696,7 +696,7 @@ function renderProductPage(item, requestedSku) {
   if (mainImg) {
     mainImg.onerror = () => {
       mainImg.onerror = null;
-      mainImg.src = 'image_unavailable.png';
+      mainImg.src = 'assets/image_unavailable.png';
     };
   }
   if (!mainImg || !thumbsContainer || images.length <= 1) return;
@@ -708,7 +708,7 @@ function renderProductPage(item, requestedSku) {
     thumb.className = 'product-thumb' + (idx === 0 ? ' active' : '');
     thumb.onerror = () => {
       thumb.onerror = null;
-      thumb.src = 'image_unavailable.png';
+      thumb.src = 'assets/image_unavailable.png';
     };
     thumb.addEventListener('click', () => {
       mainImg.src = src;
@@ -854,7 +854,7 @@ function renderCurrentImages(images) {
   if (!container) return;
   const visibleImages = images.filter(Boolean);
   container.innerHTML = visibleImages.map(src => `
-    <img src="${escapeHtml(src)}" alt="Imagen actual" onerror="this.onerror=null; this.src='image_unavailable.png';">
+    <img src="${escapeHtml(src)}" alt="Imagen actual" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
   `).join('');
   container.classList.toggle('hidden', visibleImages.length === 0);
 }
@@ -964,13 +964,13 @@ async function lookupSku() {
       
       // Get images for the visual summary
       const images = getProductImages(itemData);
-      const mainImage = images.length > 0 ? images[0] : 'image_unavailable.png';
+      const mainImage = images.length > 0 ? images[0] : 'assets/image_unavailable.png';
       
       // Create a visual card similar to the product popup
       let summaryHtml = `
         <div style="display:flex; flex-wrap:wrap; gap:20px; background:#0a1728; padding:20px; border-radius:12px; border:1px solid #1f3350; margin-top:15px; margin-bottom:20px;">
           <div style="width: 140px; flex-shrink: 0; background: #07111f; padding: 10px; border-radius: 8px;">
-            <img src="${escapeHtml(mainImage)}" onerror="this.onerror=null; this.src='image_unavailable.png';" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
+            <img src="${escapeHtml(mainImage)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';" style="width:100%; height:auto; object-fit:contain; border-radius:4px;">
           </div>
           <div style="flex:1; min-width: 200px; display: flex; flex-direction: column; justify-content: center;">
             <h3 style="color:#2490ff; margin:0 0 10px 0; font-size: 22px;">${escapeHtml(itemData.equipo)}</h3>

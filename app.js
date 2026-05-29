@@ -548,7 +548,7 @@ function render() {
         </div>
         <div class="product-info" style="padding: 15px; display:flex; flex-direction:column; flex:1;">
           <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${escapeHtml(item.sku)}</div>
-          <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)}</h3>
+          <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)} | ${escapeHtml(item.year)}</h3>
           <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${escapeHtml(item.talla)} | ${escapeHtml(item.tipo)}</div>
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">

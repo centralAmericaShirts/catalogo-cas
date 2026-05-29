@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galería Random | CAS</title>
+
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="random-gallery-page">
+  <div id="pageLoadingOverlay" class="page-loading-overlay active" role="status" aria-live="polite">
+    <img src="assets/loading_gif.gif" alt="" class="page-loading-gif">
+    <div class="page-loading-text">cargando</div>
+  </div>
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
+      <picture class="nav-logo-picture">
+        <source media="(max-width: 768px)" srcset="assets/logo_nav.png">
+        <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+      </picture>
+      <div class="nav-text-container">
+        <span class="nav-title">Central America Shirts</span>
+        <h6 class="nav-slogan">Llevando el fútbol de Guate a todo el mundo</h6>
+      </div>
+    </a>
+    <a href="https://www.instagram.com/centralamericashirts/" class="nav-social-link" target="_blank" rel="noopener" aria-label="Instagram">
+      <img src="assets/instagram_logo.svg" alt="Instagram" class="nav-social-icon" width="24" height="24">
+    </a>
+  </nav>
+
+  <main class="random-gallery-container">
+    <section class="random-gallery-shell" id="randomGalleryContent" aria-label="Galería Random">
+      <div class="random-gallery-stage">
+        <button type="button" class="random-gallery-arrow random-gallery-prev" id="randomPrevBtn" aria-label="Prenda anterior">
+          <img src="assets/flecha.png" alt="">
+        </button>
+        <div class="random-main-image-frame">
+          <img id="randomMainImage" src="assets/loading_gif.gif" alt="">
+        </div>
+        <button type="button" class="random-gallery-arrow random-gallery-next" id="randomNextBtn" aria-label="Siguiente prenda">
+          <img src="assets/flecha.png" alt="">
+        </button>
+      </div>
+
+      <aside class="random-info-panel">
+        <div class="random-counter" id="randomCounter">1 de 1</div>
+        <h1 id="randomTitle">Galería Random</h1>
+        <div class="random-price" id="randomPrice"></div>
+        <dl class="random-quick-details">
+          <div>
+            <dt>Talla</dt>
+            <dd id="randomSize">-</dd>
+          </div>
+          <div>
+            <dt>Tipo</dt>
+            <dd id="randomType">-</dd>
+          </div>
+          <div>
+            <dt>SKU</dt>
+            <dd id="randomSku">-</dd>
+          </div>
+        </dl>
+        <a id="randomWhatsappBtn" href="#" class="ws-detail-btn random-whatsapp-btn" target="_blank" rel="noopener">
+          <img src="assets/whatsapp_logo.jpg" alt="">
+          Consultar
+        </a>
+      </aside>
+
+      <div class="random-thumb-strip" id="randomThumbStrip" aria-label="Prendas"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

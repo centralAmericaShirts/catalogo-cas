@@ -11,11 +11,17 @@ const DEFAULT_ITEMS_PER_PAGE = 24;
 let itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 let showAllProducts = false;
 let currentCategory = "Todas las Prendas"; // Estado de la categoría seleccionada
+let randomGallerySeed = Date.now();
+let randomGalleryItems = [];
+let randomGalleryIndex = 0;
+let productPageInventoryItems = [];
+let productHistoryListenerReady = false;
 let currentItem = null;
 let editDirty = false;
 let addImages = [];
 let editImages = [];
 let isLoading = true;
+let jsonpCounter = 0;
 
 // Helper para seleccionar elementos como en jQuery
 const $ = (id) => document.getElementById(id);
@@ -99,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
     else if (document.body.classList.contains('product-page')) {
         showPageLoader();
         loadProductPage();
+    }
+    else if (document.body.classList.contains('random-gallery-page')) {
+        showPageLoader();
+        loadRandomGalleryPage();
     }
     else {
         hidePageLoader();
@@ -190,7 +200,7 @@ function ensureSideMenuMarkup() {
       <a href="https://www.instagram.com/centralamericashirts/" target="_blank" rel="noopener" class="menu-icon-link">
         <img src="assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
       </a>
-      <a href="storeInfo.html">Información de la tienda</a>
+      <a href="randomGallery.html">Galería Random</a>
     </nav>
   `;
   document.body.appendChild(menu);
@@ -305,6 +315,7 @@ function getProductUrlFromCatalog(sku) {
   if (type) url.searchParams.set('type', type);
   if (sort && sort !== 'none') url.searchParams.set('sort', sort);
   if (filtersOpen) url.searchParams.set('filters', '1');
+  if (isRandomGalleryCategory(currentCategory)) url.searchParams.set('seed', randomGallerySeed);
 
   return url.href;
 }
@@ -324,7 +335,7 @@ function openProductPage(sku) {
 }
 
 function getJsonp(params, timeoutMs = 15000) {
-  const cb = 'callback_' + Date.now();
+  const cb = 'callback_' + Date.now() + '_' + (++jsonpCounter);
   const script = document.createElement('script');
   const query = new URLSearchParams({ ...params, callback: cb });
 
@@ -401,6 +412,124 @@ function cleanOptionText(str) {
   return cleanText(str).replace(/\s+/g, '');
 }
 
+function normalizeSku(sku) {
+  return String(sku || '').trim().toUpperCase();
+}
+
+function isAllCategory(category) {
+  return cleanOptionText(category) === cleanOptionText('Todas las Prendas');
+}
+
+function isRandomGalleryCategory(category) {
+  return cleanOptionText(category) === cleanOptionText('Galería Random');
+}
+
+function isAvailableItem(item) {
+  return item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
+}
+
+function hasOffer(item) {
+  const oferta = item.precioOferta || item.Precio_Oferta;
+  return oferta !== undefined && oferta !== null && oferta !== "" && Number(oferta) !== 0;
+}
+
+function seededRandom(seed) {
+  let value = Number(seed) || Date.now();
+  return function nextRandom() {
+    value += 0x6D2B79F5;
+    let t = value;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleItems(items, seed) {
+  const shuffled = [...items];
+  const random = seededRandom(seed);
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+
+  return shuffled;
+}
+
+function itemMatchesCategory(item, category) {
+  if (!category || isAllCategory(category) || isRandomGalleryCategory(category)) return true;
+
+  const selectedCatClean = cleanOptionText(category);
+  if (selectedCatClean === "ofertas") return hasOffer(item);
+
+  const itemRegionRaw = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || "";
+  const itemRegionClean = cleanText(itemRegionRaw).replace(/\s+/g, '');
+
+  if (selectedCatClean === "selecciones") {
+    return itemRegionClean === "seleccion" || itemRegionClean === "selecciones";
+  }
+  if (selectedCatClean === "equiposeuropeos" || selectedCatClean === "europa") {
+    return itemRegionClean === "europa" || itemRegionClean === "equiposeuropeos";
+  }
+  if (selectedCatClean === "conmebol/concacaf") {
+    return itemRegionClean === "conmebol/concacaf";
+  }
+
+  return itemRegionClean === selectedCatClean || itemRegionClean.includes(selectedCatClean);
+}
+
+function getCatalogItemsForContext(items, context) {
+  const search = String(context.search || '').toLowerCase().trim();
+  const size = context.size || '';
+  const type = context.type || '';
+  const sort = context.sort || 'none';
+
+  let results = items.filter(item => {
+    const matchesSearch = !search || String(item.sku).toLowerCase().includes(search) || String(item.equipo).toLowerCase().includes(search);
+    const matchesSize = !size || String(item.talla) === size;
+    const matchesType = !type || String(item.tipo) === type;
+    const matchesAvail = context.onlyAvailable === false || isAvailableItem(item);
+    const matchesCategory = itemMatchesCategory(item, context.category);
+    return matchesSearch && matchesSize && matchesType && matchesAvail && matchesCategory;
+  });
+
+  if (isRandomGalleryCategory(context.category) && (!sort || sort === 'none')) {
+    return shuffleItems(results, context.randomSeed);
+  }
+
+  if (sort === 'p-low') results.sort((a, b) => Number(a.precio) - Number(b.precio));
+  if (sort === 'p-high') results.sort((a, b) => Number(b.precio) - Number(a.precio));
+  if (sort === 'az') results.sort((a, b) => String(a.equipo || '').localeCompare(String(b.equipo || '')));
+  if (sort === 'za') results.sort((a, b) => String(b.equipo || '').localeCompare(String(a.equipo || '')));
+
+  return results;
+}
+
+function getCatalogContextFromControls() {
+  return {
+    category: currentCategory,
+    search: $('searchInput')?.value || '',
+    size: $('sizeFilter')?.value || '',
+    type: $('typeFilter')?.value || '',
+    sort: $('sortOrder')?.value || 'none',
+    randomSeed: randomGallerySeed,
+    onlyAvailable: true
+  };
+}
+
+function getCatalogContextFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    category: params.get('category') || 'Todas las Prendas',
+    search: params.get('search') || '',
+    size: params.get('size') || '',
+    type: params.get('type') || '',
+    sort: params.get('sort') || 'none',
+    randomSeed: params.get('seed') || randomGallerySeed,
+    onlyAvailable: true
+  };
+}
+
 function setSelectValue(select, value) {
   if (!select) return;
   const desired = cleanOptionText(value);
@@ -432,17 +561,19 @@ function restoreCatalogStateFromUrl() {
   const type = params.get('type');
   const sort = params.get('sort');
   const category = params.get('category');
+  const seed = params.get('seed');
 
   if (search !== null && $('searchInput')) $('searchInput').value = search;
   if (size !== null) setSelectValue($('sizeFilter'), size);
   if (type !== null) setSelectValue($('typeFilter'), type);
   if (sort !== null) setSelectValue($('sortOrder'), sort);
+  if (seed !== null) randomGallerySeed = seed;
 
   const hasAdvancedFilters = params.get('filters') === '1' || Boolean(size || type || (sort && sort !== 'none'));
   setFilterPanelOpen(hasAdvancedFilters);
 
   if (category) {
-    selectCategory(category);
+    selectCategory(category, { preserveRandomSeed: seed !== null });
   }
 }
 
@@ -452,61 +583,7 @@ function applyFilters() {
     return;
   }
 
-  const search = $('searchInput').value.toLowerCase().trim();
-  const size = $('sizeFilter').value;
-  const type = $('typeFilter').value;
-  const onlyAvail = true;
-  const sort = $('sortOrder').value;
-
-  filteredItems = allItems.filter(item => {
-    // Filtros básicos
-    const matchesSearch = !search || String(item.sku).toLowerCase().includes(search) || String(item.equipo).toLowerCase().includes(search);
-    const matchesSize = !size || String(item.talla) === size;
-    const matchesType = !type || String(item.tipo) === type;
-    const isDisponible = item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
-    const matchesAvail = !onlyAvail || isDisponible;
-
-    // Lógica de Categorías (Filtrado Inteligente)
-    let matchesCategory = true;
-    if (currentCategory !== "Todas las Prendas") {
-      
-      // Limpiamos la categoría seleccionada (quitamos espacios y tildes para comparar)
-      const selectedCatClean = cleanText(currentCategory).replace(/\s+/g, '');
-
-      // Caso especial: Ofertas
-      if (selectedCatClean === "ofertas") {
-        const oferta = item.precioOferta || item.Precio_Oferta;
-        matchesCategory = (oferta !== undefined && oferta !== null && oferta !== "" && oferta !== 0);
-      } 
-      else {
-        // Limpiamos el valor del item (quitamos espacios y tildes)
-        const itemRegionRaw = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || "";
-        const itemRegionClean = cleanText(itemRegionRaw).replace(/\s+/g, '');
-
-        if (selectedCatClean === "selecciones") {
-          matchesCategory = (itemRegionClean === "seleccion" || itemRegionClean === "selecciones");
-        } 
-        else if (selectedCatClean === "equiposeuropeos" || selectedCatClean === "europa") {
-          matchesCategory = (itemRegionClean === "europa" || itemRegionClean === "equiposeuropeos");
-        } 
-        // Aquí detectará "conmebol/concacaf" aunque el usuario elija "Conmebol / Concacaf"
-        else if (selectedCatClean === "conmebol/concacaf") {
-          matchesCategory = (itemRegionClean === "conmebol/concacaf");
-        } 
-        else {
-          matchesCategory = (itemRegionClean === selectedCatClean || itemRegionClean.includes(selectedCatClean));
-        }
-      }
-    }
-
-    return matchesSearch && matchesSize && matchesType && matchesAvail && matchesCategory;
-  });
-
-  // Ordenamiento
-  if (sort === 'p-low') filteredItems.sort((a, b) => Number(a.precio) - Number(b.precio));
-  if (sort === 'p-high') filteredItems.sort((a, b) => Number(b.precio) - Number(a.precio));
-  if (sort === 'az') filteredItems.sort((a, b) => a.equipo.localeCompare(b.equipo));
-  if (sort === 'za') filteredItems.sort((a, b) => b.equipo.localeCompare(a.equipo));
+  filteredItems = getCatalogItemsForContext(allItems, getCatalogContextFromControls());
 
   currentPage = 1;
   render();
@@ -638,9 +715,151 @@ function renderEmptyCatalog() {
 }
 
 /* ==========================================================================
+   GALERÍA RANDOM (randomGallery.html)
+   ========================================================================== */
+async function loadRandomGalleryPage() {
+  try {
+    const data = await getJsonp({ action: 'getInventory' });
+    const inventory = normalizeInventoryPayload(data).filter(isAvailableItem);
+    randomGallerySeed = Date.now();
+    randomGalleryItems = shuffleItems(inventory, randomGallerySeed);
+    randomGalleryIndex = 0;
+
+    if (randomGalleryItems.length === 0) {
+      showRandomGalleryError('Parece que no hay nada por aqui');
+      return;
+    }
+
+    setupRandomGalleryControls();
+    renderRandomThumbStrip();
+    updateRandomGalleryItem(0, false);
+  } catch (error) {
+    showRandomGalleryError('Una disculpa. Hubo un problema conectando con la base de datos.');
+  } finally {
+    hidePageLoader();
+  }
+}
+
+function showRandomGalleryError(message) {
+  const content = $('randomGalleryContent');
+  if (!content) return;
+
+  content.innerHTML = `
+    <div class="catalog-state empty">
+      <img src="assets/nothing_to_see_here.png" alt="">
+      <p>${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
+function setupRandomGalleryControls() {
+  $('randomPrevBtn')?.addEventListener('click', () => moveRandomGallery(-1));
+  $('randomNextBtn')?.addEventListener('click', () => moveRandomGallery(1));
+
+  document.addEventListener('keydown', event => {
+    if (!document.body.classList.contains('random-gallery-page')) return;
+    if (event.key === 'ArrowLeft') moveRandomGallery(-1);
+    if (event.key === 'ArrowRight') moveRandomGallery(1);
+  });
+
+  const stage = document.querySelector('.random-gallery-stage');
+  if (!stage) return;
+
+  let startX = 0;
+  let startY = 0;
+  stage.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) return;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+  }, { passive: true });
+
+  stage.addEventListener('touchend', event => {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    if (Math.abs(deltaX) < 60 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+    moveRandomGallery(deltaX < 0 ? 1 : -1);
+  }, { passive: true });
+}
+
+function renderRandomThumbStrip() {
+  const strip = $('randomThumbStrip');
+  if (!strip) return;
+
+  strip.innerHTML = randomGalleryItems.map((item, index) => {
+    const image = getProductImages(item)[0];
+    return `
+      <button type="button" class="random-thumb" data-random-index="${index}" aria-label="${escapeHtml(item.equipo || item.sku || 'Prenda')}">
+        <img src="${escapeHtml(image)}" alt="" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+      </button>
+    `;
+  }).join('');
+
+  strip.querySelectorAll('.random-thumb').forEach(button => {
+    button.addEventListener('click', () => updateRandomGalleryItem(Number(button.dataset.randomIndex)));
+  });
+}
+
+function moveRandomGallery(delta) {
+  if (!randomGalleryItems.length) return;
+  const nextIndex = (randomGalleryIndex + delta + randomGalleryItems.length) % randomGalleryItems.length;
+  updateRandomGalleryItem(nextIndex);
+}
+
+function updateRandomGalleryItem(index, animate = true) {
+  if (!randomGalleryItems.length) return;
+
+  randomGalleryIndex = Math.max(0, Math.min(index, randomGalleryItems.length - 1));
+  const item = randomGalleryItems[randomGalleryIndex];
+  const images = getProductImages(item);
+  const mainImg = $('randomMainImage');
+  const title = item.equipo || 'Equipo Desconocido';
+  const sku = item.sku || '';
+
+  if (mainImg) {
+    if (animate) {
+      mainImg.classList.remove('is-loaded');
+      setTimeout(() => mainImg.classList.add('is-loaded'), 30);
+    } else {
+      mainImg.classList.add('is-loaded');
+    }
+    mainImg.src = images[0];
+    mainImg.alt = title;
+    mainImg.onerror = () => {
+      mainImg.onerror = null;
+      mainImg.src = 'assets/image_unavailable.png';
+    };
+  }
+
+  const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
+  const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+
+  if ($('randomCounter')) $('randomCounter').innerText = `${randomGalleryIndex + 1} de ${randomGalleryItems.length}`;
+  if ($('randomTitle')) $('randomTitle').innerText = title;
+  if ($('randomPrice')) $('randomPrice').innerHTML = getProductPriceHtml(item, 18);
+  if ($('randomSize')) $('randomSize').innerText = item.talla || '-';
+  if ($('randomType')) $('randomType').innerText = item.tipo || '-';
+  if ($('randomSku')) $('randomSku').innerText = sku || '-';
+  if ($('randomWhatsappBtn')) $('randomWhatsappBtn').href = wsUrl;
+
+  document.querySelectorAll('.random-thumb').forEach(button => {
+    const isActive = Number(button.dataset.randomIndex) === randomGalleryIndex;
+    button.classList.toggle('active', isActive);
+    if (isActive) button.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  });
+}
+
+/* ==========================================================================
    NUEVAS FUNCIONES: NAVEGACIÓN DE CUADROS DE CATEGORÍAS (index.html)
    ========================================================================== */
-function selectCategory(categoryName) {
+function selectCategory(categoryName, options = {}) {
+  if (isRandomGalleryCategory(categoryName)) {
+    window.location.href = 'randomGallery.html';
+    return;
+  }
+
   showAllProducts = false;
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 
@@ -767,16 +986,26 @@ async function loadProductPage() {
   }
 
   try {
-    const response = await getJsonp({ action: 'getSku', sku: sku });
-    
-    // Extract the item object securely
-    if (!response || response.success === false || !response.item) {
+    const [itemResult, inventoryResult] = await Promise.allSettled([
+      getJsonp({ action: 'getSku', sku: sku }),
+      getJsonp({ action: 'getInventory' })
+    ]);
+
+    productPageInventoryItems = inventoryResult.status === 'fulfilled'
+      ? normalizeInventoryPayload(inventoryResult.value)
+      : [];
+
+    const inventoryItem = findProductInPageInventory(sku);
+    const response = itemResult.status === 'fulfilled' ? itemResult.value : null;
+    const itemData = inventoryItem || (response && response.success !== false ? response.item : null);
+
+    if (!itemData) {
       showProductPageError("La camisola solicitada no existe, fue eliminada o ya fue vendida.");
       return;
     }
-    
-    const itemData = response.item;
-    renderProductPage(itemData, sku);
+
+    setupProductHistoryNavigation();
+    renderProductPage(itemData, sku, productPageInventoryItems);
 
   } catch (err) {
     showProductPageError("Error de conexión al cargar los datos de la prenda.");
@@ -804,11 +1033,252 @@ function productDetailRow(label, value) {
   `;
 }
 
-function renderProductPage(item, requestedSku) {
+function findProductInPageInventory(sku) {
+  const targetSku = normalizeSku(sku);
+  if (!targetSku || !productPageInventoryItems.length) return null;
+  return productPageInventoryItems.find(item => normalizeSku(item.sku) === targetSku) || null;
+}
+
+function setupProductHistoryNavigation() {
+  if (productHistoryListenerReady) return;
+  productHistoryListenerReady = true;
+
+  window.addEventListener('popstate', () => {
+    const sku = new URLSearchParams(window.location.search).get('sku');
+    const item = findProductInPageInventory(sku);
+    if (item) renderProductPage(item, sku, productPageInventoryItems);
+  });
+}
+
+function navigateProductInPlace(sku, url, options = {}) {
+  const item = findProductInPageInventory(sku);
+  if (!item) {
+    showPageLoader();
+    window.location.href = url;
+    return;
+  }
+
+  if (options.pushState !== false) {
+    window.history.pushState({}, '', url);
+  }
+
+  renderProductPage(item, sku, productPageInventoryItems);
+  if (options.scrollToTop) {
+    document.querySelector('.product-page-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function getProductNavigationUrl(sku) {
+  const params = new URLSearchParams(window.location.search);
+  params.set('sku', sku);
+  if (!params.has('category')) params.set('category', 'Todas las Prendas');
+  return `product.html?${params.toString()}`;
+}
+
+function getProductNavigation(item, requestedSku, inventoryItems) {
+  if (!Array.isArray(inventoryItems) || inventoryItems.length === 0) {
+    return { prev: null, next: null, total: 0, position: 0, items: [] };
+  }
+
+  const currentSku = normalizeSku(item.sku || requestedSku);
+  const context = getCatalogContextFromUrl();
+  let items = getCatalogItemsForContext(inventoryItems, context);
+
+  if (!items.some(candidate => normalizeSku(candidate.sku) === currentSku)) {
+    items = getCatalogItemsForContext(inventoryItems, {
+      ...context,
+      category: 'Todas las Prendas',
+      search: '',
+      size: '',
+      type: '',
+      sort: context.sort || 'none'
+    });
+  }
+
+  const currentIndex = items.findIndex(candidate => normalizeSku(candidate.sku) === currentSku);
+  if (currentIndex === -1) return { prev: null, next: null, total: items.length, position: 0, items };
+
+  const prev = currentIndex > 0 ? items[currentIndex - 1] : null;
+  const next = currentIndex < items.length - 1 ? items[currentIndex + 1] : null;
+  return {
+    prev: prev ? { item: prev, url: getProductNavigationUrl(prev.sku) } : null,
+    next: next ? { item: next, url: getProductNavigationUrl(next.sku) } : null,
+    total: items.length,
+    position: currentIndex + 1,
+    items
+  };
+}
+
+function productSiblingButton(navItem, label, direction) {
+  const directionClass = direction === 'prev' ? ' is-prev' : ' is-next';
+  if (!navItem) {
+    return `
+      <span class="product-sibling-btn${directionClass} is-disabled" aria-disabled="true">
+        <span>${escapeHtml(label)}</span>
+      </span>
+    `;
+  }
+
+  const title = navItem.item.equipo || navItem.item.sku || 'Prenda';
+  return `
+    <a href="${escapeHtml(navItem.url)}" class="product-sibling-btn${directionClass}" data-product-nav="${escapeHtml(direction)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(title)}</strong>
+    </a>
+  `;
+}
+
+function getProductSiblingNavHtml(navigation) {
+  if (!navigation || navigation.total <= 1) return '';
+
+  return `
+    <nav class="product-sibling-nav" aria-label="Navegación entre prendas">
+      ${productSiblingButton(navigation.prev, 'Prenda anterior', 'prev')}
+      <div class="product-sibling-count">${navigation.position} de ${navigation.total}</div>
+      ${productSiblingButton(navigation.next, 'Siguiente prenda', 'next')}
+    </nav>
+    <p class="product-swipe-hint">Desliza para cambiar de prenda</p>
+  `;
+}
+
+function productStageArrow(navItem, direction) {
+  const className = direction === 'prev'
+    ? 'random-gallery-arrow random-gallery-prev product-stage-arrow'
+    : 'random-gallery-arrow random-gallery-next product-stage-arrow';
+  const label = direction === 'prev' ? 'Prenda anterior' : 'Siguiente prenda';
+
+  if (!navItem) {
+    return `<span class="${className} is-disabled" aria-hidden="true"><img src="assets/flecha.png" alt=""></span>`;
+  }
+
+  return `
+    <a href="${escapeHtml(navItem.url)}" class="${className}" data-product-nav="${escapeHtml(direction)}" aria-label="${escapeHtml(label)}">
+      <img src="assets/flecha.png" alt="">
+    </a>
+  `;
+}
+
+function getProductImageStripHtml(images, title) {
+  return `
+    <div class="product-image-strip" id="productImageStrip" aria-label="Imágenes de esta prenda">
+      ${images.map((src, index) => `
+        <button type="button" class="product-image-thumb${index === 0 ? ' active' : ''}" data-product-image-index="${index}" aria-label="${escapeHtml(title)} imagen ${index + 1}">
+          <img src="${escapeHtml(src)}" alt="" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getProductContextStripHtml(navigation, currentSku) {
+  if (!navigation?.items || navigation.items.length <= 1) return '';
+
+  return `
+    <div class="product-context-strip" id="productContextStrip" aria-label="Prendas de esta vista">
+      ${navigation.items.map(item => {
+        const image = getProductImages(item)[0];
+        const isActive = normalizeSku(item.sku) === normalizeSku(currentSku);
+        return `
+          <a href="${escapeHtml(getProductNavigationUrl(item.sku))}" class="product-context-thumb${isActive ? ' active' : ''}" data-product-nav="strip">
+            <img src="${escapeHtml(image)}" alt="" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+            <span>${escapeHtml(item.equipo || item.sku || 'Prenda')}</span>
+          </a>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function setupProductNavigationLinks() {
+  document.querySelectorAll('[data-product-nav]').forEach(link => {
+    link.addEventListener('click', event => {
+      const href = link.getAttribute('href');
+      if (!href || !productPageInventoryItems.length) {
+        showPageLoader();
+        return;
+      }
+
+      const url = new URL(href, window.location.href);
+      const sku = url.searchParams.get('sku');
+      const item = findProductInPageInventory(sku);
+      if (!sku || !item) {
+        showPageLoader();
+        return;
+      }
+
+      event.preventDefault();
+      navigateProductInPlace(sku, `${url.pathname}${url.search}`, {
+        scrollToTop: link.dataset.productNav === 'strip'
+      });
+    });
+  });
+}
+
+function setupProductImageStrip(images) {
+  const mainImg = $('mainProductImage');
+  if (!mainImg) return;
+
+  document.querySelectorAll('[data-product-image-index]').forEach(button => {
+    button.addEventListener('click', () => {
+      const index = Number(button.dataset.productImageIndex);
+      const src = images[index];
+      if (!src) return;
+
+      mainImg.classList.remove('is-loaded');
+      mainImg.src = src;
+      setTimeout(() => mainImg.classList.add('is-loaded'), 30);
+      document.querySelectorAll('[data-product-image-index]').forEach(thumb => thumb.classList.remove('active'));
+      button.classList.add('active');
+      button.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    });
+  });
+}
+
+function setupProductSwipeNavigation(navigation) {
+  const target = document.querySelector('.product-gallery-shell') || document.querySelector('.product-detail');
+  if (!target || (!navigation.prev && !navigation.next)) return;
+
+  let startX = 0;
+  let startY = 0;
+
+  target.addEventListener('touchstart', event => {
+    if (event.touches.length !== 1) return;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+  }, { passive: true });
+
+  target.addEventListener('touchend', event => {
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - startX;
+    const deltaY = touch.clientY - startY;
+    if (Math.abs(deltaX) < 70 || Math.abs(deltaX) < Math.abs(deltaY) * 1.25) return;
+
+    const destination = deltaX < 0 ? navigation.next : navigation.prev;
+    if (!destination) return;
+
+    navigateProductInPlace(destination.item.sku, destination.url);
+  }, { passive: true });
+}
+
+function scrollActiveProductContextThumb() {
+  requestAnimationFrame(() => {
+    const strip = $('productContextStrip');
+    const active = document.querySelector('.product-context-thumb.active');
+    if (!strip || !active) return;
+
+    const targetLeft = active.offsetLeft - (strip.clientWidth / 2) + (active.clientWidth / 2);
+    strip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+  });
+}
+
+function renderProductPage(item, requestedSku, inventoryItems = []) {
   const content = $('productPageContent');
   if (!content) return;
 
   const images = getProductImages(item);
+  const navigation = getProductNavigation(item, requestedSku, inventoryItems);
   const title = item.equipo || 'Equipo Desconocido';
   const sku = item.sku || requestedSku;
   const notes = item.notas || 'Sin descripción adicional.';
@@ -826,72 +1296,63 @@ function renderProductPage(item, requestedSku) {
       </a>
       <a href="index.html" class="secondary-btn product-categories-btn">Ver todas las categorías</a>
     </div>
-    <section class="product-detail" aria-label="Detalle de prenda">
-      <div class="product-gallery-panel">
-        <div class="product-main-image-frame">
-          <img id="mainProductImage" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+
+    <section class="random-gallery-shell product-gallery-shell" aria-label="Detalle de prenda">
+      <div class="random-gallery-stage product-gallery-stage">
+        ${productStageArrow(navigation.prev, 'prev')}
+        <div class="product-main-gallery-layout">
+          ${getProductImageStripHtml(images, title)}
+          <div class="random-main-image-frame product-main-gallery-frame">
+            <img id="mainProductImage" class="is-loaded" src="${escapeHtml(images[0])}" alt="${escapeHtml(title)}" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+          </div>
         </div>
-        <div id="productThumbnails" class="product-thumbnails${images.length <= 1 ? ' is-hidden' : ''}" aria-label="Galería de imágenes"></div>
+        ${productStageArrow(navigation.next, 'next')}
       </div>
-      <div class="product-info-panel">
-        <p class="product-page-sku">${escapeHtml(sku)}</p>
-        <div class="product-heading-row">
-          <h1 id="productTitle">${escapeHtml(title)}</h1>
-        </div>
-        <div class="product-price-row">
-          <div id="productPrice" class="product-page-price">${getProductPriceHtml(item, 18)}</div>
+
+      <aside class="random-info-panel product-info-panel-v2">
+        <div class="random-counter">${navigation.total ? `${navigation.position} de ${navigation.total}` : escapeHtml(sku)}</div>
+        <h1 id="productTitle">${escapeHtml(title)}</h1>
+        <div class="product-gallery-price-row">
+          <div id="productPrice" class="random-price">${getProductPriceHtml(item, 18)}</div>
           <a id="productWsLink" href="${escapeHtml(wsUrl)}" class="ws-detail-btn product-consult-btn" target="_blank" rel="noopener">
             <img src="assets/whatsapp_logo.jpg" alt="">
             Consultar
           </a>
         </div>
-        <dl class="product-detail-list">
+        <dl class="random-quick-details product-full-details">
           ${productDetailRow('SKU', sku)}
           ${productDetailRow('Talla', item.talla)}
           ${productDetailRow('Tipo', item.tipo)}
           ${productDetailRow('Año', item.year)}
           ${region ? productDetailRow('Categoría', region) : ''}
         </dl>
-        <div class="product-notes">
+        <div class="product-notes product-gallery-notes">
           <h2>Descripción / Notas</h2>
           <p>${escapeHtml(notes)}</p>
         </div>
-      </div>
+      </aside>
+      ${getProductContextStripHtml(navigation, sku)}
     </section>
+    <p class="product-swipe-hint">Desliza para cambiar de prenda</p>
   `;
 
   const mainImg = $('mainProductImage');
-  const thumbsContainer = $('productThumbnails');
+  setupProductNavigationLinks();
+  setupProductImageStrip(images);
+  setupProductSwipeNavigation(navigation);
+  scrollActiveProductContextThumb();
   if (mainImg) {
     mainImg.onerror = () => {
       mainImg.onerror = null;
       mainImg.src = 'assets/image_unavailable.png';
     };
   }
-  if (!mainImg || !thumbsContainer || images.length <= 1) return;
-
-  images.forEach((src, idx) => {
-    const thumb = document.createElement('img');
-    thumb.src = src;
-    thumb.alt = `${title} ${idx + 1}`;
-    thumb.className = 'product-thumb' + (idx === 0 ? ' active' : '');
-    thumb.onerror = () => {
-      thumb.onerror = null;
-      thumb.src = 'assets/image_unavailable.png';
-    };
-    thumb.addEventListener('click', () => {
-      mainImg.src = src;
-      Array.from(thumbsContainer.children).forEach(t => t.classList.remove('active'));
-      thumb.classList.add('active');
-    });
-    thumbsContainer.appendChild(thumb);
-  });
 }
 
 function getCatalogReturnUrl() {
   const params = new URLSearchParams(window.location.search);
   const url = new URL('index.html', window.location.href);
-  const passthrough = ['category', 'search', 'size', 'type', 'sort', 'filters'];
+  const passthrough = ['category', 'search', 'size', 'type', 'sort', 'filters', 'seed'];
 
   if (!params.has('category')) {
     url.searchParams.set('category', 'Todas las Prendas');

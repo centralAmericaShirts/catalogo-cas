@@ -1235,19 +1235,29 @@ function setupProductImageStrip(images) {
 }
 
 function setupProductSwipeNavigation(navigation) {
-  const target = document.querySelector('.product-gallery-shell') || document.querySelector('.product-detail');
+  const target = document.querySelector('.product-gallery-stage') || document.querySelector('.product-main-gallery-frame');
   if (!target || (!navigation.prev && !navigation.next)) return;
 
   let startX = 0;
   let startY = 0;
+  let gestureStartedOnScroller = false;
 
   target.addEventListener('touchstart', event => {
+    gestureStartedOnScroller = true;
     if (event.touches.length !== 1) return;
+    gestureStartedOnScroller = Boolean(event.target.closest('.product-context-strip, .product-image-strip, .product-context-thumb, .product-image-thumb'));
+    if (gestureStartedOnScroller) return;
+
     startX = event.touches[0].clientX;
     startY = event.touches[0].clientY;
   }, { passive: true });
 
   target.addEventListener('touchend', event => {
+    if (gestureStartedOnScroller) {
+      gestureStartedOnScroller = false;
+      return;
+    }
+
     const touch = event.changedTouches[0];
     if (!touch) return;
 
@@ -1259,6 +1269,10 @@ function setupProductSwipeNavigation(navigation) {
     if (!destination) return;
 
     navigateProductInPlace(destination.item.sku, destination.url);
+  }, { passive: true });
+
+  target.addEventListener('touchcancel', () => {
+    gestureStartedOnScroller = false;
   }, { passive: true });
 }
 

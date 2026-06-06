@@ -478,7 +478,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       </section>
 
       <div class="quiniela-tabs${canManageResults() ? ' has-admin' : ''}" role="tablist" aria-label="Secciones de Quiniela CAS">
-        ${renderTabButton('instructions', 'Instrucciones')}
+        ${renderTabButton('instructions', 'Info')}
         ${renderTabButton('play', 'Jugar')}
         ${renderTabButton('ranking', 'Ranking')}
         ${renderTabButton('account', 'Cuenta')}
@@ -548,6 +548,13 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
               <li>Solo cuentan pronósticos completos.</li>
               <li>Cada partido se cierra al iniciar.</li>
               <li>Si hay empate en puntos, ganan más exactos.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Premios</h3>
+            <ul>
+              <li><strong>Ganador fase de grupos:</strong> premio.</li>
+              <li><strong>Ganador torneo completo:</strong> premio.</li>
             </ul>
           </div>
         </div>

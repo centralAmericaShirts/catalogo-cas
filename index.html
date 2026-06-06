@@ -90,6 +90,14 @@
   </div>
 
   <div class="container">
+    <form class="home-search-panel" id="homeSearchForm" role="search">
+      <div class="field-group home-search-field">
+        <label for="homeSearchInput">Buscar por Equipo ó Código</label>
+        <input type="search" id="homeSearchInput" placeholder="Ej: Milan, Guatemala, CAS001..." autocomplete="off">
+      </div>
+      <button type="submit" class="primary-btn home-search-btn">Buscar</button>
+    </form>
+
     <div class="category-cards-grid" id="categoryGrid">
 		<div class="cat-card" onclick="selectCategory('Todas las prendas')" style="background-image: url('assets/logo_cas.png')">
             <div class="cat-overlay"></div>
@@ -222,6 +230,6 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20260606-hide-quiniela"></script>
 </body>
 </html>

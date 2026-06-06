@@ -3,6 +3,7 @@
    ========================================================================== */
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
+const SITE_BASE_URL = "https://centralamericashirts.com/";
 
 let allItems = [];
 let filteredItems = [];
@@ -72,6 +73,21 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function getPublicProductUrl(sku) {
+  const url = new URL('product.html', SITE_BASE_URL);
+  url.searchParams.set('sku', sku);
+  return url.href;
+}
+
+function getProductWhatsAppUrl(item, titleOverride = '') {
+  const sku = item?.sku || '';
+  const title = titleOverride || item?.equipo || 'esta prenda';
+  const size = item?.talla || '';
+  const productUrl = getPublicProductUrl(sku);
+  const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${size}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?\n\nLink de la prenda: ${productUrl}`;
+  return `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+}
+
 /* ==========================================================================
    2. ENRUTADOR AUTOMÁTICO (Detecta la página actual al cargar)
    ========================================================================== */
@@ -84,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.body.classList.contains('index-page')) {
         hidePageLoader();
         setupCategoryButtons(); 
+        setupHomeSearch();
         restoreCatalogStateFromUrl();
         loadInventory(); 
         
@@ -274,6 +291,28 @@ function setupCategoryButtons() {
       let text = btn.innerText.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, "").trim();
       selectCategory(text);
     });
+  });
+}
+
+function setupHomeSearch() {
+  const form = $('homeSearchForm');
+  const input = $('homeSearchInput');
+  if (!form || !input) return;
+
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const query = input.value.trim();
+    if (!query) {
+      input.focus();
+      return;
+    }
+
+    if ($('searchInput')) $('searchInput').value = query;
+    if ($('sizeFilter')) $('sizeFilter').value = '';
+    if ($('typeFilter')) $('typeFilter').value = '';
+    if ($('sortOrder')) $('sortOrder').value = 'none';
+    setFilterPanelOpen(false);
+    selectCategory('Todas las Prendas');
   });
 }
 
@@ -614,9 +653,7 @@ function render() {
     
     const priceHTML = getProductPriceHtml(item, 14);
 
-    // Lógica para el botón directo de WhatsApp
-    const wsMessage = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
-    const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(wsMessage)}`;
+    const wsUrl = getProductWhatsAppUrl(item);
 
     return `
       <div class="product-card" data-sku="${escapeHtml(item.sku)}" role="link" tabindex="0" style="cursor:pointer; border: 1px solid #1f3350; border-radius: 12px; overflow: hidden; background: #0a1728; transition: transform 0.2s; display:flex; flex-direction:column; height:100%;">
@@ -833,8 +870,7 @@ function updateRandomGalleryItem(index, animate = true) {
     };
   }
 
-  const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
-  const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  const wsUrl = getProductWhatsAppUrl(item, title);
 
   if ($('randomCounter')) $('randomCounter').innerText = `${randomGalleryIndex + 1} de ${randomGalleryItems.length}`;
   if ($('randomTitle')) $('randomTitle').innerText = title;
@@ -875,6 +911,7 @@ function selectCategory(categoryName, options = {}) {
 
   $('categoryGrid').style.display = 'none';
   $('inventorySection').style.display = 'block';
+  if ($('homeSearchForm')) $('homeSearchForm').style.display = 'none';
 
   // Ocultar o mostrar el cintillo superior de imágenes
   const slider = document.querySelector('.slider-container');
@@ -895,11 +932,13 @@ function backToCategories() {
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
   $('categoryGrid').style.display = 'grid';
   $('inventorySection').style.display = 'none';
+  if ($('homeSearchForm')) $('homeSearchForm').style.display = 'grid';
 
   const slider = document.querySelector('.slider-container');
   if (slider) slider.style.display = "block";
   
   // Limpiar filtros al regresar por comodidad del usuario
+  if ($('homeSearchInput')) $('homeSearchInput').value = '';
   $('searchInput').value = '';
   $('sizeFilter').value = '';
   $('typeFilter').value = '';
@@ -956,9 +995,7 @@ function openProductModal(item) {
     thumbsContainer.style.display = 'none';
   }
 
-  // Generar enlace estructurado para WhatsApp
-  const message = `¡Hola! Me interesa la camisola de ${item.equipo} (Talla: ${item.talla}, SKU: ${item.sku}) que vi en su catálogo web. ¿Está disponible?`;
-  $('modalWsBtn').href = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  $('modalWsBtn').href = getProductWhatsAppUrl(item);
   $('modalFullPageBtn').href = getProductUrlFromCatalog(item.sku);
 
   modal.style.display = 'flex';
@@ -1297,8 +1334,7 @@ function renderProductPage(item, requestedSku, inventoryItems = []) {
   const sku = item.sku || requestedSku;
   const notes = item.notas || 'Sin descripción adicional.';
   const region = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || '';
-  const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${item.talla || ''}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?`;
-  const wsUrl = `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+  const wsUrl = getProductWhatsAppUrl(item, title);
   const returnUrl = getCatalogReturnUrl();
 
   document.title = `${title} | CAS`;

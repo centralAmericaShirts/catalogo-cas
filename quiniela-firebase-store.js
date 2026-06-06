@@ -1,0 +1,300 @@
+import { CAS_FIREBASE_CONFIG, isFirebaseConfigReady } from './firebase-config.js';
+
+const FIREBASE_SDK_VERSION = '12.14.0';
+
+export async function createFirebaseQuinielaStore({ paths, createBlankState, hydrateState }) {
+  if (!isFirebaseConfigReady()) return null;
+
+  const [{ initializeApp, getApp, getApps }, authSdk, firestoreSdk] = await Promise.all([
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-app.js`),
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-auth.js`),
+    import(`https://www.gstatic.com/firebasejs/${FIREBASE_SDK_VERSION}/firebase-firestore.js`)
+  ]);
+
+  const {
+    createUserWithEmailAndPassword,
+    getAuth,
+    getIdToken,
+    browserLocalPersistence,
+    onAuthStateChanged,
+    reload,
+    sendEmailVerification,
+    sendPasswordResetEmail,
+    setPersistence,
+    signInWithEmailAndPassword,
+    signOut,
+    updateProfile
+  } = authSdk;
+
+  const {
+    doc,
+    getDoc,
+    getFirestore,
+    serverTimestamp,
+    setDoc
+  } = firestoreSdk;
+
+  const app = getApps().length ? getApp() : initializeApp(CAS_FIREBASE_CONFIG);
+  const auth = getAuth(app);
+  auth.languageCode = 'es';
+  const db = getFirestore(app);
+  await setPersistence(auth, browserLocalPersistence);
+  await waitForInitialAuth(onAuthStateChanged, auth);
+
+  const docRef = path => doc(db, ...path.split('/'));
+
+  async function getIsAdmin(uid) {
+    if (!uid) return false;
+    const snapshot = await getDoc(docRef(paths.adminUser(uid)));
+    return snapshot.exists();
+  }
+
+  async function readResults() {
+    const snapshot = await getDoc(docRef(paths.results));
+    if (!snapshot.exists()) return {};
+    return snapshot.data().results || {};
+  }
+
+  async function readLeaderboard() {
+    const snapshot = await getDoc(docRef(paths.leaderboard));
+    if (!snapshot.exists()) return createBlankState().leaderboard;
+    return snapshot.data();
+  }
+
+  async function ensureParticipantDoc(user) {
+    if (!user) return null;
+    const ref = docRef(paths.participant(user.uid));
+    const snapshot = await getDoc(ref);
+    const participant = {
+      seasonId: 'world-cup-2026',
+      uid: user.uid,
+      id: user.uid,
+      displayName: user.displayName || user.email || 'Jugador CAS',
+      name: user.displayName || user.email || 'Jugador CAS',
+      email: user.email || '',
+      photoURL: user.photoURL || '',
+      updatedAt: new Date().toISOString()
+    };
+
+    if (!snapshot.exists()) {
+      await setDoc(ref, {
+        ...participant,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    return {
+      ...participant,
+      ...(snapshot.exists() ? snapshot.data() : {})
+    };
+  }
+
+  async function load() {
+    const state = createBlankState();
+    const user = auth.currentUser;
+    const [results, leaderboard] = await Promise.all([
+      readResults(),
+      readLeaderboard()
+    ]);
+
+    state.auth = {
+      provider: 'firebase',
+      configured: true,
+      uid: user?.uid || '',
+      email: user?.email || '',
+      displayName: user?.displayName || '',
+      emailVerified: Boolean(user?.emailVerified),
+      photoURL: user?.photoURL || '',
+      isAdmin: user ? await getIsAdmin(user.uid) : false
+    };
+    state.results = results;
+    state.leaderboard = leaderboard;
+
+    if (!user) return hydrateState(state);
+
+    const participant = await ensureParticipantDoc(user);
+    if (participant) {
+      state.activeParticipantId = user.uid;
+      state.participants[user.uid] = {
+        id: user.uid,
+        name: participant.name || participant.displayName || user.displayName || user.email || 'Jugador CAS',
+        email: participant.email || user.email || '',
+        photoURL: participant.photoURL || user.photoURL || '',
+        createdAt: participant.createdAt || '',
+        updatedAt: participant.updatedAt || ''
+      };
+    }
+
+    const predictionSnapshot = await getDoc(docRef(paths.prediction(user.uid)));
+    if (predictionSnapshot.exists()) {
+      state.predictions[user.uid] = predictionSnapshot.data().predictions || {};
+    }
+
+    return hydrateState(state);
+  }
+
+  async function signIn(email, password) {
+    try {
+      await signInWithEmailAndPassword(auth, normalizeEmail(email), password);
+    } catch (error) {
+      throw new Error(authErrorMessage(error));
+    }
+    if (auth.currentUser) await ensureParticipantDoc(auth.currentUser);
+  }
+
+  async function signUp({ email, password, name }) {
+    try {
+      const displayName = String(name || '').trim();
+      const credential = await createUserWithEmailAndPassword(auth, normalizeEmail(email), password);
+      if (displayName) await updateProfile(credential.user, { displayName });
+      await sendEmailVerification(credential.user);
+      await ensureParticipantDoc({
+        uid: credential.user.uid,
+        displayName: displayName || credential.user.displayName,
+        email: credential.user.email,
+        photoURL: credential.user.photoURL
+      });
+    } catch (error) {
+      throw new Error(authErrorMessage(error));
+    }
+  }
+
+  async function sendVerification() {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Debes iniciar sesión.');
+    try {
+      await sendEmailVerification(user);
+    } catch (error) {
+      throw new Error(authErrorMessage(error));
+    }
+  }
+
+  async function refreshUser() {
+    if (!auth.currentUser) return;
+    await reload(auth.currentUser);
+    if (auth.currentUser.emailVerified) {
+      await getIdToken(auth.currentUser, true);
+    }
+  }
+
+  async function sendPasswordReset(email) {
+    try {
+      await sendPasswordResetEmail(auth, normalizeEmail(email));
+    } catch (error) {
+      throw new Error(authErrorMessage(error));
+    }
+  }
+
+  async function signOutUser() {
+    await signOut(auth);
+  }
+
+  async function saveParticipant(participant) {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Debes iniciar sesión.');
+    await setDoc(docRef(paths.participant(user.uid)), {
+      seasonId: 'world-cup-2026',
+      uid: user.uid,
+      id: user.uid,
+      name: participant.name,
+      displayName: participant.name,
+      email: user.email || participant.email || '',
+      photoURL: user.photoURL || participant.photoURL || '',
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+
+  async function savePredictions(participantId, predictionDoc) {
+    const user = auth.currentUser;
+    if (!user || participantId !== user.uid) throw new Error('Debes iniciar sesión.');
+    await reload(user);
+    if (!user.emailVerified) throw new Error('Debes verificar tu correo antes de guardar.');
+    await getIdToken(user, true);
+    try {
+      await setDoc(docRef(paths.prediction(user.uid)), {
+        ...predictionDoc,
+        uid: user.uid,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      if (error?.code === 'permission-denied') {
+        throw new Error('Firebase rechazó tus pronósticos. Haz clic en Cuenta > Ya verifiqué, o cierra sesión y vuelve a entrar para refrescar la verificación.');
+      }
+      throw error;
+    }
+  }
+
+  async function saveResults(resultsDoc, leaderboardDoc) {
+    const user = auth.currentUser;
+    if (!user || !(await getIsAdmin(user.uid))) throw new Error('Solo Admin CAS puede editar resultados.');
+    try {
+      await Promise.all([
+        setDoc(docRef(paths.results), {
+          ...resultsDoc,
+          updatedAt: serverTimestamp()
+        }, { merge: true }),
+        setDoc(docRef(paths.leaderboard), {
+          ...leaderboardDoc,
+          updatedAt: serverTimestamp()
+        }, { merge: true })
+      ]);
+    } catch (error) {
+      if (error?.code === 'permission-denied') {
+        throw new Error('Firebase rechazó la actualización. Revisa que firestore.rules esté publicado y que tu UID exista en quinielas/world-cup-2026/admins.');
+      }
+      throw error;
+    }
+  }
+
+  return {
+    provider: 'firebase',
+    isConfigured: true,
+    load,
+    save() {},
+    saveParticipant,
+    savePredictions,
+    saveResults,
+    signIn,
+    signUp,
+    sendPasswordReset,
+    sendVerification,
+    refreshUser,
+    signOut: signOutUser
+  };
+}
+
+function waitForInitialAuth(onAuthStateChanged, auth) {
+  return new Promise(resolve => {
+    let settled = false;
+    let unsubscribe = () => {};
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      unsubscribe();
+      resolve();
+    };
+    const timeout = setTimeout(finish, 5000);
+    try {
+      unsubscribe = onAuthStateChanged(auth, finish, finish);
+    } catch (_) {
+      finish();
+    }
+  });
+}
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function authErrorMessage(error) {
+  const code = error?.code || '';
+  if (code.includes('auth/email-already-in-use')) return 'Ese correo ya tiene cuenta. Intenta entrar o recuperar contraseña.';
+  if (code.includes('auth/invalid-email')) return 'Escribe un correo válido.';
+  if (code.includes('auth/invalid-credential') || code.includes('auth/wrong-password') || code.includes('auth/user-not-found')) return 'Correo o contraseña incorrectos.';
+  if (code.includes('auth/weak-password')) return 'La contraseña debe tener al menos 6 caracteres.';
+  if (code.includes('auth/too-many-requests')) return 'Demasiados intentos. Espera un momento e intenta de nuevo.';
+  if (code.includes('auth/missing-password')) return 'Escribe tu contraseña.';
+  return error?.message || 'No se pudo completar la acción.';
+}

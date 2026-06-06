@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiniela CAS | Mundial 2026</title>
+
+  <link rel="icon" type="image/png" href="assets/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=20260606-points">
+</head>
+
+<body class="quiniela-page">
+  <div id="pageLoadingOverlay" class="page-loading-overlay active" role="status" aria-live="polite">
+    <img src="assets/loading_gif.gif" alt="" class="page-loading-gif">
+    <div class="page-loading-text">cargando</div>
+  </div>
+
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand nav-home-link" aria-label="Volver al inventario">
+      <picture class="nav-logo-picture">
+        <source media="(max-width: 768px)" srcset="assets/logo_nav.png">
+        <img src="assets/logo.png" alt="Logo" class="nav-logo" onerror="this.style.display='none'">
+      </picture>
+      <div class="nav-text-container">
+        <span class="nav-title">Central America Shirts</span>
+        <h6 class="nav-slogan">Quiniela CAS Mundial 2026</h6>
+      </div>
+    </a>
+    <a href="https://www.instagram.com/centralamericashirts/" class="nav-social-link" target="_blank" rel="noopener" aria-label="Instagram">
+      <img src="assets/instagram_logo.svg" alt="Instagram" class="nav-social-icon" width="24" height="24">
+    </a>
+  </nav>
+
+  <main class="quiniela-container" id="quinielaApp">
+    <div class="catalog-state">
+      <img src="assets/loading_gif.gif" alt="">
+      <p>cargando</p>
+    </div>
+  </main>
+
+  <script src="app.js?v=20260606-hide-quiniela"></script>
+  <script type="module" src="quiniela.js?v=20260606-points"></script>
+</body>
+</html>

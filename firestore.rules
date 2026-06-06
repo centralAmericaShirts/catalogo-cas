@@ -1,0 +1,64 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin(seasonId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/quinielas/$(seasonId)/admins/$(request.auth.uid));
+    }
+
+    function owns(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function verifiedEmail() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
+    match /quinielas/{seasonId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /matches/{matchId} {
+        allow read: if true;
+        allow write: if isAdmin(seasonId);
+      }
+
+      match /participants/{uid} {
+        allow read: if true;
+        allow create, update: if owns(uid)
+          && request.resource.data.uid == uid
+          && request.resource.data.seasonId == seasonId;
+        allow delete: if false;
+      }
+
+      match /predictions/{uid} {
+        allow read: if owns(uid) || isAdmin(seasonId);
+        allow create, update: if owns(uid)
+          && verifiedEmail()
+          && request.resource.data.uid == uid
+          && request.resource.data.seasonId == seasonId;
+        allow delete: if false;
+      }
+
+      match /admin/{docId} {
+        allow read: if docId == 'results';
+        allow write: if isAdmin(seasonId);
+      }
+
+      match /public/{docId} {
+        allow read: if true;
+        allow write: if isAdmin(seasonId);
+      }
+
+      match /admins/{uid} {
+        allow read: if owns(uid) || isAdmin(seasonId);
+        allow write: if false;
+      }
+    }
+  }
+}

@@ -8,11 +8,11 @@
 4. Copy the Firebase web config.
 5. Paste it into `firebase-config.js`.
 
-## 2. Enable Google Login
+## 2. Enable Email Login
 
 1. Open Authentication.
 2. Go to Sign-in method.
-3. Enable Google.
+3. Enable Email/Password.
 4. Add authorized domains:
    - `centralamericashirts.com`
    - `localhost`
@@ -39,22 +39,26 @@
    - `role`: `admin`
    - `createdAt`: current date
 7. Refresh `quiniela.html`. The `Admin resultados` tab should appear.
+8. Stay signed in as admin and refresh once more. The app will seed/update:
+   `quinielas/world-cup-2026/matches/{matchId}`
+   with `kickoffAt` timestamps used by Firestore Rules to lock predictions.
 
 ## 5. Testing Checklist
 
-1. Sign in with a normal Google account.
+1. Create/sign in with a normal email/password account.
 2. Save predictions.
 3. Confirm Firestore creates:
    - `participants/{uid}`
-   - `predictions/{uid}`
+   - `predictions/{uid}/matches/{matchId}`
 4. Add admin document for your admin account.
 5. Refresh and enter official results from `Admin resultados`.
 6. Confirm Firestore updates:
    - `admin/results`
    - `public/leaderboard`
 7. Open Ranking and verify points.
-8. To test match locking before real kickoff, temporarily set a match date/time in `quiniela.js` to a past time, reload, and confirm its inputs are disabled.
+8. Confirm a non-admin user cannot write `admin/results`, `public/leaderboard`, or `matches`.
+9. To test match locking before real kickoff, temporarily set a match `kickoffUtc` in `quiniela.js` to a past time, reload as admin to seed the changed match, then confirm a normal user cannot edit/save that match.
 
 ## Important
 
-Current match locking is enforced in the UI and save logic. That blocks normal users. For stricter anti-tamper database enforcement, use a Cloud Function or store predictions per match so Firestore Rules can validate each match lock time.
+Match locking is enforced in both the UI and Firestore Rules. Rules depend on `matches/{matchId}.kickoffAt`, so an admin must load the deployed app once after schedule changes to seed/update those match documents.

@@ -540,14 +540,15 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         exact: Number(row.exact) || 0,
         outcome: Number(row.outcome) || 0,
         submitted: Number(row.submitted) || 0
-      }));
+      })).sort((a, b) => b.points - a.points
+        || b.exact - a.exact
+        || a.participant.name.localeCompare(b.participant.name));
     }
 
     return Object.values(quinielaState.participants)
       .map(participant => ({ participant, ...getParticipantSummary(participant.id) }))
       .sort((a, b) => b.points - a.points
         || b.exact - a.exact
-        || b.outcome - a.outcome
         || a.participant.name.localeCompare(b.participant.name));
   }
 
@@ -1035,12 +1036,10 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         <div class="quiniela-rank-number">${index + 1}</div>
         <div class="quiniela-rank-person">
           <strong>${escapeText(row.participant.name)}</strong>
-          <span>${row.submitted}/${QUINIELA_MATCHES.length} pronósticos</span>
         </div>
         <div class="quiniela-rank-stats">
           <span>${row.points}<small>pts</small></span>
           <span>${row.exact}<small>exactos</small></span>
-          <span>${row.outcome}<small>resultado</small></span>
         </div>
       </article>
     `;

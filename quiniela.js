@@ -156,8 +156,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   const SCORING = {
     exact: 5,
     outcome: 2,
-    goalDifference: 1,
-    advance: 1
+    goalDifference: 1
   };
 
   let quinielaState = createBlankState();
@@ -316,7 +315,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         points: row.points,
         exact: row.exact,
         outcome: row.outcome,
-        advance: row.advance,
         submitted: row.submitted
       })),
       updatedAt: new Date().toISOString()
@@ -486,72 +484,35 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return Number(score.home) - Number(score.away);
   }
 
-  function isKnockoutMatch(match) {
-    const stage = String(match?.stage || '').toLowerCase();
-    const round = String(match?.round || '').toLowerCase();
-    return Boolean(match?.knockout)
-      || stage.includes('16avos')
-      || stage.includes('8vos')
-      || stage.includes('cuartos')
-      || stage.includes('semifinal')
-      || stage.includes('final')
-      || round.includes('16avos')
-      || round.includes('8vos')
-      || round.includes('cuartos')
-      || round.includes('semifinal')
-      || round.includes('final');
-  }
-
-  function isValidAdvancePick(value) {
-    return value === 'home' || value === 'away';
-  }
-
   function isCompletePrediction(match, prediction) {
-    if (!isCompleteScore(prediction)) return false;
-    return !isKnockoutMatch(match) || isValidAdvancePick(prediction.advances);
+    return isCompleteScore(prediction);
   }
 
   function isCompleteResult(match, result) {
-    if (!result?.final || !isCompleteScore(result)) return false;
-    return !isKnockoutMatch(match) || isValidAdvancePick(result.advances);
+    return Boolean(result?.final) && isCompleteScore(result);
   }
 
-  function calculatePredictionScore(prediction, result, match) {
+  function calculatePredictionScore(prediction, result) {
     if (!result?.final || !isCompleteScore(result) || !isCompleteScore(prediction)) {
-      return { points: 0, exact: false, outcome: false, goalDifference: false, advance: false };
+      return { points: 0, exact: false, outcome: false, goalDifference: false };
     }
 
     const exact = Number(prediction.home) === Number(result.home) && Number(prediction.away) === Number(result.away);
-    const advance = isKnockoutMatch(match)
-      && isValidAdvancePick(prediction.advances)
-      && isValidAdvancePick(result.advances)
-      && prediction.advances === result.advances;
-    if (exact) {
-      return {
-        points: SCORING.exact + (advance ? SCORING.advance : 0),
-        exact: true,
-        outcome: true,
-        goalDifference: true,
-        advance
-      };
-    }
+    if (exact) return { points: SCORING.exact, exact: true, outcome: true, goalDifference: true };
 
     const outcome = outcomeFor(prediction) === outcomeFor(result);
     const goalDifference = outcome && goalDiffFor(prediction) === goalDiffFor(result);
     return {
-      points: (outcome ? SCORING.outcome : 0)
-        + (goalDifference ? SCORING.goalDifference : 0)
-        + (advance ? SCORING.advance : 0),
+      points: (outcome ? SCORING.outcome : 0) + (goalDifference ? SCORING.goalDifference : 0),
       exact: false,
       outcome,
-      goalDifference,
-      advance
+      goalDifference
     };
   }
 
   function getParticipantSummary(participantId) {
     const predictions = quinielaState.predictions[participantId] || {};
-    const totals = { points: 0, exact: 0, outcome: 0, advance: 0, played: 0, submitted: 0 };
+    const totals = { points: 0, exact: 0, outcome: 0, played: 0, submitted: 0 };
 
     QUINIELA_MATCHES.forEach(match => {
       const prediction = predictions[match.id];
@@ -559,11 +520,10 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       if (isCompletePrediction(match, prediction)) totals.submitted += 1;
       if (isCompleteResult(match, result)) totals.played += 1;
 
-      const score = calculatePredictionScore(prediction, result, match);
+      const score = calculatePredictionScore(prediction, result);
       totals.points += score.points;
       if (score.exact) totals.exact += 1;
       else if (score.outcome) totals.outcome += 1;
-      if (score.advance) totals.advance += 1;
     });
 
     return totals;
@@ -579,7 +539,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         points: Number(row.points) || 0,
         exact: Number(row.exact) || 0,
         outcome: Number(row.outcome) || 0,
-        advance: Number(row.advance) || 0,
         submitted: Number(row.submitted) || 0
       }));
     }
@@ -589,7 +548,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       .sort((a, b) => b.points - a.points
         || b.exact - a.exact
         || b.outcome - a.outcome
-        || b.advance - a.advance
         || a.participant.name.localeCompare(b.participant.name));
   }
 
@@ -745,7 +703,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
               <li><strong>${SCORING.exact} pts</strong> por marcador exacto.</li>
               <li><strong>${SCORING.outcome} pts</strong> por acertar ganador o empate.</li>
               <li><strong>${SCORING.goalDifference} pt</strong> extra por diferencia de goles correcta.</li>
-              <li><strong>${SCORING.advance} pt</strong> extra por acertar quien clasifica en eliminación directa.</li>
             </ul>
           </div>
           <div>
@@ -760,8 +717,8 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
             <h3>Eliminación directa</h3>
             <ul>
               <li>El marcador se pronostica solo para los 90 minutos.</li>
-              <li>Elige también quien clasifica a la siguiente ronda.</li>
-              <li>Tiempos extra y penales solo cuentan para el punto de clasificado.</li>
+              <li>La puntuación es igual que en fase de grupos.</li>
+              <li>Tiempos extra y penales no suman puntos.</li>
             </ul>
           </div>
           <div>
@@ -959,7 +916,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         <div class="quiniela-panel-header">
           <div>
             <h2>Mis pronósticos</h2>
-            <p>Puntaje: ${SCORING.exact} exacto | ${SCORING.outcome} ganador/empate | ${SCORING.goalDifference} diferencia | ${SCORING.advance} clasifica</p>
+            <p>Puntaje: ${SCORING.exact} exacto | ${SCORING.outcome} ganador/empate | ${SCORING.goalDifference} diferencia</p>
           </div>
           <button type="submit" class="primary-btn">Guardar</button>
         </div>
@@ -1015,7 +972,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   function predictionPointsLabel(match, prediction) {
     const result = quinielaState.results[match.id];
     if (!result?.final || !isCompleteScore(result)) return '';
-    const points = calculatePredictionScore(prediction, result, match).points;
+    const points = calculatePredictionScore(prediction, result).points;
     return `${points} ${points === 1 ? 'pt' : 'pts'}`;
   }
 
@@ -1026,26 +983,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       <div class="quiniela-team-block">
         <span class="quiniela-team-flag${hasFlag ? '' : ' is-placeholder'}" aria-hidden="true">${escapeText(flag)}</span>
         <strong>${escapeText(team)}</strong>
-      </div>
-    `;
-  }
-
-  function renderAdvancePicker(match, selectedValue = '', options = {}) {
-    if (!isKnockoutMatch(match)) return '';
-    const { disabled = false, mode = 'prediction' } = options;
-    const dataAttr = mode === 'result' ? 'data-result-advance' : 'data-prediction-advance';
-    const name = `${mode}-advance-${match.id}`;
-    return `
-      <div class="quiniela-advance-picker">
-        <span>Clasifica</span>
-        <label>
-          <input type="radio" name="${escapeText(name)}" value="home" ${dataAttr}="${escapeText(match.id)}"${selectedValue === 'home' ? ' checked' : ''}${disabled ? ' disabled' : ''}>
-          ${escapeText(match.home)}
-        </label>
-        <label>
-          <input type="radio" name="${escapeText(name)}" value="away" ${dataAttr}="${escapeText(match.id)}"${selectedValue === 'away' ? ' checked' : ''}${disabled ? ' disabled' : ''}>
-          ${escapeText(match.away)}
-        </label>
       </div>
     `;
   }
@@ -1067,7 +1004,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <input class="quiniela-score-input quiniela-prediction-box" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-prediction-away="${escapeText(match.id)}" value="${escapeText(prediction.away ?? '')}" ${locked ? 'disabled' : ''} aria-label="${escapeText(match.away)}">
           ${renderTeamBlock(match.away)}
         </div>
-        ${renderAdvancePicker(match, prediction.advances || '', { disabled: locked })}
         <div class="quiniela-prediction-footer">
           <div class="quiniela-prediction-status">
             ${escapeText(status)}
@@ -1151,7 +1087,6 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <input class="quiniela-score-input" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-away="${escapeText(match.id)}" value="${escapeText(result.away ?? '')}" aria-label="${escapeText(match.away)} final">
           <span>${escapeText(match.away)}</span>
         </div>
-        ${renderAdvancePicker(match, result.advances || '', { mode: 'result' })}
         <label class="quiniela-final-check">
           <input type="checkbox" data-result-final="${escapeText(match.id)}"${result.final ? ' checked' : ''}>
           Finalizado
@@ -1312,11 +1247,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       if (isPredictionLocked(match)) return;
       const homeInput = document.querySelector(`[data-prediction-home="${match.id}"]`);
       const awayInput = document.querySelector(`[data-prediction-away="${match.id}"]`);
-      const advanceInput = document.querySelector(`[data-prediction-advance="${match.id}"]:checked`);
       const home = scoreValue(homeInput?.value ?? '');
       const away = scoreValue(awayInput?.value ?? '');
-      const advances = isKnockoutMatch(match) && isValidAdvancePick(advanceInput?.value) ? advanceInput.value : '';
-      if (home === '' && away === '' && advances === '') {
+      if (home === '' && away === '') {
         delete predictions[match.id];
         predictionChanges.deletes.push(match.id);
         return;
@@ -1324,7 +1257,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       predictions[match.id] = {
         home,
         away,
-        advances,
+        advances: '',
         updatedAt: new Date().toISOString()
       };
       predictionChanges.upserts.push({
@@ -1349,20 +1282,17 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       const homeInput = document.querySelector(`[data-result-home="${match.id}"]`);
       const awayInput = document.querySelector(`[data-result-away="${match.id}"]`);
       const finalInput = document.querySelector(`[data-result-final="${match.id}"]`);
-      const advanceInput = document.querySelector(`[data-result-advance="${match.id}"]:checked`);
       const home = scoreValue(homeInput?.value ?? '');
       const away = scoreValue(awayInput?.value ?? '');
-      const advances = isKnockoutMatch(match) && isValidAdvancePick(advanceInput?.value) ? advanceInput.value : '';
       const final = Boolean(finalInput?.checked);
       const finalReady = final
         && home !== ''
-        && away !== ''
-        && (!isKnockoutMatch(match) || advances !== '');
-      if (home === '' && away === '' && advances === '' && !final) return;
+        && away !== '';
+      if (home === '' && away === '' && !final) return;
       results[match.id] = {
         home,
         away,
-        advances,
+        advances: '',
         final: finalReady,
         updatedAt: new Date().toISOString()
       };

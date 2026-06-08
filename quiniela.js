@@ -1,10 +1,11 @@
-import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260606-token';
+import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260608-secure';
 
 (() => {
   const STORAGE_KEY = 'casQuinielaMundial2026V1';
   const DEFAULT_PLAYER_NAME = 'Invitado CAS';
   const QUINIELA_SEASON_ID = 'world-cup-2026';
   const LOCAL_USER_ID = 'local-demo-user';
+  const GUATEMALA_TIME_ZONE = 'America/Guatemala';
 
   // ESTRUCTURA FIREBASE PREPARADA:
   // Al conectar Firebase, este mapa sera la guia de colecciones/documentos.
@@ -15,31 +16,139 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     results: `quinielas/${QUINIELA_SEASON_ID}/admin/results`,
     leaderboard: `quinielas/${QUINIELA_SEASON_ID}/public/leaderboard`,
     adminUser: uid => `quinielas/${QUINIELA_SEASON_ID}/admins/${uid}`,
+    participants: `quinielas/${QUINIELA_SEASON_ID}/participants`,
+    predictions: `quinielas/${QUINIELA_SEASON_ID}/predictions`,
     participant: uid => `quinielas/${QUINIELA_SEASON_ID}/participants/${uid}`,
-    prediction: uid => `quinielas/${QUINIELA_SEASON_ID}/predictions/${uid}`
+    match: matchId => `quinielas/${QUINIELA_SEASON_ID}/matches/${matchId}`,
+    prediction: uid => `quinielas/${QUINIELA_SEASON_ID}/predictions/${uid}`,
+    predictionMatches: uid => `quinielas/${QUINIELA_SEASON_ID}/predictions/${uid}/matches`,
+    predictionMatch: (uid, matchId) => `quinielas/${QUINIELA_SEASON_ID}/predictions/${uid}/matches/${matchId}`
   };
 
   const QUINIELA_MATCHES = [
-    { id: 'm001', date: '2026-06-11', time: '13:00', stage: 'Grupo A', round: 'Jornada 1', home: 'Mexico', away: 'Sudafrica', venue: 'Mexico City Stadium' },
-    { id: 'm002', date: '2026-06-11', time: '16:00', stage: 'Grupo A', round: 'Jornada 1', home: 'Corea Republica', away: 'Chequia', venue: 'Estadio Guadalajara' },
-    { id: 'm003', date: '2026-06-12', time: '13:00', stage: 'Grupo B', round: 'Jornada 1', home: 'Equipo B1', away: 'Equipo B2', venue: 'Toronto Stadium' },
-    { id: 'm004', date: '2026-06-12', time: '16:00', stage: 'Grupo C', round: 'Jornada 1', home: 'Equipo C1', away: 'Equipo C2', venue: 'Boston Stadium' },
-    { id: 'm005', date: '2026-06-12', time: '19:00', stage: 'Grupo D', round: 'Jornada 1', home: 'Estados Unidos', away: 'Equipo D2', venue: 'Los Angeles Stadium' },
-    { id: 'm006', date: '2026-06-13', time: '13:00', stage: 'Grupo E', round: 'Jornada 1', home: 'Equipo E1', away: 'Equipo E2', venue: 'Miami Stadium' },
-    { id: 'm007', date: '2026-06-13', time: '16:00', stage: 'Grupo F', round: 'Jornada 1', home: 'Equipo F1', away: 'Equipo F2', venue: 'New York New Jersey Stadium' },
-    { id: 'm008', date: '2026-06-13', time: '19:00', stage: 'Grupo G', round: 'Jornada 1', home: 'Equipo G1', away: 'Equipo G2', venue: 'Houston Stadium' },
-    { id: 'm009', date: '2026-06-14', time: '13:00', stage: 'Grupo H', round: 'Jornada 1', home: 'Equipo H1', away: 'Equipo H2', venue: 'Dallas Stadium' },
-    { id: 'm010', date: '2026-06-14', time: '16:00', stage: 'Grupo I', round: 'Jornada 1', home: 'Equipo I1', away: 'Equipo I2', venue: 'Seattle Stadium' },
-    { id: 'm011', date: '2026-06-14', time: '19:00', stage: 'Grupo J', round: 'Jornada 1', home: 'Equipo J1', away: 'Equipo J2', venue: 'Vancouver Stadium' },
-    { id: 'm012', date: '2026-06-15', time: '13:00', stage: 'Grupo K', round: 'Jornada 1', home: 'Equipo K1', away: 'Equipo K2', venue: 'Atlanta Stadium' }
+    { id: 'm001', kickoffUtc: '2026-06-11T19:00:00Z', stage: 'Grupo A', round: 'Jornada 1', home: 'Mexico', away: 'Sudafrica', venue: 'Estadio Azteca, Mexico City' },
+    { id: 'm002', kickoffUtc: '2026-06-12T02:00:00Z', stage: 'Grupo A', round: 'Jornada 1', home: 'Corea del Sur', away: 'Republica Checa', venue: 'Estadio Akron, Guadalajara' },
+    { id: 'm003', kickoffUtc: '2026-06-12T19:00:00Z', stage: 'Grupo B', round: 'Jornada 1', home: 'Canada', away: 'Bosnia y Herzegovina', venue: 'BMO Field, Toronto' },
+    { id: 'm004', kickoffUtc: '2026-06-13T01:00:00Z', stage: 'Grupo D', round: 'Jornada 1', home: 'Estados Unidos', away: 'Paraguay', venue: 'SoFi Stadium, Los Angeles' },
+    { id: 'm005', kickoffUtc: '2026-06-13T19:00:00Z', stage: 'Grupo B', round: 'Jornada 1', home: 'Qatar', away: 'Suiza', venue: "Levi's Stadium, San Francisco Bay Area" },
+    { id: 'm006', kickoffUtc: '2026-06-13T22:00:00Z', stage: 'Grupo C', round: 'Jornada 1', home: 'Brasil', away: 'Marruecos', venue: 'MetLife Stadium, New York/New Jersey' },
+    { id: 'm007', kickoffUtc: '2026-06-14T01:00:00Z', stage: 'Grupo C', round: 'Jornada 1', home: 'Haiti', away: 'Escocia', venue: 'Gillette Stadium, Boston' },
+    { id: 'm008', kickoffUtc: '2026-06-14T04:00:00Z', stage: 'Grupo D', round: 'Jornada 1', home: 'Australia', away: 'Turquia', venue: 'BC Place, Vancouver' },
+    { id: 'm009', kickoffUtc: '2026-06-14T17:00:00Z', stage: 'Grupo E', round: 'Jornada 1', home: 'Alemania', away: 'Curazao', venue: 'NRG Stadium, Houston' },
+    { id: 'm010', kickoffUtc: '2026-06-14T20:00:00Z', stage: 'Grupo F', round: 'Jornada 1', home: 'Paises Bajos', away: 'Japon', venue: 'AT&T Stadium, Dallas' },
+    { id: 'm011', kickoffUtc: '2026-06-14T23:00:00Z', stage: 'Grupo E', round: 'Jornada 1', home: 'Costa de Marfil', away: 'Ecuador', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 'm012', kickoffUtc: '2026-06-15T02:00:00Z', stage: 'Grupo F', round: 'Jornada 1', home: 'Suecia', away: 'Tunez', venue: 'Estadio BBVA, Monterrey' },
+    { id: 'm013', kickoffUtc: '2026-06-15T16:00:00Z', stage: 'Grupo H', round: 'Jornada 1', home: 'Espana', away: 'Cabo Verde', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 'm014', kickoffUtc: '2026-06-15T19:00:00Z', stage: 'Grupo G', round: 'Jornada 1', home: 'Belgica', away: 'Egipto', venue: 'Lumen Field, Seattle' },
+    { id: 'm015', kickoffUtc: '2026-06-15T22:00:00Z', stage: 'Grupo H', round: 'Jornada 1', home: 'Arabia Saudita', away: 'Uruguay', venue: 'Hard Rock Stadium, Miami' },
+    { id: 'm016', kickoffUtc: '2026-06-16T01:00:00Z', stage: 'Grupo G', round: 'Jornada 1', home: 'Iran', away: 'Nueva Zelanda', venue: 'SoFi Stadium, Los Angeles' },
+    { id: 'm017', kickoffUtc: '2026-06-16T19:00:00Z', stage: 'Grupo I', round: 'Jornada 1', home: 'Francia', away: 'Senegal', venue: 'MetLife Stadium, New York/New Jersey' },
+    { id: 'm018', kickoffUtc: '2026-06-16T22:00:00Z', stage: 'Grupo I', round: 'Jornada 1', home: 'Irak', away: 'Noruega', venue: 'Gillette Stadium, Boston' },
+    { id: 'm019', kickoffUtc: '2026-06-17T01:00:00Z', stage: 'Grupo J', round: 'Jornada 1', home: 'Argentina', away: 'Argelia', venue: 'GEHA Field at Arrowhead Stadium, Kansas City' },
+    { id: 'm020', kickoffUtc: '2026-06-17T04:00:00Z', stage: 'Grupo J', round: 'Jornada 1', home: 'Austria', away: 'Jordania', venue: 'Levi\'s Stadium, San Francisco Bay Area' },
+    { id: 'm021', kickoffUtc: '2026-06-17T17:00:00Z', stage: 'Grupo K', round: 'Jornada 1', home: 'Portugal', away: 'RD Congo', venue: 'NRG Stadium, Houston' },
+    { id: 'm022', kickoffUtc: '2026-06-17T20:00:00Z', stage: 'Grupo L', round: 'Jornada 1', home: 'Inglaterra', away: 'Croacia', venue: 'AT&T Stadium, Dallas' },
+    { id: 'm023', kickoffUtc: '2026-06-17T23:00:00Z', stage: 'Grupo L', round: 'Jornada 1', home: 'Ghana', away: 'Panama', venue: 'BMO Field, Toronto' },
+    { id: 'm024', kickoffUtc: '2026-06-18T02:00:00Z', stage: 'Grupo K', round: 'Jornada 1', home: 'Uzbekistan', away: 'Colombia', venue: 'Estadio Azteca, Mexico City' },
+    { id: 'm025', kickoffUtc: '2026-06-18T16:00:00Z', stage: 'Grupo A', round: 'Jornada 2', home: 'Republica Checa', away: 'Sudafrica', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 'm026', kickoffUtc: '2026-06-18T19:00:00Z', stage: 'Grupo B', round: 'Jornada 2', home: 'Suiza', away: 'Bosnia y Herzegovina', venue: 'SoFi Stadium, Los Angeles' },
+    { id: 'm027', kickoffUtc: '2026-06-18T22:00:00Z', stage: 'Grupo B', round: 'Jornada 2', home: 'Canada', away: 'Qatar', venue: 'BC Place, Vancouver' },
+    { id: 'm028', kickoffUtc: '2026-06-19T01:00:00Z', stage: 'Grupo A', round: 'Jornada 2', home: 'Mexico', away: 'Corea del Sur', venue: 'Estadio Akron, Guadalajara' },
+    { id: 'm029', kickoffUtc: '2026-06-19T19:00:00Z', stage: 'Grupo D', round: 'Jornada 2', home: 'Estados Unidos', away: 'Australia', venue: 'Lumen Field, Seattle' },
+    { id: 'm030', kickoffUtc: '2026-06-19T22:00:00Z', stage: 'Grupo C', round: 'Jornada 2', home: 'Escocia', away: 'Marruecos', venue: 'Gillette Stadium, Boston' },
+    { id: 'm031', kickoffUtc: '2026-06-20T00:30:00Z', stage: 'Grupo C', round: 'Jornada 2', home: 'Brasil', away: 'Haiti', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 'm032', kickoffUtc: '2026-06-20T03:00:00Z', stage: 'Grupo D', round: 'Jornada 2', home: 'Turquia', away: 'Paraguay', venue: 'Levi\'s Stadium, San Francisco Bay Area' },
+    { id: 'm033', kickoffUtc: '2026-06-20T17:00:00Z', stage: 'Grupo F', round: 'Jornada 2', home: 'Paises Bajos', away: 'Suecia', venue: 'NRG Stadium, Houston' },
+    { id: 'm034', kickoffUtc: '2026-06-20T20:00:00Z', stage: 'Grupo E', round: 'Jornada 2', home: 'Alemania', away: 'Costa de Marfil', venue: 'BMO Field, Toronto' },
+    { id: 'm035', kickoffUtc: '2026-06-21T00:00:00Z', stage: 'Grupo E', round: 'Jornada 2', home: 'Ecuador', away: 'Curazao', venue: 'GEHA Field at Arrowhead Stadium, Kansas City' },
+    { id: 'm036', kickoffUtc: '2026-06-21T04:00:00Z', stage: 'Grupo F', round: 'Jornada 2', home: 'Tunez', away: 'Japon', venue: 'Estadio BBVA, Monterrey' },
+    { id: 'm037', kickoffUtc: '2026-06-21T16:00:00Z', stage: 'Grupo H', round: 'Jornada 2', home: 'Espana', away: 'Arabia Saudita', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 'm038', kickoffUtc: '2026-06-21T19:00:00Z', stage: 'Grupo G', round: 'Jornada 2', home: 'Belgica', away: 'Iran', venue: 'SoFi Stadium, Los Angeles' },
+    { id: 'm039', kickoffUtc: '2026-06-21T22:00:00Z', stage: 'Grupo H', round: 'Jornada 2', home: 'Uruguay', away: 'Cabo Verde', venue: 'Hard Rock Stadium, Miami' },
+    { id: 'm040', kickoffUtc: '2026-06-22T01:00:00Z', stage: 'Grupo G', round: 'Jornada 2', home: 'Nueva Zelanda', away: 'Egipto', venue: 'BC Place, Vancouver' },
+    { id: 'm041', kickoffUtc: '2026-06-22T17:00:00Z', stage: 'Grupo J', round: 'Jornada 2', home: 'Argentina', away: 'Austria', venue: 'AT&T Stadium, Dallas' },
+    { id: 'm042', kickoffUtc: '2026-06-22T21:00:00Z', stage: 'Grupo I', round: 'Jornada 2', home: 'Francia', away: 'Irak', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 'm043', kickoffUtc: '2026-06-23T00:00:00Z', stage: 'Grupo I', round: 'Jornada 2', home: 'Noruega', away: 'Senegal', venue: 'MetLife Stadium, New York/New Jersey' },
+    { id: 'm044', kickoffUtc: '2026-06-23T03:00:00Z', stage: 'Grupo J', round: 'Jornada 2', home: 'Jordania', away: 'Argelia', venue: 'Levi\'s Stadium, San Francisco Bay Area' },
+    { id: 'm045', kickoffUtc: '2026-06-23T17:00:00Z', stage: 'Grupo K', round: 'Jornada 2', home: 'Portugal', away: 'Uzbekistan', venue: 'NRG Stadium, Houston' },
+    { id: 'm046', kickoffUtc: '2026-06-23T20:00:00Z', stage: 'Grupo L', round: 'Jornada 2', home: 'Inglaterra', away: 'Ghana', venue: 'Gillette Stadium, Boston' },
+    { id: 'm047', kickoffUtc: '2026-06-23T23:00:00Z', stage: 'Grupo L', round: 'Jornada 2', home: 'Panama', away: 'Croacia', venue: 'BMO Field, Toronto' },
+    { id: 'm048', kickoffUtc: '2026-06-24T02:00:00Z', stage: 'Grupo K', round: 'Jornada 2', home: 'Colombia', away: 'RD Congo', venue: 'Estadio Akron, Guadalajara' },
+    { id: 'm049', kickoffUtc: '2026-06-24T19:00:00Z', stage: 'Grupo B', round: 'Jornada 3', home: 'Suiza', away: 'Canada', venue: 'BC Place, Vancouver' },
+    { id: 'm050', kickoffUtc: '2026-06-24T19:00:00Z', stage: 'Grupo B', round: 'Jornada 3', home: 'Bosnia y Herzegovina', away: 'Qatar', venue: 'Lumen Field, Seattle' },
+    { id: 'm051', kickoffUtc: '2026-06-24T22:00:00Z', stage: 'Grupo C', round: 'Jornada 3', home: 'Escocia', away: 'Brasil', venue: 'Hard Rock Stadium, Miami' },
+    { id: 'm052', kickoffUtc: '2026-06-24T22:00:00Z', stage: 'Grupo C', round: 'Jornada 3', home: 'Marruecos', away: 'Haiti', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 'm053', kickoffUtc: '2026-06-25T01:00:00Z', stage: 'Grupo A', round: 'Jornada 3', home: 'Republica Checa', away: 'Mexico', venue: 'Estadio Azteca, Mexico City' },
+    { id: 'm054', kickoffUtc: '2026-06-25T01:00:00Z', stage: 'Grupo A', round: 'Jornada 3', home: 'Sudafrica', away: 'Corea del Sur', venue: 'Estadio BBVA, Monterrey' },
+    { id: 'm055', kickoffUtc: '2026-06-25T20:00:00Z', stage: 'Grupo E', round: 'Jornada 3', home: 'Curazao', away: 'Costa de Marfil', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 'm056', kickoffUtc: '2026-06-25T20:00:00Z', stage: 'Grupo E', round: 'Jornada 3', home: 'Ecuador', away: 'Alemania', venue: 'MetLife Stadium, New York/New Jersey' },
+    { id: 'm057', kickoffUtc: '2026-06-25T23:00:00Z', stage: 'Grupo F', round: 'Jornada 3', home: 'Japon', away: 'Suecia', venue: 'AT&T Stadium, Dallas' },
+    { id: 'm058', kickoffUtc: '2026-06-25T23:00:00Z', stage: 'Grupo F', round: 'Jornada 3', home: 'Tunez', away: 'Paises Bajos', venue: 'GEHA Field at Arrowhead Stadium, Kansas City' },
+    { id: 'm059', kickoffUtc: '2026-06-26T02:00:00Z', stage: 'Grupo D', round: 'Jornada 3', home: 'Turquia', away: 'Estados Unidos', venue: 'SoFi Stadium, Los Angeles' },
+    { id: 'm060', kickoffUtc: '2026-06-26T02:00:00Z', stage: 'Grupo D', round: 'Jornada 3', home: 'Paraguay', away: 'Australia', venue: 'Levi\'s Stadium, San Francisco Bay Area' },
+    { id: 'm061', kickoffUtc: '2026-06-26T19:00:00Z', stage: 'Grupo I', round: 'Jornada 3', home: 'Noruega', away: 'Francia', venue: 'Gillette Stadium, Boston' },
+    { id: 'm062', kickoffUtc: '2026-06-26T19:00:00Z', stage: 'Grupo I', round: 'Jornada 3', home: 'Senegal', away: 'Irak', venue: 'BMO Field, Toronto' },
+    { id: 'm063', kickoffUtc: '2026-06-27T00:00:00Z', stage: 'Grupo H', round: 'Jornada 3', home: 'Cabo Verde', away: 'Arabia Saudita', venue: 'NRG Stadium, Houston' },
+    { id: 'm064', kickoffUtc: '2026-06-27T00:00:00Z', stage: 'Grupo H', round: 'Jornada 3', home: 'Uruguay', away: 'Espana', venue: 'Estadio Akron, Guadalajara' },
+    { id: 'm065', kickoffUtc: '2026-06-27T03:00:00Z', stage: 'Grupo G', round: 'Jornada 3', home: 'Egipto', away: 'Iran', venue: 'Lumen Field, Seattle' },
+    { id: 'm066', kickoffUtc: '2026-06-27T03:00:00Z', stage: 'Grupo G', round: 'Jornada 3', home: 'Nueva Zelanda', away: 'Belgica', venue: 'BC Place, Vancouver' },
+    { id: 'm067', kickoffUtc: '2026-06-27T21:00:00Z', stage: 'Grupo L', round: 'Jornada 3', home: 'Panama', away: 'Inglaterra', venue: 'MetLife Stadium, New York/New Jersey' },
+    { id: 'm068', kickoffUtc: '2026-06-27T21:00:00Z', stage: 'Grupo L', round: 'Jornada 3', home: 'Croacia', away: 'Ghana', venue: 'Lincoln Financial Field, Philadelphia' },
+    { id: 'm069', kickoffUtc: '2026-06-27T23:30:00Z', stage: 'Grupo K', round: 'Jornada 3', home: 'Colombia', away: 'Portugal', venue: 'Hard Rock Stadium, Miami' },
+    { id: 'm070', kickoffUtc: '2026-06-27T23:30:00Z', stage: 'Grupo K', round: 'Jornada 3', home: 'RD Congo', away: 'Uzbekistan', venue: 'Mercedes-Benz Stadium, Atlanta' },
+    { id: 'm071', kickoffUtc: '2026-06-28T02:00:00Z', stage: 'Grupo J', round: 'Jornada 3', home: 'Argelia', away: 'Austria', venue: 'GEHA Field at Arrowhead Stadium, Kansas City' },
+    { id: 'm072', kickoffUtc: '2026-06-28T02:00:00Z', stage: 'Grupo J', round: 'Jornada 3', home: 'Jordania', away: 'Argentina', venue: 'AT&T Stadium, Dallas' }
   ];
 
   const TEAM_FLAGS = {
     Mexico: '🇲🇽',
     Sudafrica: '🇿🇦',
-    'Corea Republica': '🇰🇷',
-    Chequia: '🇨🇿',
-    'Estados Unidos': '🇺🇸'
+    'Corea del Sur': '🇰🇷',
+    'Republica Checa': '🇨🇿',
+    Canada: '🇨🇦',
+    'Bosnia y Herzegovina': '🇧🇦',
+    'Estados Unidos': '🇺🇸',
+    Paraguay: '🇵🇾',
+    Qatar: '🇶🇦',
+    Suiza: '🇨🇭',
+    Brasil: '🇧🇷',
+    Marruecos: '🇲🇦',
+    Haiti: '🇭🇹',
+    Escocia: '🏴',
+    Australia: '🇦🇺',
+    Turquia: '🇹🇷',
+    Alemania: '🇩🇪',
+    Curazao: '🇨🇼',
+    'Paises Bajos': '🇳🇱',
+    Japon: '🇯🇵',
+    'Costa de Marfil': '🇨🇮',
+    Ecuador: '🇪🇨',
+    Suecia: '🇸🇪',
+    Tunez: '🇹🇳',
+    Espana: '🇪🇸',
+    'Cabo Verde': '🇨🇻',
+    Belgica: '🇧🇪',
+    Egipto: '🇪🇬',
+    'Arabia Saudita': '🇸🇦',
+    Uruguay: '🇺🇾',
+    Iran: '🇮🇷',
+    'Nueva Zelanda': '🇳🇿',
+    Francia: '🇫🇷',
+    Senegal: '🇸🇳',
+    Irak: '🇮🇶',
+    Noruega: '🇳🇴',
+    Argentina: '🇦🇷',
+    Argelia: '🇩🇿',
+    Austria: '🇦🇹',
+    Jordania: '🇯🇴',
+    Portugal: '🇵🇹',
+    'RD Congo': '🇨🇩',
+    Inglaterra: '🏴',
+    Croacia: '🇭🇷',
+    Ghana: '🇬🇭',
+    Panama: '🇵🇦',
+    Uzbekistan: '🇺🇿',
+    Colombia: '🇨🇴'
   };
 
   // PUNTOS DE LA QUINIELA:
@@ -47,12 +156,14 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   const SCORING = {
     exact: 5,
     outcome: 2,
-    goalDifference: 1
+    goalDifference: 1,
+    advance: 1
   };
 
   let quinielaState = createBlankState();
   let quinielaStore = createLocalQuinielaStore();
   let activeTab = 'instructions';
+  let authMode = 'signin';
   let noticeText = '';
 
   function startQuinielaPage() {
@@ -72,7 +183,8 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       const firebaseStore = await createFirebaseQuinielaStore({
         paths: FIREBASE_PATHS,
         createBlankState,
-        hydrateState
+        hydrateState,
+        matches: QUINIELA_MATCHES
       });
       if (firebaseStore) quinielaStore = firebaseStore;
       quinielaState = await loadState();
@@ -204,6 +316,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         points: row.points,
         exact: row.exact,
         outcome: row.outcome,
+        advance: row.advance,
         submitted: row.submitted
       })),
       updatedAt: new Date().toISOString()
@@ -307,18 +420,43 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     }[char]));
   }
 
+  function getKickoffDate(match) {
+    if (match.kickoffUtc) return new Date(match.kickoffUtc);
+    return new Date(`${match.date}T${match.time}:00-06:00`);
+  }
+
+  function getMatchDateKey(match) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: GUATEMALA_TIME_ZONE,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(getKickoffDate(match));
+    const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+    return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  function formatMatchTime(match) {
+    return new Intl.DateTimeFormat('es-GT', {
+      timeZone: GUATEMALA_TIME_ZONE,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).format(getKickoffDate(match));
+  }
+
   function formatMatchDate(match) {
-    const date = new Date(`${match.date}T12:00:00`);
     const label = new Intl.DateTimeFormat('es-GT', {
+      timeZone: GUATEMALA_TIME_ZONE,
       weekday: 'short',
       day: '2-digit',
       month: 'short'
-    }).format(date);
-    return `${label} | ${match.time}`;
+    }).format(getKickoffDate(match));
+    return `${label} | ${formatMatchTime(match)}`;
   }
 
   function matchStartDate(match) {
-    return new Date(`${match.date}T${match.time}:00-06:00`);
+    return getKickoffDate(match);
   }
 
   function isMatchLocked(match) {
@@ -348,61 +486,128 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return Number(score.home) - Number(score.away);
   }
 
-  function calculatePredictionScore(prediction, result) {
+  function isKnockoutMatch(match) {
+    const stage = String(match?.stage || '').toLowerCase();
+    const round = String(match?.round || '').toLowerCase();
+    return Boolean(match?.knockout)
+      || stage.includes('16avos')
+      || stage.includes('8vos')
+      || stage.includes('cuartos')
+      || stage.includes('semifinal')
+      || stage.includes('final')
+      || round.includes('16avos')
+      || round.includes('8vos')
+      || round.includes('cuartos')
+      || round.includes('semifinal')
+      || round.includes('final');
+  }
+
+  function isValidAdvancePick(value) {
+    return value === 'home' || value === 'away';
+  }
+
+  function isCompletePrediction(match, prediction) {
+    if (!isCompleteScore(prediction)) return false;
+    return !isKnockoutMatch(match) || isValidAdvancePick(prediction.advances);
+  }
+
+  function isCompleteResult(match, result) {
+    if (!result?.final || !isCompleteScore(result)) return false;
+    return !isKnockoutMatch(match) || isValidAdvancePick(result.advances);
+  }
+
+  function calculatePredictionScore(prediction, result, match) {
     if (!result?.final || !isCompleteScore(result) || !isCompleteScore(prediction)) {
-      return { points: 0, exact: false, outcome: false, goalDifference: false };
+      return { points: 0, exact: false, outcome: false, goalDifference: false, advance: false };
     }
 
     const exact = Number(prediction.home) === Number(result.home) && Number(prediction.away) === Number(result.away);
-    if (exact) return { points: SCORING.exact, exact: true, outcome: true, goalDifference: true };
+    const advance = isKnockoutMatch(match)
+      && isValidAdvancePick(prediction.advances)
+      && isValidAdvancePick(result.advances)
+      && prediction.advances === result.advances;
+    if (exact) {
+      return {
+        points: SCORING.exact + (advance ? SCORING.advance : 0),
+        exact: true,
+        outcome: true,
+        goalDifference: true,
+        advance
+      };
+    }
 
     const outcome = outcomeFor(prediction) === outcomeFor(result);
     const goalDifference = outcome && goalDiffFor(prediction) === goalDiffFor(result);
     return {
-      points: (outcome ? SCORING.outcome : 0) + (goalDifference ? SCORING.goalDifference : 0),
+      points: (outcome ? SCORING.outcome : 0)
+        + (goalDifference ? SCORING.goalDifference : 0)
+        + (advance ? SCORING.advance : 0),
       exact: false,
       outcome,
-      goalDifference
+      goalDifference,
+      advance
     };
   }
 
   function getParticipantSummary(participantId) {
     const predictions = quinielaState.predictions[participantId] || {};
-    const totals = { points: 0, exact: 0, outcome: 0, played: 0, submitted: 0 };
+    const totals = { points: 0, exact: 0, outcome: 0, advance: 0, played: 0, submitted: 0 };
 
     QUINIELA_MATCHES.forEach(match => {
       const prediction = predictions[match.id];
       const result = quinielaState.results[match.id];
-      if (isCompleteScore(prediction)) totals.submitted += 1;
-      if (result?.final && isCompleteScore(result)) totals.played += 1;
+      if (isCompletePrediction(match, prediction)) totals.submitted += 1;
+      if (isCompleteResult(match, result)) totals.played += 1;
 
-      const score = calculatePredictionScore(prediction, result);
+      const score = calculatePredictionScore(prediction, result, match);
       totals.points += score.points;
       if (score.exact) totals.exact += 1;
       else if (score.outcome) totals.outcome += 1;
+      if (score.advance) totals.advance += 1;
     });
 
     return totals;
   }
 
   function getRankingRows() {
+    if (isFirebaseMode() && !canManageResults() && Array.isArray(quinielaState.leaderboard?.rows) && quinielaState.leaderboard.rows.length) {
+      return quinielaState.leaderboard.rows.map(row => ({
+        participant: {
+          id: row.uid || '',
+          name: row.displayName || 'Jugador CAS'
+        },
+        points: Number(row.points) || 0,
+        exact: Number(row.exact) || 0,
+        outcome: Number(row.outcome) || 0,
+        advance: Number(row.advance) || 0,
+        submitted: Number(row.submitted) || 0
+      }));
+    }
+
     return Object.values(quinielaState.participants)
       .map(participant => ({ participant, ...getParticipantSummary(participant.id) }))
-      .sort((a, b) => b.points - a.points || b.exact - a.exact || b.outcome - a.outcome || a.participant.name.localeCompare(b.participant.name));
+      .sort((a, b) => b.points - a.points
+        || b.exact - a.exact
+        || b.outcome - a.outcome
+        || b.advance - a.advance
+        || a.participant.name.localeCompare(b.participant.name));
   }
 
   function getMatchesByStage() {
-    return QUINIELA_MATCHES.reduce((groups, match) => {
-      const stage = match.stage || 'Partidos';
-      if (!groups.some(group => group.stage === stage)) groups.push({ stage, matches: [] });
-      groups.find(group => group.stage === stage).matches.push(match);
-      return groups;
-    }, []);
+    return [...QUINIELA_MATCHES]
+      .sort((a, b) => getKickoffDate(a).getTime() - getKickoffDate(b).getTime())
+      .reduce((groups, match) => {
+        const stage = match.stage || 'Partidos';
+        if (!groups.some(group => group.stage === stage)) groups.push({ stage, matches: [] });
+        groups.find(group => group.stage === stage).matches.push(match);
+        return groups;
+      }, []);
   }
 
   function formatGroupDate(dateString) {
-    const date = new Date(`${dateString}T12:00:00`);
+    const date = new Date(`${dateString}T12:00:00-06:00`);
     const label = new Intl.DateTimeFormat('es-GT', {
+      timeZone: GUATEMALA_TIME_ZONE,
       weekday: 'long',
       day: 'numeric',
       month: 'long'
@@ -412,9 +617,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
   function getMatchesByDate() {
     return [...QUINIELA_MATCHES]
-      .sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`))
+      .sort((a, b) => getKickoffDate(a).getTime() - getKickoffDate(b).getTime())
       .reduce((groups, match) => {
-        const dateKey = match.date;
+        const dateKey = getMatchDateKey(match);
         if (!groups.some(group => group.dateKey === dateKey)) {
           groups.push({
             dateKey,
@@ -429,13 +634,13 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
   function predictionCountForStage(participantId, matches) {
     const predictions = quinielaState.predictions[participantId] || {};
-    return matches.filter(match => isCompleteScore(predictions[match.id])).length;
+    return matches.filter(match => isCompletePrediction(match, predictions[match.id])).length;
   }
 
   function resultCountForStage(matches) {
     return matches.filter(match => {
       const result = quinielaState.results[match.id];
-      return result?.final && isCompleteScore(result);
+      return isCompleteResult(match, result);
     }).length;
   }
 
@@ -448,7 +653,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     const summary = getParticipantSummary(activeParticipant.id);
     const completedResults = QUINIELA_MATCHES.filter(match => {
       const result = quinielaState.results[match.id];
-      return result?.final && isCompleteScore(result);
+      return isCompleteResult(match, result);
     }).length;
 
     app.innerHTML = `
@@ -540,21 +745,30 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
               <li><strong>${SCORING.exact} pts</strong> por marcador exacto.</li>
               <li><strong>${SCORING.outcome} pts</strong> por acertar ganador o empate.</li>
               <li><strong>${SCORING.goalDifference} pt</strong> extra por diferencia de goles correcta.</li>
+              <li><strong>${SCORING.advance} pt</strong> extra por acertar quien clasifica en eliminación directa.</li>
             </ul>
           </div>
           <div>
             <h3>Importante</h3>
             <ul>
-              <li>Solo cuentan pronósticos completos.</li>
-              <li>Cada partido se cierra al iniciar.</li>
-              <li>Si hay empate en puntos, ganan más exactos.</li>
+              <li>Solo se toma en cuenta pronóstico confirmado.</li>
+              <li>Al iniciar un partido se cierra el pronóstico.</li>
+              <li>Si hay empate en puntos, ganan el que tenga más resultados exactos.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Eliminación directa</h3>
+            <ul>
+              <li>El marcador se pronostica solo para los 90 minutos.</li>
+              <li>Elige también quien clasifica a la siguiente ronda.</li>
+              <li>Tiempos extra y penales solo cuentan para el punto de clasificado.</li>
             </ul>
           </div>
           <div>
             <h3>Premios</h3>
             <ul>
-              <li><strong>Ganador fase de grupos:</strong> premio.</li>
-              <li><strong>Ganador torneo completo:</strong> premio.</li>
+              <li><strong>Primer Lugar:</strong> Camisola CAS</li>
+              <li><strong>Segundo Lugar:</strong> Premio Sorpresa</li>
             </ul>
           </div>
         </div>
@@ -580,43 +794,15 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
   function renderPlayerPanel(activeParticipant) {
     if (isFirebaseMode() && !isSignedIn()) {
+      const isCreatingAccount = authMode === 'signup';
       return `
         <section class="quiniela-player-panel quiniela-login-panel quiniela-auth-panel" aria-label="Cuenta CAS">
           <div class="quiniela-auth-intro">
             <label>Cuenta CAS</label>
-            <p>Entra o crea tu cuenta con correo y contraseña para guardar tus pronósticos.</p>
+            <p>${isCreatingAccount ? 'Crea tu cuenta para guardar tus pronósticos.' : 'Entra con tu correo y contraseña para guardar tus pronósticos.'}</p>
           </div>
           <div class="quiniela-auth-forms">
-            <form class="quiniela-auth-form" id="quinielaSignInForm">
-              <h3>Entrar</h3>
-              <div class="field-group">
-                <label for="quinielaLoginEmail">Correo</label>
-                <input type="email" id="quinielaLoginEmail" autocomplete="email" required>
-              </div>
-              <div class="field-group">
-                <label for="quinielaLoginPassword">Contraseña</label>
-                <input type="password" id="quinielaLoginPassword" autocomplete="current-password" minlength="6" required>
-              </div>
-              <button type="submit" class="primary-btn">Entrar</button>
-              <button type="button" class="quiniela-link-btn" data-password-reset>Olvidé mi contraseña</button>
-            </form>
-
-            <form class="quiniela-auth-form" id="quinielaSignUpForm">
-              <h3>Crear cuenta</h3>
-              <div class="field-group">
-                <label for="quinielaSignupName">Nombre público</label>
-                <input type="text" id="quinielaSignupName" maxlength="40" autocomplete="name" required>
-              </div>
-              <div class="field-group">
-                <label for="quinielaSignupEmail">Correo</label>
-                <input type="email" id="quinielaSignupEmail" autocomplete="email" required>
-              </div>
-              <div class="field-group">
-                <label for="quinielaSignupPassword">Contraseña</label>
-                <input type="password" id="quinielaSignupPassword" autocomplete="new-password" minlength="6" required>
-              </div>
-              <button type="submit" class="primary-btn">Crear cuenta</button>
-            </form>
+            ${isCreatingAccount ? renderSignUpForm() : renderSignInForm()}
           </div>
         </section>
       `;
@@ -687,6 +873,53 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     `;
   }
 
+  function renderSignInForm() {
+    return `
+      <form class="quiniela-auth-form" id="quinielaSignInForm">
+        <h3>Entrar</h3>
+        <div class="field-group">
+          <label for="quinielaLoginEmail">Correo</label>
+          <input type="email" id="quinielaLoginEmail" autocomplete="email" required>
+        </div>
+        <div class="field-group">
+          <label for="quinielaLoginPassword">Contraseña</label>
+          <input type="password" id="quinielaLoginPassword" autocomplete="current-password" minlength="6" required>
+        </div>
+        <button type="submit" class="primary-btn">Entrar</button>
+        <button type="button" class="quiniela-link-btn" data-password-reset>Olvidé mi contraseña</button>
+        <div class="quiniela-auth-switch">
+          <span>¿No tienes cuenta?</span>
+          <button type="button" class="quiniela-link-btn" data-auth-mode="signup">Crear cuenta</button>
+        </div>
+      </form>
+    `;
+  }
+
+  function renderSignUpForm() {
+    return `
+      <form class="quiniela-auth-form" id="quinielaSignUpForm">
+        <h3>Crear cuenta</h3>
+        <div class="field-group">
+          <label for="quinielaSignupName">Nombre público</label>
+          <input type="text" id="quinielaSignupName" maxlength="40" autocomplete="name" required>
+        </div>
+        <div class="field-group">
+          <label for="quinielaSignupEmail">Correo</label>
+          <input type="email" id="quinielaSignupEmail" autocomplete="email" required>
+        </div>
+        <div class="field-group">
+          <label for="quinielaSignupPassword">Contraseña</label>
+          <input type="password" id="quinielaSignupPassword" autocomplete="new-password" minlength="6" required>
+        </div>
+        <button type="submit" class="primary-btn">Crear cuenta</button>
+        <div class="quiniela-auth-switch">
+          <span>¿Ya tienes cuenta?</span>
+          <button type="button" class="quiniela-link-btn" data-auth-mode="signin">Entrar</button>
+        </div>
+      </form>
+    `;
+  }
+
   function renderTabButton(tab, label, extraClass = '') {
     return `
       <button type="button" class="quiniela-tab${activeTab === tab ? ' active' : ''}${extraClass ? ` ${escapeText(extraClass)}` : ''}" data-quiniela-tab="${escapeText(tab)}" role="tab" aria-selected="${activeTab === tab ? 'true' : 'false'}">
@@ -726,7 +959,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         <div class="quiniela-panel-header">
           <div>
             <h2>Mis pronósticos</h2>
-            <p>Sistema: ${SCORING.exact} exacto | ${SCORING.outcome} ganador/empate | ${SCORING.goalDifference} diferencia</p>
+            <p>Puntaje: ${SCORING.exact} exacto | ${SCORING.outcome} ganador/empate | ${SCORING.goalDifference} diferencia | ${SCORING.advance} clasifica</p>
           </div>
           <button type="submit" class="primary-btn">Guardar</button>
         </div>
@@ -782,7 +1015,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   function predictionPointsLabel(match, prediction) {
     const result = quinielaState.results[match.id];
     if (!result?.final || !isCompleteScore(result)) return '';
-    const points = calculatePredictionScore(prediction, result).points;
+    const points = calculatePredictionScore(prediction, result, match).points;
     return `${points} ${points === 1 ? 'pt' : 'pts'}`;
   }
 
@@ -797,6 +1030,26 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     `;
   }
 
+  function renderAdvancePicker(match, selectedValue = '', options = {}) {
+    if (!isKnockoutMatch(match)) return '';
+    const { disabled = false, mode = 'prediction' } = options;
+    const dataAttr = mode === 'result' ? 'data-result-advance' : 'data-prediction-advance';
+    const name = `${mode}-advance-${match.id}`;
+    return `
+      <div class="quiniela-advance-picker">
+        <span>Clasifica</span>
+        <label>
+          <input type="radio" name="${escapeText(name)}" value="home" ${dataAttr}="${escapeText(match.id)}"${selectedValue === 'home' ? ' checked' : ''}${disabled ? ' disabled' : ''}>
+          ${escapeText(match.home)}
+        </label>
+        <label>
+          <input type="radio" name="${escapeText(name)}" value="away" ${dataAttr}="${escapeText(match.id)}"${selectedValue === 'away' ? ' checked' : ''}${disabled ? ' disabled' : ''}>
+          ${escapeText(match.away)}
+        </label>
+      </div>
+    `;
+  }
+
   function renderPredictionCard(match, prediction = {}) {
     const locked = isPredictionLocked(match);
     const status = predictionStatusFor(match);
@@ -805,7 +1058,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return `
       <article class="quiniela-match-card quiniela-prediction-card">
         <div class="quiniela-prediction-meta">
-          ${escapeText(match.stage)} - ${escapeText(match.time)}
+          ${escapeText(match.stage)} - ${escapeText(formatMatchTime(match))}
         </div>
         <div class="quiniela-prediction-fixture">
           ${renderTeamBlock(match.home)}
@@ -814,6 +1067,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <input class="quiniela-score-input quiniela-prediction-box" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-prediction-away="${escapeText(match.id)}" value="${escapeText(prediction.away ?? '')}" ${locked ? 'disabled' : ''} aria-label="${escapeText(match.away)}">
           ${renderTeamBlock(match.away)}
         </div>
+        ${renderAdvancePicker(match, prediction.advances || '', { disabled: locked })}
         <div class="quiniela-prediction-footer">
           <div class="quiniela-prediction-status">
             ${escapeText(status)}
@@ -897,6 +1151,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <input class="quiniela-score-input" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-away="${escapeText(match.id)}" value="${escapeText(result.away ?? '')}" aria-label="${escapeText(match.away)} final">
           <span>${escapeText(match.away)}</span>
         </div>
+        ${renderAdvancePicker(match, result.advances || '', { mode: 'result' })}
         <label class="quiniela-final-check">
           <input type="checkbox" data-result-final="${escapeText(match.id)}"${result.final ? ' checked' : ''}>
           Finalizado
@@ -928,6 +1183,13 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
         quinielaState = await loadState();
         ensureDefaultParticipant();
         noticeText = 'Cuenta creada. Te enviamos un correo de verificación.';
+      });
+    });
+
+    document.querySelectorAll('[data-auth-mode]').forEach(button => {
+      button.addEventListener('click', () => {
+        authMode = button.dataset.authMode === 'signup' ? 'signup' : 'signin';
+        renderQuiniela();
       });
     });
 
@@ -1044,27 +1306,36 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     const participant = getActiveParticipant();
     const existingPredictions = quinielaState.predictions[participant.id] || {};
     const predictions = { ...existingPredictions };
+    const predictionChanges = { upserts: [], deletes: [] };
 
     QUINIELA_MATCHES.forEach(match => {
       if (isPredictionLocked(match)) return;
       const homeInput = document.querySelector(`[data-prediction-home="${match.id}"]`);
       const awayInput = document.querySelector(`[data-prediction-away="${match.id}"]`);
+      const advanceInput = document.querySelector(`[data-prediction-advance="${match.id}"]:checked`);
       const home = scoreValue(homeInput?.value ?? '');
       const away = scoreValue(awayInput?.value ?? '');
-      if (home === '' && away === '') {
+      const advances = isKnockoutMatch(match) && isValidAdvancePick(advanceInput?.value) ? advanceInput.value : '';
+      if (home === '' && away === '' && advances === '') {
         delete predictions[match.id];
+        predictionChanges.deletes.push(match.id);
         return;
       }
       predictions[match.id] = {
         home,
         away,
+        advances,
         updatedAt: new Date().toISOString()
       };
+      predictionChanges.upserts.push({
+        matchId: match.id,
+        prediction: predictions[match.id]
+      });
     });
 
     quinielaState.predictions[participant.id] = predictions;
     if (quinielaStore.savePredictions && isFirebaseMode()) {
-      await quinielaStore.savePredictions(participant.id, createPredictionDoc(participant.id, predictions));
+      await quinielaStore.savePredictions(participant.id, createPredictionDoc(participant.id, predictions), predictionChanges);
     }
     await saveState();
   }
@@ -1078,14 +1349,21 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       const homeInput = document.querySelector(`[data-result-home="${match.id}"]`);
       const awayInput = document.querySelector(`[data-result-away="${match.id}"]`);
       const finalInput = document.querySelector(`[data-result-final="${match.id}"]`);
+      const advanceInput = document.querySelector(`[data-result-advance="${match.id}"]:checked`);
       const home = scoreValue(homeInput?.value ?? '');
       const away = scoreValue(awayInput?.value ?? '');
+      const advances = isKnockoutMatch(match) && isValidAdvancePick(advanceInput?.value) ? advanceInput.value : '';
       const final = Boolean(finalInput?.checked);
-      if (home === '' && away === '' && !final) return;
+      const finalReady = final
+        && home !== ''
+        && away !== ''
+        && (!isKnockoutMatch(match) || advances !== '');
+      if (home === '' && away === '' && advances === '' && !final) return;
       results[match.id] = {
         home,
         away,
-        final: final && home !== '' && away !== '',
+        advances,
+        final: finalReady,
         updatedAt: new Date().toISOString()
       };
     });

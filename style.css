@@ -318,12 +318,14 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-login-panel .primary-btn { min-height: 47px; white-space: nowrap; }
 .quiniela-auth-panel { grid-template-columns: minmax(220px, .32fr) minmax(0, 1fr); align-items: start; }
 .quiniela-auth-intro { min-width: 0; }
-.quiniela-auth-forms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.quiniela-auth-forms { display: grid; grid-template-columns: minmax(0, 460px); gap: 12px; align-items: start; }
 .quiniela-auth-form { display: grid; gap: 12px; min-width: 0; padding: 14px; background: #07111f; border: 1px solid #172a43; border-radius: 12px; }
 .quiniela-auth-form h3 { color: #fff; font-size: 16px; line-height: 1.25; }
 .quiniela-auth-form .primary-btn { width: 100%; min-height: 44px; }
 .quiniela-link-btn { width: fit-content; padding: 0; color: #9eb1ca; background: transparent; font-size: 12px; font-weight: 900; text-align: left; }
 .quiniela-link-btn:hover { color: #2490ff; }
+.quiniela-auth-switch { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; color: #9eb1ca; font-size: 12px; font-weight: 800; line-height: 1.35; }
+.quiniela-auth-switch .quiniela-link-btn { color: #2490ff; font-size: 12px; }
 .quiniela-auth-user { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .quiniela-auth-user img { width: 48px; height: 48px; border-radius: 12px; object-fit: cover; border: 1px solid #23344f; background: #07111f; flex: 0 0 auto; }
 .quiniela-auth-user div { display: grid; gap: 5px; min-width: 0; }
@@ -354,7 +356,7 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-instruction-card h3,
 .quiniela-rules h3 { color: #fff; font-size: 16px; line-height: 1.25; }
 .quiniela-instruction-card p { color: #9eb1ca; font-size: 13px; font-weight: 700; line-height: 1.45; }
-.quiniela-rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.quiniela-rules { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .quiniela-rules div { padding: 16px; background: #07111f; border: 1px solid #172a43; border-radius: 12px; }
 .quiniela-rules ul { display: grid; gap: 9px; margin-top: 12px; padding-left: 18px; color: #9eb1ca; font-size: 13px; font-weight: 700; line-height: 1.45; }
 .quiniela-rules li::marker { color: #2490ff; }
@@ -383,6 +385,13 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-score-input { text-align: center; font-variant-numeric: tabular-nums; }
 .quiniela-match-footer { grid-column: 2; display: flex; justify-content: space-between; gap: 12px; color: #9eb1ca; font-size: 12px; font-weight: 700; }
 .quiniela-match-footer strong { color: #2490ff; white-space: nowrap; }
+.quiniela-advance-picker { grid-column: 2; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; color: #9eb1ca; font-size: 12px; font-weight: 900; }
+.quiniela-prediction-card .quiniela-advance-picker { grid-column: auto; justify-content: center; }
+.quiniela-advance-picker > span { color: #d9e5f5; }
+.quiniela-advance-picker label { min-height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; color: #d9e5f5; background: #0a1728; border: 1px solid #23344f; border-radius: 9px; cursor: pointer; line-height: 1.1; }
+.quiniela-advance-picker input { width: 14px; height: 14px; padding: 0; accent-color: #2490ff; flex: 0 0 auto; }
+.quiniela-advance-picker label:has(input:checked) { color: #07111f; background: #d9e5f5; border-color: #d9e5f5; }
+.quiniela-advance-picker label:has(input:disabled) { cursor: not-allowed; opacity: .72; }
 .quiniela-final-check { grid-column: 2; width: fit-content; display: inline-flex; align-items: center; gap: 8px; color: #d9e5f5; font-size: 13px; font-weight: 800; }
 .quiniela-final-check input { width: 18px; height: 18px; padding: 0; }
 .quiniela-prediction-card { grid-template-columns: 1fr; gap: 12px; min-height: 0; }
@@ -453,6 +462,7 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
   .quiniela-auth-forms { grid-template-columns: 1fr; }
   .quiniela-instruction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .quiniela-match-footer,
+  .quiniela-advance-picker,
   .quiniela-final-check { grid-column: auto; }
 }
 

@@ -218,6 +218,7 @@ function ensureSideMenuMarkup() {
         <img src="assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
       </a>
       <a href="randomGallery.html">Galería Random</a>
+      <a href="quiniela.html">Quiniela CAS</a>
     </nav>
   `;
   document.body.appendChild(menu);

@@ -2,7 +2,7 @@ import { CAS_FIREBASE_CONFIG, isFirebaseConfigReady } from './firebase-config.js
 
 const FIREBASE_SDK_VERSION = '12.14.0';
 
-export async function createFirebaseQuinielaStore({ paths, createBlankState, hydrateState }) {
+export async function createFirebaseQuinielaStore({ paths, createBlankState, hydrateState, matches = [] }) {
   if (!isFirebaseConfigReady()) return null;
 
   const [{ initializeApp, getApp, getApps }, authSdk, firestoreSdk] = await Promise.all([
@@ -27,11 +27,14 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
   } = authSdk;
 
   const {
+    collection,
     doc,
     getDoc,
+    getDocs,
     getFirestore,
     serverTimestamp,
-    setDoc
+    setDoc,
+    writeBatch
   } = firestoreSdk;
 
   const app = getApps().length ? getApp() : initializeApp(CAS_FIREBASE_CONFIG);
@@ -42,6 +45,8 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
   await waitForInitialAuth(onAuthStateChanged, auth);
 
   const docRef = path => doc(db, ...path.split('/'));
+  const collectionRef = path => collection(db, ...path.split('/'));
+  let seededMatches = false;
 
   async function getIsAdmin(uid) {
     if (!uid) return false;
@@ -59,6 +64,77 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
     const snapshot = await getDoc(docRef(paths.leaderboard));
     if (!snapshot.exists()) return createBlankState().leaderboard;
     return snapshot.data();
+  }
+
+  async function seedMatchesForAdmin(isAdminUser) {
+    if (!isAdminUser || seededMatches || !matches.length || !paths.match) return;
+    const batch = writeBatch(db);
+    matches.forEach(match => {
+      batch.set(docRef(paths.match(match.id)), {
+        seasonId: 'world-cup-2026',
+        id: match.id,
+        stage: match.stage || '',
+        round: match.round || '',
+        home: match.home || '',
+        away: match.away || '',
+        venue: match.venue || '',
+        kickoffUtc: match.kickoffUtc || '',
+        kickoffAt: match.kickoffUtc ? new Date(match.kickoffUtc) : null,
+        knockout: Boolean(match.knockout),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    });
+    await batch.commit();
+    seededMatches = true;
+  }
+
+  async function readPredictionsForUser(user) {
+    const predictions = {};
+    if (paths.predictionMatches) {
+      const matchesSnapshot = await getDocs(collectionRef(paths.predictionMatches(user.uid)));
+      matchesSnapshot.forEach(snapshot => {
+        const data = snapshot.data();
+        predictions[snapshot.id] = {
+          home: data.home ?? '',
+          away: data.away ?? '',
+          advances: data.advances || '',
+          updatedAt: data.updatedAt || ''
+        };
+      });
+    }
+
+    if (Object.keys(predictions).length) return predictions;
+
+    const predictionSnapshot = await getDoc(docRef(paths.prediction(user.uid)));
+    if (!predictionSnapshot.exists()) return {};
+    return predictionSnapshot.data().predictions || {};
+  }
+
+  async function readParticipants() {
+    if (!paths.participants) return {};
+    const participants = {};
+    const snapshot = await getDocs(collectionRef(paths.participants));
+    snapshot.forEach(docSnapshot => {
+      const data = docSnapshot.data();
+      const uid = data.uid || docSnapshot.id;
+      participants[uid] = {
+        id: uid,
+        name: data.name || data.displayName || data.email || 'Jugador CAS',
+        email: data.email || '',
+        photoURL: data.photoURL || '',
+        createdAt: data.createdAt || '',
+        updatedAt: data.updatedAt || ''
+      };
+    });
+    return participants;
+  }
+
+  async function readAllPredictions(participants) {
+    const predictions = {};
+    await Promise.all(Object.keys(participants).map(async uid => {
+      predictions[uid] = await readPredictionsForUser({ uid });
+    }));
+    return predictions;
   }
 
   async function ensureParticipantDoc(user) {
@@ -98,6 +174,8 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
       readLeaderboard()
     ]);
 
+    const isAdminUser = user ? await getIsAdmin(user.uid) : false;
+
     state.auth = {
       provider: 'firebase',
       configured: true,
@@ -106,12 +184,14 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
       displayName: user?.displayName || '',
       emailVerified: Boolean(user?.emailVerified),
       photoURL: user?.photoURL || '',
-      isAdmin: user ? await getIsAdmin(user.uid) : false
+      isAdmin: isAdminUser
     };
     state.results = results;
     state.leaderboard = leaderboard;
 
     if (!user) return hydrateState(state);
+
+    await seedMatchesForAdmin(isAdminUser);
 
     const participant = await ensureParticipantDoc(user);
     if (participant) {
@@ -126,9 +206,18 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
       };
     }
 
-    const predictionSnapshot = await getDoc(docRef(paths.prediction(user.uid)));
-    if (predictionSnapshot.exists()) {
-      state.predictions[user.uid] = predictionSnapshot.data().predictions || {};
+    state.predictions[user.uid] = await readPredictionsForUser(user);
+
+    if (isAdminUser) {
+      const participants = await readParticipants();
+      state.participants = {
+        ...participants,
+        ...state.participants
+      };
+      state.predictions = {
+        ...(await readAllPredictions(state.participants)),
+        ...state.predictions
+      };
     }
 
     return hydrateState(state);
@@ -205,21 +294,45 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
     }, { merge: true });
   }
 
-  async function savePredictions(participantId, predictionDoc) {
+  async function savePredictions(participantId, predictionDoc, changes = {}) {
     const user = auth.currentUser;
     if (!user || participantId !== user.uid) throw new Error('Debes iniciar sesión.');
     await reload(user);
     if (!user.emailVerified) throw new Error('Debes verificar tu correo antes de guardar.');
     await getIdToken(user, true);
     try {
-      await setDoc(docRef(paths.prediction(user.uid)), {
-        ...predictionDoc,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const upserts = changes.upserts || [];
+      const deletes = changes.deletes || [];
+      if (!paths.predictionMatch) {
+        await setDoc(docRef(paths.prediction(user.uid)), {
+          ...predictionDoc,
+          uid: user.uid,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+        return;
+      }
+
+      if (!upserts.length && !deletes.length) return;
+
+      const batch = writeBatch(db);
+      upserts.forEach(({ matchId, prediction }) => {
+        batch.set(docRef(paths.predictionMatch(user.uid, matchId)), {
+          seasonId: 'world-cup-2026',
+          uid: user.uid,
+          matchId,
+          home: prediction.home ?? '',
+          away: prediction.away ?? '',
+          advances: prediction.advances || '',
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      });
+      deletes.forEach(matchId => {
+        batch.delete(docRef(paths.predictionMatch(user.uid, matchId)));
+      });
+      await batch.commit();
     } catch (error) {
       if (error?.code === 'permission-denied') {
-        throw new Error('Firebase rechazó tus pronósticos. Haz clic en Cuenta > Ya verifiqué, o cierra sesión y vuelve a entrar para refrescar la verificación.');
+        throw new Error('Firebase rechazó tus pronósticos. Verifica tu correo y revisa que el partido no haya iniciado.');
       }
       throw error;
     }

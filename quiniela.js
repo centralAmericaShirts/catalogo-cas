@@ -778,7 +778,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
               </div>
             </div>
             <div class="quiniela-verify-actions">
-              <p>Revisa tu correo y abre el enlace de verificación. Después vuelve aquí y confirma.</p>
+              <p>Revisa tu correo y abre el enlace de verificación. Puede que haya llegado a tu folder de SPAM ó Junk. Después vuelve aquí y confirma.</p>
               <div>
                 <button type="button" class="primary-btn" data-refresh-verification>Ya verifiqué</button>
                 <button type="button" class="secondary-btn quiniela-compact-secondary" data-resend-verification>Reenviar correo</button>

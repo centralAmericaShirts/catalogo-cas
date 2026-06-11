@@ -1,6 +1,7 @@
 import { CAS_FIREBASE_CONFIG, isFirebaseConfigReady } from './firebase-config.js';
 
 const FIREBASE_SDK_VERSION = '12.14.0';
+const PREDICTION_BATCH_LIMIT = 6;
 
 export async function createFirebaseQuinielaStore({ paths, createBlankState, hydrateState, matches = [] }) {
   if (!isFirebaseConfigReady()) return null;
@@ -314,25 +315,42 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
 
       if (!upserts.length && !deletes.length) return;
 
-      const batch = writeBatch(db);
-      upserts.forEach(({ matchId, prediction }) => {
-        batch.set(docRef(paths.predictionMatch(user.uid, matchId)), {
-          seasonId: 'world-cup-2026',
-          uid: user.uid,
+      const operations = [
+        ...upserts.map(({ matchId, prediction }) => ({
+          type: 'upsert',
           matchId,
-          home: prediction.home ?? '',
-          away: prediction.away ?? '',
-          advances: prediction.advances || '',
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      });
-      deletes.forEach(matchId => {
-        batch.delete(docRef(paths.predictionMatch(user.uid, matchId)));
-      });
-      await batch.commit();
+          prediction
+        })),
+        ...deletes.map(matchId => ({
+          type: 'delete',
+          matchId
+        }))
+      ];
+
+      for (let index = 0; index < operations.length; index += PREDICTION_BATCH_LIMIT) {
+        const batch = writeBatch(db);
+        operations.slice(index, index + PREDICTION_BATCH_LIMIT).forEach(operation => {
+          const ref = docRef(paths.predictionMatch(user.uid, operation.matchId));
+          if (operation.type === 'delete') {
+            batch.delete(ref);
+            return;
+          }
+
+          batch.set(ref, {
+            seasonId: 'world-cup-2026',
+            uid: user.uid,
+            matchId: operation.matchId,
+            home: operation.prediction.home ?? '',
+            away: operation.prediction.away ?? '',
+            advances: operation.prediction.advances || '',
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        });
+        await batch.commit();
+      }
     } catch (error) {
       if (error?.code === 'permission-denied') {
-        throw new Error('Firebase rechazó tus pronósticos. Verifica tu correo y revisa que el partido no haya iniciado.');
+        throw new Error('Firebase rechazó tus pronósticos. Si tu correo ya está verificado, revisa que el calendario de partidos esté preparado y que el partido no haya iniciado.');
       }
       throw error;
     }

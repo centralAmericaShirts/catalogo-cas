@@ -1,4 +1,4 @@
-import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260608-secure';
+import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260610-prediction-batches';
 
 (() => {
   const STORAGE_KEY = 'casQuinielaMundial2026V1';
@@ -488,6 +488,11 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return isCompleteScore(prediction);
   }
 
+  function hasPredictionValue(prediction) {
+    return prediction
+      && (prediction.home !== '' || prediction.away !== '' || prediction.advances);
+  }
+
   function isCompleteResult(match, result) {
     return Boolean(result?.final) && isCompleteScore(result);
   }
@@ -725,8 +730,8 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <div>
             <h3>Premios</h3>
             <ul>
-              <li><strong>Primer Lugar:</strong> Camisola Sorpresa</li>
-              <li><strong>Segundo Lugar:</strong> Camisola Sorpresa</li>
+              <li><strong>Primer Lugar:</strong> Camisola CAS</li>
+              <li><strong>Segundo Lugar:</strong> Premio Sorpresa</li>
             </ul>
           </div>
         </div>
@@ -778,7 +783,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
               </div>
             </div>
             <div class="quiniela-verify-actions">
-              <p>Revisa tu correo y abre el enlace de verificación. Puede que haya llegado a tu folder de SPAM ó Junk. Después vuelve aquí y confirma.</p>
+              <p>Revisa tu correo y abre el enlace de verificación. Después vuelve aquí y confirma.</p>
               <div>
                 <button type="button" class="primary-btn" data-refresh-verification>Ya verifiqué</button>
                 <button type="button" class="secondary-btn quiniela-compact-secondary" data-resend-verification>Reenviar correo</button>
@@ -1250,7 +1255,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       const away = scoreValue(awayInput?.value ?? '');
       if (home === '' && away === '') {
         delete predictions[match.id];
-        predictionChanges.deletes.push(match.id);
+        if (hasPredictionValue(existingPredictions[match.id])) {
+          predictionChanges.deletes.push(match.id);
+        }
         return;
       }
       predictions[match.id] = {

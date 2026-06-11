@@ -730,8 +730,8 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
           <div>
             <h3>Premios</h3>
             <ul>
-              <li><strong>Primer Lugar:</strong> Camisola CAS</li>
-              <li><strong>Segundo Lugar:</strong> Premio Sorpresa</li>
+              <li><strong>Primer Lugar:</strong> Camisola Sorpresa</li>
+              <li><strong>Segundo Lugar:</strong> Camisola Sorpresa</li>
             </ul>
           </div>
         </div>

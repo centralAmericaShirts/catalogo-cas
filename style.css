@@ -339,6 +339,8 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-signout-btn { width: fit-content; min-height: 36px; margin: 2px 0 0; padding: 0 12px; white-space: nowrap; }
 .quiniela-play-content { display: grid; gap: 18px; }
 .quiniela-play-content .quiniela-player-panel { margin-bottom: 0; padding: 0 0 18px; background: transparent; border: 0; border-bottom: 1px solid #1f3350; border-radius: 0; }
+.quiniela-play-save-sticky { display: flex; justify-content: flex-end; margin: -4px 0 16px; }
+.quiniela-play-save-sticky .primary-btn { min-height: 44px; padding: 0 18px; }
 .quiniela-tabs { display: inline-flex; gap: 8px; max-width: 100%; padding: 6px; margin-bottom: 16px; background: #081426; border: 1px solid #1f3350; border-radius: 14px; overflow-x: auto; }
 .quiniela-tab { min-height: 42px; padding: 0 16px; border-radius: 10px; background: transparent; color: #9eb1ca; font-weight: 800; white-space: nowrap; }
 .quiniela-tab.active { background: #2490ff; color: #fff; }
@@ -363,6 +365,7 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-rules strong { color: #d9e5f5; }
 .quiniela-groups { display: grid; gap: 12px; }
 .quiniela-group { background: #0a1728; border: 1px solid #1b2f49; border-radius: 14px; overflow: hidden; }
+.quiniela-group[data-prediction-group-current="true"] { scroll-margin-top: 24px; }
 .quiniela-group[open] { border-color: #2490ff; }
 .quiniela-group summary { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 0 16px; color: #d9e5f5; cursor: pointer; list-style: none; }
 .quiniela-group summary::-webkit-details-marker { display: none; }
@@ -458,6 +461,8 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 }
 
 @media (max-width: 520px) {
+  body.quiniela-page { --quiniela-tabs-top: 119px; --quiniela-save-top: 171px; --quiniela-group-scroll-margin: 216px; }
+  body.quiniela-page.quiniela-scrolled { --quiniela-tabs-top: 106px; --quiniela-save-top: 158px; --quiniela-group-scroll-margin: 203px; }
   body.random-gallery-page { padding-top: 82px; }
   body.quiniela-page { padding-top: 82px; }
   .random-gallery-stage,
@@ -500,15 +505,17 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
   .quiniela-verify-actions div { flex-direction: column; }
   .quiniela-save-bar { position: static; bottom: auto; margin-top: 12px; }
   .quiniela-save-bar .primary-btn { width: 100%; }
-  .quiniela-tabs { position: sticky; top: 119px; z-index: 55; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px; margin-bottom: 12px; border-radius: 12px; }
-  body.quiniela-scrolled .quiniela-tabs { top: 106px; }
+  .quiniela-tabs { position: sticky; top: var(--quiniela-tabs-top); z-index: 55; width: 100%; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px; margin-bottom: 12px; border-radius: 12px; }
   .quiniela-tabs.has-admin { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .quiniela-tabs.has-admin .quiniela-tab { font-size: 10px; line-height: 1.05; }
   .quiniela-tab { width: 100%; min-width: 0; min-height: 40px; flex: initial; padding: 0 6px; font-size: 11px; }
   .quiniela-panel-header { align-items: stretch; flex-direction: column; }
+  .quiniela-play-save-sticky { position: sticky; top: var(--quiniela-save-top); z-index: 54; padding: 8px; margin: -4px 0 12px; background: rgba(7,17,31,.94); border: 1px solid #1f3350; border-radius: 12px; backdrop-filter: blur(10px); }
+  .quiniela-play-save-sticky .primary-btn { width: 100%; }
   .quiniela-instruction-grid,
   .quiniela-rules { grid-template-columns: 1fr; }
   .quiniela-instruction-card { min-height: 0; }
+  .quiniela-group[data-prediction-group-current="true"] { scroll-margin-top: var(--quiniela-group-scroll-margin); }
   .quiniela-group summary { min-height: 54px; padding: 0 12px; }
   .quiniela-group summary span { font-size: 14px; }
   .quiniela-group summary strong { font-size: 11px; }

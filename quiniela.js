@@ -1,4 +1,4 @@
-import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260610-prediction-batches';
+import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260610-data-viewer';
 
 (() => {
   const STORAGE_KEY = 'casQuinielaMundial2026V1';
@@ -164,6 +164,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   let activeTab = 'instructions';
   let authMode = 'signin';
   let noticeText = '';
+  let shouldScrollToPredictionDate = false;
 
   function startQuinielaPage() {
     if (!document.body.classList.contains('quiniela-page')) return;
@@ -423,15 +424,19 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return new Date(`${match.date}T${match.time}:00-06:00`);
   }
 
-  function getMatchDateKey(match) {
+  function getGuatemalaDateKey(date = new Date()) {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: GUATEMALA_TIME_ZONE,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit'
-    }).formatToParts(getKickoffDate(match));
+    }).formatToParts(date);
     const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
     return `${values.year}-${values.month}-${values.day}`;
+  }
+
+  function getMatchDateKey(match) {
+    return getGuatemalaDateKey(getKickoffDate(match));
   }
 
   function formatMatchTime(match) {
@@ -596,6 +601,20 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
       }, []);
   }
 
+  function getDefaultPredictionGroupIndex(groups) {
+    if (!groups.length) return -1;
+
+    const todayKey = getGuatemalaDateKey();
+    const todayIndex = groups.findIndex(group => group.dateKey === todayKey);
+    if (todayIndex !== -1) return todayIndex;
+
+    const now = Date.now();
+    const nextIndex = groups.findIndex(group => group.matches.some(match => getKickoffDate(match).getTime() >= now));
+    if (nextIndex !== -1) return nextIndex;
+
+    return groups.length - 1;
+  }
+
   function predictionCountForStage(participantId, matches) {
     const predictions = quinielaState.predictions[participantId] || {};
     return matches.filter(match => isCompletePrediction(match, predictions[match.id])).length;
@@ -666,6 +685,18 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
     noticeText = '';
     bindQuinielaEvents();
+    scrollToPredictionDateIfNeeded();
+  }
+
+  function scrollToPredictionDateIfNeeded() {
+    if (!shouldScrollToPredictionDate || activeTab !== 'play') return;
+    shouldScrollToPredictionDate = false;
+    const currentGroup = document.querySelector('[data-prediction-group-current="true"]');
+    if (!currentGroup) return;
+
+    window.requestAnimationFrame(() => {
+      currentGroup.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   function renderInstructions() {
@@ -924,7 +955,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
             <h2>Mis pronósticos</h2>
             <p>Puntaje: ${SCORING.exact} exacto | ${SCORING.outcome} ganador/empate | ${SCORING.goalDifference} diferencia</p>
           </div>
-          <button type="submit" class="primary-btn">Guardar</button>
+        </div>
+        <div class="quiniela-play-save-sticky">
+          <button type="submit" class="primary-btn">Guardar pronósticos</button>
         </div>
         ${renderPredictionGroups(participantId, predictions)}
         <div class="quiniela-save-bar">
@@ -935,14 +968,18 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   }
 
   function renderPredictionGroups(participantId, predictions) {
+    const groups = getMatchesByDate();
+    const openIndex = getDefaultPredictionGroupIndex(groups);
+
     return `
       <div class="quiniela-groups">
-        ${getMatchesByDate().map((group, index) => {
+        ${groups.map((group, index) => {
           const completed = predictionCountForStage(participantId, group.matches);
           return renderMatchGroup({
             stage: group.stage,
             count: `${completed}/${group.matches.length} completados`,
-            open: index === 0,
+            open: index === openIndex,
+            isCurrent: index === openIndex,
             cards: group.matches.map(match => renderPredictionCard(match, predictions[match.id])).join('')
           });
         }).join('')}
@@ -950,9 +987,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     `;
   }
 
-  function renderMatchGroup({ stage, count, open, cards }) {
+  function renderMatchGroup({ stage, count, open, isCurrent = false, cards }) {
     return `
-      <details class="quiniela-group"${open ? ' open' : ''}>
+      <details class="quiniela-group"${open ? ' open' : ''}${isCurrent ? ' data-prediction-group-current="true"' : ''}>
         <summary>
           <span>${escapeText(stage)}</span>
           <strong>${escapeText(count)}</strong>
@@ -1175,7 +1212,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
     document.querySelectorAll('[data-quiniela-tab]').forEach(button => {
       button.addEventListener('click', () => {
-        activeTab = button.dataset.quinielaTab;
+        const nextTab = button.dataset.quinielaTab;
+        shouldScrollToPredictionDate = nextTab === 'play';
+        activeTab = nextTab;
         renderQuiniela();
       });
     });

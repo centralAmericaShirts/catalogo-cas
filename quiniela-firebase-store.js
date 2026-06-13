@@ -48,6 +48,7 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
   const docRef = path => doc(db, ...path.split('/'));
   const collectionRef = path => collection(db, ...path.split('/'));
   let seededMatches = false;
+  let touchedParticipantSession = false;
 
   async function getIsAdmin(uid) {
     if (!uid) return false;
@@ -138,7 +139,15 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
     return predictions;
   }
 
-  async function ensureParticipantDoc(user) {
+  function authMetadataForUser(user) {
+    return {
+      authCreationTime: user.metadata?.creationTime || '',
+      authLastSignInTime: user.metadata?.lastSignInTime || '',
+      emailVerified: Boolean(user.emailVerified)
+    };
+  }
+
+  async function ensureParticipantDoc(user, options = {}) {
     if (!user) return null;
     const ref = docRef(paths.participant(user.uid));
     const snapshot = await getDoc(ref);
@@ -152,17 +161,34 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
       photoURL: user.photoURL || '',
       updatedAt: new Date().toISOString()
     };
+    const metadata = authMetadataForUser(user);
 
     if (!snapshot.exists()) {
       await setDoc(ref, {
         ...participant,
+        ...metadata,
         createdAt: serverTimestamp(),
+        lastSeenAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }, { merge: true });
+      touchedParticipantSession = true;
+    } else if (options.touch && !touchedParticipantSession) {
+      await setDoc(ref, {
+        seasonId: 'world-cup-2026',
+        uid: user.uid,
+        id: user.uid,
+        email: user.email || '',
+        photoURL: user.photoURL || '',
+        ...metadata,
+        lastSeenAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+      touchedParticipantSession = true;
     }
 
     return {
       ...participant,
+      ...metadata,
       ...(snapshot.exists() ? snapshot.data() : {})
     };
   }
@@ -194,7 +220,7 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
 
     await seedMatchesForAdmin(isAdminUser);
 
-    const participant = await ensureParticipantDoc(user);
+    const participant = await ensureParticipantDoc(user, { touch: true });
     if (participant) {
       state.activeParticipantId = user.uid;
       state.participants[user.uid] = {
@@ -230,7 +256,7 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
     } catch (error) {
       throw new Error(authErrorMessage(error));
     }
-    if (auth.currentUser) await ensureParticipantDoc(auth.currentUser);
+    if (auth.currentUser) await ensureParticipantDoc(auth.currentUser, { touch: true });
   }
 
   async function signUp({ email, password, name }) {
@@ -277,6 +303,7 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
   }
 
   async function signOutUser() {
+    touchedParticipantSession = false;
     await signOut(auth);
   }
 

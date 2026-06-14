@@ -1,4 +1,4 @@
-import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260610-data-viewer';
+import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=20260613-admin-light';
 
 (() => {
   const STORAGE_KEY = 'casQuinielaMundial2026V1';
@@ -539,27 +539,33 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return totals;
   }
 
-  function getRankingRows() {
-    if (isFirebaseMode() && !canManageResults() && Array.isArray(quinielaState.leaderboard?.rows) && quinielaState.leaderboard.rows.length) {
-      return quinielaState.leaderboard.rows.map(row => ({
-        participant: {
-          id: row.uid || '',
-          name: row.displayName || 'Jugador CAS'
-        },
-        points: Number(row.points) || 0,
-        exact: Number(row.exact) || 0,
-        outcome: Number(row.outcome) || 0,
-        submitted: Number(row.submitted) || 0
-      })).sort((a, b) => b.points - a.points
-        || b.exact - a.exact
-        || a.participant.name.localeCompare(b.participant.name));
-    }
+  function getLeaderboardRows() {
+    if (!Array.isArray(quinielaState.leaderboard?.rows) || !quinielaState.leaderboard.rows.length) return [];
+    return quinielaState.leaderboard.rows.map(row => ({
+      participant: {
+        id: row.uid || '',
+        name: row.displayName || 'Jugador CAS'
+      },
+      points: Number(row.points) || 0,
+      exact: Number(row.exact) || 0,
+      outcome: Number(row.outcome) || 0,
+      submitted: Number(row.submitted) || 0
+    })).sort((a, b) => b.points - a.points
+      || b.exact - a.exact
+      || a.participant.name.localeCompare(b.participant.name));
+  }
 
+  function getCalculatedRankingRows() {
     return Object.values(quinielaState.participants)
       .map(participant => ({ participant, ...getParticipantSummary(participant.id) }))
       .sort((a, b) => b.points - a.points
         || b.exact - a.exact
         || a.participant.name.localeCompare(b.participant.name));
+  }
+
+  function getRankingRows() {
+    const leaderboardRows = isFirebaseMode() ? getLeaderboardRows() : [];
+    return leaderboardRows.length ? leaderboardRows : getCalculatedRankingRows();
   }
 
   function getMatchesByStage() {
@@ -1344,7 +1350,18 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     });
 
     quinielaState.results = results;
-    quinielaState.leaderboard = createLeaderboardDoc(getRankingRows());
+    if (quinielaStore.loadAdminScoringData && isFirebaseMode()) {
+      const scoringData = await quinielaStore.loadAdminScoringData();
+      quinielaState.participants = {
+        ...scoringData.participants,
+        ...quinielaState.participants
+      };
+      quinielaState.predictions = {
+        ...scoringData.predictions,
+        ...quinielaState.predictions
+      };
+    }
+    quinielaState.leaderboard = createLeaderboardDoc(getCalculatedRankingRows());
     if (quinielaStore.saveResults && isFirebaseMode()) {
       await quinielaStore.saveResults(createResultsDoc(results), quinielaState.leaderboard);
     }

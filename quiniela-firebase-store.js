@@ -235,19 +235,15 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
 
     state.predictions[user.uid] = await readPredictionsForUser(user);
 
-    if (isAdminUser) {
-      const participants = await readParticipants();
-      state.participants = {
-        ...participants,
-        ...state.participants
-      };
-      state.predictions = {
-        ...(await readAllPredictions(state.participants)),
-        ...state.predictions
-      };
-    }
-
     return hydrateState(state);
+  }
+
+  async function loadAdminScoringData() {
+    const user = auth.currentUser;
+    if (!user || !(await getIsAdmin(user.uid))) throw new Error('Solo Admin CAS puede cargar datos de puntuacion.');
+    const participants = await readParticipants();
+    const predictions = await readAllPredictions(participants);
+    return { participants, predictions };
   }
 
   async function signIn(email, password) {
@@ -409,6 +405,7 @@ export async function createFirebaseQuinielaStore({ paths, createBlankState, hyd
     provider: 'firebase',
     isConfigured: true,
     load,
+    loadAdminScoringData,
     save() {},
     saveParticipant,
     savePredictions,

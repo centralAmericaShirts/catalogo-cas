@@ -695,7 +695,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   }
 
   function scrollToPredictionDateIfNeeded() {
-    if (!shouldScrollToPredictionDate || activeTab !== 'play') return;
+    if (!shouldScrollToPredictionDate || (activeTab !== 'play' && activeTab !== 'results')) return;
     shouldScrollToPredictionDate = false;
     const currentGroup = document.querySelector('[data-prediction-group-current="true"]');
     if (!currentGroup) return;
@@ -1094,6 +1094,9 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   }
 
   function renderResultsAdmin() {
+    const groups = getMatchesByDate();
+    const openIndex = getDefaultPredictionGroupIndex(groups);
+
     return `
       <form id="quinielaResultsForm">
         <div class="quiniela-panel-header">
@@ -1101,14 +1104,17 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
             <h2>Admin resultados</h2>
             <p>Marcadores finales para calcular el ranking</p>
           </div>
-          <button type="submit" class="primary-btn">Actualizar</button>
+        </div>
+        <div class="quiniela-play-save-sticky">
+          <button type="submit" class="primary-btn">Actualizar resultados</button>
         </div>
         <div class="quiniela-admin-badge">Admin CAS</div>
         <div class="quiniela-groups">
-          ${getMatchesByStage().map((group, index) => renderMatchGroup({
+          ${groups.map((group, index) => renderMatchGroup({
             stage: group.stage,
-            count: `${resultCountForStage(group.matches)}/${group.matches.length}`,
-            open: index === 0,
+            count: `${resultCountForStage(group.matches)}/${group.matches.length} resultados`,
+            open: index === openIndex,
+            isCurrent: index === openIndex,
             cards: group.matches.map(match => renderResultCard(match, quinielaState.results[match.id])).join('')
           })).join('')}
         </div>
@@ -1121,23 +1127,23 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
 
   function renderResultCard(match, result = {}) {
     return `
-      <article class="quiniela-match-card result-card">
-        <div class="quiniela-match-meta">
-          <span>${escapeText(match.stage)}</span>
-          <span>${escapeText(match.round)}</span>
-          <strong>${escapeText(formatMatchDate(match))}</strong>
+      <article class="quiniela-match-card quiniela-prediction-card result-card">
+        <div class="quiniela-prediction-meta">
+          ${escapeText(match.stage)} - ${escapeText(formatMatchTime(match))}
         </div>
-        <div class="quiniela-fixture">
-          <span>${escapeText(match.home)}</span>
-          <input class="quiniela-score-input" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-home="${escapeText(match.id)}" value="${escapeText(result.home ?? '')}" aria-label="${escapeText(match.home)} final">
+        <div class="quiniela-prediction-fixture">
+          ${renderTeamBlock(match.home)}
+          <input class="quiniela-score-input quiniela-prediction-box" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-home="${escapeText(match.id)}" value="${escapeText(result.home ?? '')}" aria-label="${escapeText(match.home)} final">
           <b>vs</b>
-          <input class="quiniela-score-input" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-away="${escapeText(match.id)}" value="${escapeText(result.away ?? '')}" aria-label="${escapeText(match.away)} final">
-          <span>${escapeText(match.away)}</span>
+          <input class="quiniela-score-input quiniela-prediction-box" type="text" maxlength="2" inputmode="numeric" pattern="[0-9]*" data-result-away="${escapeText(match.id)}" value="${escapeText(result.away ?? '')}" aria-label="${escapeText(match.away)} final">
+          ${renderTeamBlock(match.away)}
         </div>
-        <label class="quiniela-final-check">
-          <input type="checkbox" data-result-final="${escapeText(match.id)}"${result.final ? ' checked' : ''}>
-          Finalizado
-        </label>
+        <div class="quiniela-result-footer">
+          <label class="quiniela-final-check">
+            <input type="checkbox" data-result-final="${escapeText(match.id)}"${result.final ? ' checked' : ''}>
+            Finalizado
+          </label>
+        </div>
       </article>
     `;
   }
@@ -1219,7 +1225,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     document.querySelectorAll('[data-quiniela-tab]').forEach(button => {
       button.addEventListener('click', () => {
         const nextTab = button.dataset.quinielaTab;
-        shouldScrollToPredictionDate = nextTab === 'play';
+        shouldScrollToPredictionDate = nextTab === 'play' || nextTab === 'results';
         activeTab = nextTab;
         renderQuiniela();
       });

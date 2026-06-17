@@ -404,6 +404,8 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .quiniela-prediction-status { color: #2490ff; font-size: 13px; font-weight: 900; line-height: 1.3; text-align: center; text-transform: lowercase; }
 .quiniela-prediction-footer .quiniela-prediction-status { grid-column: 2; }
 .quiniela-prediction-points { grid-column: 3; justify-self: end; min-height: 26px; display: inline-flex; align-items: center; padding: 0 9px; color: #07111f; background: #f3c44e; border: 1px solid rgba(255, 230, 146, .85); border-radius: 8px; font-size: 12px; font-weight: 950; line-height: 1; white-space: nowrap; box-shadow: 0 8px 18px rgba(0,0,0,.28); }
+.quiniela-result-footer { min-height: 28px; display: flex; justify-content: center; }
+.result-card.quiniela-prediction-card .quiniela-final-check { grid-column: auto; width: auto; justify-self: center; }
 .quiniela-admin-badge { width: fit-content; margin: -4px 0 14px; padding: 8px 10px; color: #07111f; background: #d9e5f5; border-radius: 8px; font-size: 12px; font-weight: 900; }
 .quiniela-save-bar { position: sticky; bottom: 10px; z-index: 30; display: flex; justify-content: flex-end; margin-top: 14px; padding: 10px; background: rgba(5,13,24,.9); border: 1px solid #1f3350; border-radius: 14px; box-shadow: 0 16px 34px rgba(0,0,0,.38); backdrop-filter: blur(10px); }
 .quiniela-save-bar .primary-btn { min-height: 44px; padding: 0 18px; }

@@ -48,6 +48,7 @@
           <a href="#" onclick="selectCategory('Ofertas'); closeSideMenu(); return false;">🔥 Ofertas</a>
           <a href="#" onclick="selectCategory('Todas las prendas'); closeSideMenu(); return false;">Todas las Prendas</a>
           <a href="#" onclick="selectCategory('Selecciones'); closeSideMenu(); return false;">Selecciones</a>
+          <a href="#" onclick="selectCategory('Mundial 2026'); closeSideMenu(); return false;">Mundial 2026</a>
           <a href="#" onclick="selectCategory('Equipos Europeos'); closeSideMenu(); return false;">Equipos Europeos</a>
           <a href="#" onclick="selectCategory('Conmebol/Concacaf'); closeSideMenu(); return false;">Conmebol / Concacaf</a>
           <a href="#" onclick="selectCategory('Otros'); closeSideMenu(); return false;">Otros</a>
@@ -112,6 +113,10 @@
             <div class="cat-overlay"></div>
             <h3>Selecciones</h3>
         </div>
+        <div class="cat-card" onclick="selectCategory('Mundial 2026')" style="background-image: url('categories/mundial2026.jpg')">
+            <div class="cat-overlay"></div>
+            <h3>Mundial 2026</h3>
+        </div>
         <div class="cat-card" onclick="selectCategory('Equipos Europeos')" style="background-image: url('categories/europa.jpg')">
             <div class="cat-overlay"></div>
             <h3>Equipos Europeos</h3>
@@ -159,8 +164,9 @@
               <label>Tipo de Camisola</label>
               <select id="typeFilter" onchange="applyFilters()">
                 <option value="">Todos</option>
-                <option>Casa</option><option>Visita</option><option>Entrenamiento</option>
-                <option>Firmada</option><option>Otros</option>
+                <option>Casa</option><option>Visita</option><option>V. Jugador</option>
+                <option>Usada en Juego</option><option>Entrenamiento</option>
+                <option>Firmada</option><option>Otro</option><option>Otros</option>
               </select>
             </div>
             <div class="field-group">
@@ -231,6 +237,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260608-show-quiniela"></script>
+  <script src="app.js?v=20260623-admin-categories"></script>
 </body>
 </html>

@@ -44,18 +44,18 @@
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
-              <div class="field-group"><label>Categoría</label><select name="tipo_region" required><option value="">Seleccionar</option><option value="Seleccion">Selección</option><option>Europa</option><option>Conmebol/Concacaf</option><option>Otros</option></select></div>
+              <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid"><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Seleccion">Selección</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Mundial 2026">Mundial 2026</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Europa">Europa</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Conmebol/Concacaf">Conmebol / Concacaf</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Otros">Otros</label></div></div>
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Talla</label><select name="talla" required><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
-              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
             </div>
             <div class="checkbox-row"><input type="checkbox" id="addDisponible" name="venta" checked><label for="addDisponible">Disponible para venta</label></div>
           </div>
           <div>
             <div class="field-group">
               <label>Imágenes de la prenda</label>
-              <label class="upload-box">
+              <label class="upload-box" id="addDropZone">
                 <div id="addUploadContainer">
                   <div class="upload-icon">⬆</div>
                   <div class="upload-text">Click para subir imágenes</div>
@@ -96,11 +96,11 @@
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
-              <div class="field-group"><label>Categoría</label><select name="tipo_region"><option value="">Seleccionar</option><option value="Seleccion">Selección</option><option>Europa</option><option>Conmebol/Concacaf</option><option>Otros</option></select></div>
+              <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid"><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Seleccion">Selección</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Mundial 2026">Mundial 2026</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Europa">Europa</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Conmebol/Concacaf">Conmebol / Concacaf</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Otros">Otros</label></div></div>
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
-              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
             </div>
             <div class="checkbox-row"><input type="checkbox" id="editDisponible" name="venta"><label for="editDisponible">Disponible para venta</label></div>
           </div>
@@ -108,7 +108,7 @@
             <div class="field-group">
               <label>Imágenes actuales / nuevas imágenes</label>
               <div id="editCurrentImages" class="existing-images hidden"></div>
-              <label class="upload-box">
+              <label class="upload-box" id="editDropZone">
                 <div id="editUploadContainer">
                   <div class="upload-text">Click para subir nuevas imágenes</div>
                   <div class="upload-sub">Si subes nuevas imágenes, reemplazarán la galería actual.</div>
@@ -122,12 +122,28 @@
           </div>
         </div>
       </form>
+      <form id="addPhotosForm" class="hidden admin-add-photos-form">
+        <div class="admin-inline-panel">
+          <h3>Agregar fotos secundarias</h3>
+          <p>Estas imágenes se sumarán al final de la galería actual sin reemplazar las fotos existentes.</p>
+          <label class="upload-box" id="appendDropZone">
+            <div id="appendUploadContainer">
+              <div class="upload-text">Click para agregar más imágenes</div>
+              <div class="upload-sub">Se guardarán como fotos secundarias de este SKU.</div>
+            </div>
+            <div id="appendPreviewContainer" class="hidden" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
+            <input type="file" id="appendFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
+          </label>
+        </div>
+      </form>
       <div class="modal-footer" id="actionFooter">
         <button type="button" class="cancel-btn" onclick="closeManageModal()">Cancelar</button>
         <button type="button" class="add-btn hidden" id="updateBtn" onclick="showEditForm()">Actualizar</button>
+        <button type="button" class="secondary-btn hidden" id="addPhotosBtn" onclick="showAddPhotosForm()">Agregar fotos</button>
         <button type="button" class="warning-btn hidden" id="soldBtn" onclick="openConfirmModal('sold')">Marcar Como Vendida</button>
         <button type="button" class="danger-btn hidden" id="deleteBtn" onclick="openConfirmModal('delete')">Eliminar</button>
         <button type="button" class="add-btn hidden" id="confirmUpdateBtn" onclick="confirmUpdate()" disabled>Confirmar</button>
+        <button type="button" class="add-btn hidden" id="confirmAddPhotosBtn" onclick="confirmAddPhotos()" disabled>Guardar fotos</button>
       </div>
     </div>
   </div>
@@ -143,6 +159,6 @@
     </div>
   </div>
 
-<script src="app.js?v=20260608-show-quiniela"></script>
+<script src="app.js?v=20260623-admin-categories"></script>
 </body>
 </html>

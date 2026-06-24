@@ -1,7 +1,7 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyobnIVz9rLnotfsSGJA7TmOFpla9VXqBL5UbAEvKsdzxVCCdFkj1KI-gQayOUlhGEMpA/exec"; 
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwiVIm4FrofKrCKerYgKFnZn85xZ0l8R-UfoB1YjtaGNssyvbyFeAzN3u_xhZ0QmIVcMw/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
 
@@ -21,6 +21,7 @@ let currentItem = null;
 let editDirty = false;
 let addImages = [];
 let editImages = [];
+let appendImages = [];
 let isLoading = true;
 let jsonpCounter = 0;
 
@@ -30,9 +31,17 @@ const MENU_CATEGORIES = [
   ['Ofertas', 'Ofertas'],
   ['Todas las Prendas', 'Todas las prendas'],
   ['Selecciones', 'Selecciones'],
+  ['Mundial 2026', 'Mundial 2026'],
   ['Equipos Europeos', 'Equipos Europeos'],
   ['Conmebol / Concacaf', 'Conmebol / Concacaf'],
   ['Otros', 'Otros']
+];
+const PRODUCT_CATEGORIES = [
+  { value: 'Seleccion', label: 'Selección', aliases: ['selecciones'] },
+  { value: 'Mundial 2026', label: 'Mundial 2026', aliases: ['mundial'] },
+  { value: 'Europa', label: 'Europa', aliases: ['equipos europeos'] },
+  { value: 'Conmebol/Concacaf', label: 'Conmebol / Concacaf', aliases: ['conmebol / concacaf'] },
+  { value: 'Otros', label: 'Otros', aliases: ['otro'] }
 ];
 
 function ensurePageLoader() {
@@ -452,6 +461,55 @@ function cleanOptionText(str) {
   return cleanText(str).replace(/\s+/g, '');
 }
 
+function getCategoryAliases(category) {
+  const selectedClean = cleanOptionText(category);
+  const match = PRODUCT_CATEGORIES.find(option => {
+    const values = [option.value, option.label, ...(option.aliases || [])];
+    return values.some(value => cleanOptionText(value) === selectedClean);
+  });
+
+  if (!match) return [selectedClean];
+  return [match.value, match.label, ...(match.aliases || [])].map(cleanOptionText);
+}
+
+function getCanonicalCategoryValue(value) {
+  const selectedClean = cleanOptionText(value);
+  const match = PRODUCT_CATEGORIES.find(option => {
+    const values = [option.value, option.label, ...(option.aliases || [])];
+    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
+  });
+
+  return match ? match.value : String(value || '').trim();
+}
+
+function getCategoryDisplayLabel(value) {
+  const selectedClean = cleanOptionText(value);
+  const match = PRODUCT_CATEGORIES.find(option => {
+    const values = [option.value, option.label, ...(option.aliases || [])];
+    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
+  });
+
+  return match ? match.label : String(value || '').trim();
+}
+
+function getItemCategoryTokens(item) {
+  const itemRegionRaw = item?.tipoRegion || item?.tipo_region || item?.Tipo_Region || item?.TipoRegion || "";
+  return String(itemRegionRaw)
+    .split(',')
+    .map(value => cleanOptionText(value))
+    .filter(Boolean);
+}
+
+function formatCategoryDisplay(value) {
+  const categories = String(value || '')
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .map(getCategoryDisplayLabel);
+
+  return categories.length ? categories.join(', ') : 'Sin categoría';
+}
+
 function normalizeSku(sku) {
   return String(sku || '').trim().toUpperCase();
 }
@@ -502,20 +560,12 @@ function itemMatchesCategory(item, category) {
   const selectedCatClean = cleanOptionText(category);
   if (selectedCatClean === "ofertas") return hasOffer(item);
 
-  const itemRegionRaw = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || "";
-  const itemRegionClean = cleanText(itemRegionRaw).replace(/\s+/g, '');
+  const itemCategoryTokens = getItemCategoryTokens(item);
+  const selectedAliases = getCategoryAliases(category);
 
-  if (selectedCatClean === "selecciones") {
-    return itemRegionClean === "seleccion" || itemRegionClean === "selecciones";
-  }
-  if (selectedCatClean === "equiposeuropeos" || selectedCatClean === "europa") {
-    return itemRegionClean === "europa" || itemRegionClean === "equiposeuropeos";
-  }
-  if (selectedCatClean === "conmebol/concacaf") {
-    return itemRegionClean === "conmebol/concacaf";
-  }
+  if (itemCategoryTokens.some(token => selectedAliases.includes(token))) return true;
 
-  return itemRegionClean === selectedCatClean || itemRegionClean.includes(selectedCatClean);
+  return itemCategoryTokens.some(token => token === selectedCatClean || token.includes(selectedCatClean));
 }
 
 function getCatalogItemsForContext(items, context) {
@@ -1335,6 +1385,7 @@ function renderProductPage(item, requestedSku, inventoryItems = []) {
   const sku = item.sku || requestedSku;
   const notes = item.notas || 'Sin descripción adicional.';
   const region = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || '';
+  const regionDisplay = region ? formatCategoryDisplay(region) : '';
   const wsUrl = getProductWhatsAppUrl(item, title);
   const returnUrl = getCatalogReturnUrl();
 
@@ -1375,7 +1426,7 @@ function renderProductPage(item, requestedSku, inventoryItems = []) {
           ${productDetailRow('Talla', item.talla)}
           ${productDetailRow('Tipo', item.tipo)}
           ${productDetailRow('Año', item.year)}
-          ${region ? productDetailRow('Categoría', region) : ''}
+          ${regionDisplay ? productDetailRow('Categoría', regionDisplay) : ''}
         </dl>
         <div class="product-notes product-gallery-notes">
           <h2>Descripción / Notas</h2>
@@ -1446,7 +1497,8 @@ function hideLoader() {
 function setupDragAndDrop() {
   const pairs = [
     { zoneId: "addDropZone", fileId: "addFileInput", imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" },
-    { zoneId: "editDropZone", fileId: "editFileInput", imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" }
+    { zoneId: "editDropZone", fileId: "editFileInput", imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" },
+    { zoneId: "appendDropZone", fileId: "appendFileInput", imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" }
   ];
 
   pairs.forEach(p => {
@@ -1454,7 +1506,11 @@ function setupDragAndDrop() {
     const input = $(p.fileId);
     if (!zone || !input) return;
 
-    zone.addEventListener('click', () => input.click());
+    zone.addEventListener('click', (e) => {
+      if (e.target === input) return;
+      e.preventDefault();
+      input.click();
+    });
     zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('dragover'); });
     zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
     zone.addEventListener('drop', (e) => {
@@ -1527,7 +1583,10 @@ function renderPreviews(config) {
     container.classList.add('hidden');
     uploadBox.classList.remove('hidden');
   }
-  if (config.markDirty !== false) markEditDirty();
+  if (config.markDirty !== false) {
+    if (config.previewId === 'editPreviewContainer') markEditDirty();
+    if (config.previewId === 'appendPreviewContainer') markAppendImagesDirty();
+  }
 }
 
 function renderCurrentImages(images) {
@@ -1540,13 +1599,35 @@ function renderCurrentImages(images) {
   container.classList.toggle('hidden', visibleImages.length === 0);
 }
 
+function getSelectedProductCategories(form) {
+  return Array.from(form.querySelectorAll('[data-product-category]:checked'))
+    .map(input => getCanonicalCategoryValue(input.value))
+    .filter(Boolean);
+}
+
+function setCategoryGroupValues(form, value) {
+  if (!form) return;
+  const selected = String(value || '')
+    .split(',')
+    .map(part => cleanOptionText(part))
+    .filter(Boolean);
+
+  form.querySelectorAll('[data-product-category]').forEach(input => {
+    const inputAliases = getCategoryAliases(input.value);
+    input.checked = selected.some(category => inputAliases.includes(category));
+  });
+}
+
 function removeImageAt(index, previewContainerId) {
   if (previewContainerId === 'addPreviewContainer') {
     addImages.splice(index, 1);
     renderPreviews({ imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" });
-  } else {
+  } else if (previewContainerId === 'editPreviewContainer') {
     editImages.splice(index, 1);
     renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
+  } else if (previewContainerId === 'appendPreviewContainer') {
+    appendImages.splice(index, 1);
+    renderPreviews({ imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" });
   }
 }
 
@@ -1565,12 +1646,22 @@ function setupAdminForms() {
       handleFiles(e.target.files, { imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" });
     }
   });
+  $("appendFileInput")?.addEventListener("change", (e) => {
+    if(e.target.files.length) {
+      handleFiles(e.target.files, { imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" });
+    }
+  });
 }
 
 function markEditDirty() {
   editDirty = true;
   const confirmBtn = $("confirmUpdateBtn");
   if (confirmBtn) confirmBtn.disabled = false;
+}
+
+function markAppendImagesDirty() {
+  const confirmBtn = $("confirmAddPhotosBtn");
+  if (confirmBtn) confirmBtn.disabled = getUploadImages(appendImages).length === 0;
 }
 
 function getUploadImages(images) {
@@ -1590,6 +1681,14 @@ async function submitAdd(e) {
   e.preventDefault();
   const btn = e.submitter || document.querySelector("#addForm button[type='submit']");
   btn.disabled = true;
+
+  const categories = getSelectedProductCategories(e.target);
+  if (!categories.length) {
+    alert("Selecciona al menos una categoría para la prenda.");
+    btn.disabled = false;
+    return;
+  }
+
   showLoader("Subiendo camisola al inventario de Sheets...");
 
   const formData = new FormData(e.target);
@@ -1605,7 +1704,7 @@ async function submitAdd(e) {
     talla: formData.get("talla"),
     tipo: formData.get("tipo"),
     disponible: formData.get("venta") !== null, // Checkbox returns null if unchecked
-    tipoRegion: formData.get("tipo_region"), // Matches the name in HTML
+    tipoRegion: categories.join(','),
     notas: formData.get("notas"),
     images: getUploadImages(addImages)
   };
@@ -1661,6 +1760,7 @@ async function lookupSku() {
               <div><strong>SKU:</strong> ${escapeHtml(itemData.sku)}</div>
               <div><strong>Talla:</strong> ${escapeHtml(itemData.talla)}</div>
               <div><strong>Tipo:</strong> ${escapeHtml(itemData.tipo)}</div>
+              <div style="grid-column: 1 / -1;"><strong>Categorías:</strong> ${escapeHtml(formatCategoryDisplay(itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || ""))}</div>
               <div><strong>Disponibilidad:</strong> ${itemData.disponible ? 'SÍ' : 'NO'}</div>
               <div style="grid-column: 1 / -1;">
                 <strong>Estado:</strong> 
@@ -1686,14 +1786,16 @@ async function lookupSku() {
       setSelectValue(form.talla, itemData.talla);
       setSelectValue(form.tipo, itemData.tipo);
       form.venta.checked = itemData.disponible === true || String(itemData.disponible).toUpperCase() === 'SÍ'; 
-      setSelectValue(form.tipo_region, itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "");
+      setCategoryGroupValues(form, itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "");
       form.notas.value = itemData.notas || "";
 
       // Render image previews in the edit form
       const currentGallery = getProductImages(itemData);
       editImages = [];
+      appendImages = [];
       renderCurrentImages(currentGallery);
       renderPreviews({ imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer", markDirty: false });
+      renderPreviews({ imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer", markDirty: false });
 
       // Show the action buttons (Actualizar, Marcar Vendida, Eliminar)
       showActions();
@@ -1706,35 +1808,92 @@ async function lookupSku() {
 
 function showActions() {
   $("updateBtn").classList.remove("hidden");
+  $("addPhotosBtn").classList.remove("hidden");
   $("soldBtn").classList.remove("hidden");
   $("deleteBtn").classList.remove("hidden");
   $("confirmUpdateBtn").classList.add("hidden");
+  $("confirmAddPhotosBtn").classList.add("hidden");
   $("editForm").classList.add("hidden");
+  $("addPhotosForm").classList.add("hidden");
 }
 
 function hideActions() {
   $("updateBtn").classList.add("hidden");
+  $("addPhotosBtn").classList.add("hidden");
   $("soldBtn").classList.add("hidden");
   $("deleteBtn").classList.add("hidden");
   $("confirmUpdateBtn").classList.add("hidden");
+  $("confirmAddPhotosBtn").classList.add("hidden");
+  $("addPhotosForm").classList.add("hidden");
 }
 
 function showEditForm() {
   $("editForm").classList.remove("hidden");
+  $("addPhotosForm").classList.add("hidden");
   $("updateBtn").classList.add("hidden");
+  $("addPhotosBtn").classList.add("hidden");
   $("confirmUpdateBtn").classList.remove("hidden");
+  $("confirmAddPhotosBtn").classList.add("hidden");
   editDirty = false;
   $("confirmUpdateBtn").disabled = true;
+}
+
+function showAddPhotosForm() {
+  if (!currentItem) return;
+
+  $("addPhotosForm").classList.remove("hidden");
+  $("editForm").classList.add("hidden");
+  $("updateBtn").classList.add("hidden");
+  $("addPhotosBtn").classList.add("hidden");
+  $("confirmUpdateBtn").classList.add("hidden");
+  $("confirmAddPhotosBtn").classList.remove("hidden");
+  $("confirmAddPhotosBtn").disabled = getUploadImages(appendImages).length === 0;
+}
+
+async function confirmAddPhotos() {
+  if (!currentItem) return;
+
+  const images = getUploadImages(appendImages);
+  if (!images.length) {
+    alert("Selecciona al menos una foto para agregar.");
+    return;
+  }
+
+  const btn = $("confirmAddPhotosBtn");
+  btn.disabled = true;
+  showLoader("Agregando fotos secundarias a la prenda...");
+
+  try {
+    await sendPostRequest({
+      action: "appendImages",
+      sku: currentItem.sku,
+      images
+    });
+    alert("¡Las fotos nuevas se agregaron a la galería de la prenda!");
+    closeManageModal();
+  } catch (err) {
+    alert("Error de conexión al agregar las fotos.");
+  }
+
+  hideLoader();
+  btn.disabled = false;
 }
 
 async function confirmUpdate() {
   if (!editDirty) return;
   const btn = $("confirmUpdateBtn");
   btn.disabled = true;
-  showLoader("Guardando cambios y procesando imágenes en el Excel...");
 
   const form = $("editForm");
-  
+  const categories = getSelectedProductCategories(form);
+  if (!categories.length) {
+    alert("Selecciona al menos una categoría para la prenda.");
+    btn.disabled = false;
+    return;
+  }
+
+  showLoader("Guardando cambios y procesando imágenes en el Excel...");
+
   // Changed action to 'updateItem' to match code.gs
   // and added the missing year, precioOferta, and disponible fields.
   const payload = {
@@ -1747,7 +1906,7 @@ async function confirmUpdate() {
     talla: form.talla.value,
     tipo: form.tipo.value,
     disponible: form.venta.checked, // Retrieves true/false from the checkbox
-    tipoRegion: form.tipo_region.value,
+    tipoRegion: categories.join(','),
     notas: form.notas.value,
     images: getUploadImages(editImages)
   };
@@ -1816,10 +1975,14 @@ function resetManage() {
   $("editForm").classList.add("hidden");
   $("editPreviewContainer").innerHTML = "";
   $("editPreviewContainer").classList.add("hidden");
+  $("appendPreviewContainer").innerHTML = "";
+  $("appendPreviewContainer").classList.add("hidden");
   $("editCurrentImages")?.classList.add("hidden");
   if ($("editCurrentImages")) $("editCurrentImages").innerHTML = "";
   $("editUploadContainer").classList.remove("hidden");
+  $("appendUploadContainer").classList.remove("hidden");
   editImages = [];
+  appendImages = [];
   hideActions();
 }
 
@@ -1833,9 +1996,13 @@ function resetManageExceptSku() {
   $("editForm").classList.add("hidden");
   $("editPreviewContainer").innerHTML = "";
   $("editPreviewContainer").classList.add("hidden");
+  $("appendPreviewContainer").innerHTML = "";
+  $("appendPreviewContainer").classList.add("hidden");
   $("editCurrentImages")?.classList.add("hidden");
   if ($("editCurrentImages")) $("editCurrentImages").innerHTML = "";
   $("editUploadContainer").classList.remove("hidden");
+  $("appendUploadContainer").classList.remove("hidden");
   editImages = [];
+  appendImages = [];
   hideActions();
 }

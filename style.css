@@ -152,10 +152,27 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .top-buttons { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
 .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.modal-title { color: #fff; font-size: 24px; font-weight: 800; margin-bottom: 18px; padding-right: 36px; }
+.helper-text,
+.status-text { color: #9eb1ca; font-size: 14px; font-weight: 700; line-height: 1.45; margin-bottom: 14px; }
+.modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-top: 22px; }
+.checkbox-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.checkbox-row input,
+.category-checkbox input { width: 18px; height: 18px; padding: 0; flex: 0 0 auto; accent-color: #2490ff; }
+.product-category-picker { grid-column: 1 / -1; }
+.category-checkbox-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.category-checkbox { min-height: 44px; display: flex; align-items: center; gap: 9px; padding: 10px 12px; color: #d9e5f5; background: #07101d; border: 1px solid #203552; border-radius: 12px; font-size: 13px; line-height: 1.2; cursor: pointer; }
+.category-checkbox:has(input:checked) { border-color: #2490ff; background: #10233c; }
+.admin-inline-panel { margin-top: 18px; padding: 16px; background: #0a1728; border: 1px solid #1b2f49; border-radius: 16px; }
+.admin-inline-panel h3 { color: #fff; font-size: 18px; line-height: 1.25; margin-bottom: 8px; }
+.admin-inline-panel p { color: #9eb1ca; font-size: 13px; font-weight: 700; line-height: 1.45; margin-bottom: 14px; }
+.sku-summary { margin-top: 4px; }
+.small-modal { max-width: 520px; }
 
 /* RESPONSIVE */
 @media (max-width: 850px) {
   .form-grid, .two-cols { grid-template-columns: 1fr; }
+  .category-checkbox-grid { grid-template-columns: 1fr; }
   .filters-grid { grid-template-columns: 1fr 1fr; }
   .catalog-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; } 
   .card-image-container { height: 200px; } 

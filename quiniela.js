@@ -6,6 +6,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   const QUINIELA_SEASON_ID = 'world-cup-2026';
   const LOCAL_USER_ID = 'local-demo-user';
   const GUATEMALA_TIME_ZONE = 'America/Guatemala';
+  const GROUP_STAGE_GROUP_KEY = 'group-stage';
 
   // ESTRUCTURA FIREBASE PREPARADA:
   // Al conectar Firebase, este mapa sera la guia de colecciones/documentos.
@@ -97,7 +98,39 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     { id: 'm069', kickoffUtc: '2026-06-27T23:30:00Z', stage: 'Grupo K', round: 'Jornada 3', home: 'Colombia', away: 'Portugal', venue: 'Hard Rock Stadium, Miami' },
     { id: 'm070', kickoffUtc: '2026-06-27T23:30:00Z', stage: 'Grupo K', round: 'Jornada 3', home: 'RD Congo', away: 'Uzbekistan', venue: 'Mercedes-Benz Stadium, Atlanta' },
     { id: 'm071', kickoffUtc: '2026-06-28T02:00:00Z', stage: 'Grupo J', round: 'Jornada 3', home: 'Argelia', away: 'Austria', venue: 'GEHA Field at Arrowhead Stadium, Kansas City' },
-    { id: 'm072', kickoffUtc: '2026-06-28T02:00:00Z', stage: 'Grupo J', round: 'Jornada 3', home: 'Jordania', away: 'Argentina', venue: 'AT&T Stadium, Dallas' }
+    { id: 'm072', kickoffUtc: '2026-06-28T02:00:00Z', stage: 'Grupo J', round: 'Jornada 3', home: 'Jordania', away: 'Argentina', venue: 'AT&T Stadium, Dallas' },
+    { id: 'm073', kickoffUtc: '2026-06-28T19:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Sudafrica', away: 'Canada', venue: 'Estadio Los Angeles', knockout: true },
+    { id: 'm074', kickoffUtc: '2026-06-29T20:30:00Z', stage: '16avos de final', round: '16avos de final', home: 'Alemania', away: 'Paraguay', venue: 'Estadio Boston', knockout: true },
+    { id: 'm075', kickoffUtc: '2026-06-30T01:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Paises Bajos', away: 'Marruecos', venue: 'Estadio Monterrey', knockout: true },
+    { id: 'm076', kickoffUtc: '2026-06-29T17:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Brasil', away: 'Japon', venue: 'Estadio Houston', knockout: true },
+    { id: 'm077', kickoffUtc: '2026-06-30T21:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Francia', away: 'Suecia', venue: 'Estadio Nueva York Nueva Jersey', knockout: true },
+    { id: 'm078', kickoffUtc: '2026-06-30T17:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Costa de Marfil', away: 'Noruega', venue: 'Estadio Dallas', knockout: true },
+    { id: 'm079', kickoffUtc: '2026-07-01T01:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Mexico', away: 'Ecuador', venue: 'Estadio Ciudad de Mexico', knockout: true },
+    { id: 'm080', kickoffUtc: '2026-07-01T16:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Inglaterra', away: 'TBD', venue: 'Estadio Atlanta', knockout: true },
+    { id: 'm081', kickoffUtc: '2026-07-02T00:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Estados Unidos', away: 'Bosnia y Herzegovina', venue: 'Estadio Bahia de San Francisco', knockout: true },
+    { id: 'm082', kickoffUtc: '2026-07-01T22:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Belgica', away: 'TBD', venue: 'Estadio Seattle', knockout: true },
+    { id: 'm083', kickoffUtc: '2026-07-02T23:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Portugal', away: 'Croacia', venue: 'Estadio Toronto', knockout: true },
+    { id: 'm084', kickoffUtc: '2026-07-02T21:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Espana', away: 'Austria', venue: 'Estadio Los Angeles', knockout: true },
+    { id: 'm085', kickoffUtc: '2026-07-03T03:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Suiza', away: 'TBD', venue: 'Estadio BC Place Vancouver', knockout: true },
+    { id: 'm086', kickoffUtc: '2026-07-03T22:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Argentina', away: 'Cabo Verde', venue: 'Estadio Miami', knockout: true },
+    { id: 'm087', kickoffUtc: '2026-07-04T01:30:00Z', stage: '16avos de final', round: '16avos de final', home: 'Colombia', away: 'TBD', venue: 'Estadio Kansas City', knockout: true },
+    { id: 'm088', kickoffUtc: '2026-07-03T18:00:00Z', stage: '16avos de final', round: '16avos de final', home: 'Australia', away: 'Egipto', venue: 'Estadio Dallas', knockout: true },
+    { id: 'm089', kickoffUtc: '2026-07-04T21:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 74', away: 'Ganador Partido 77', venue: 'Estadio Filadelfia', knockout: true },
+    { id: 'm090', kickoffUtc: '2026-07-04T17:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 73', away: 'Ganador Partido 75', venue: 'Estadio Houston', knockout: true },
+    { id: 'm091', kickoffUtc: '2026-07-05T22:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 76', away: 'Ganador Partido 78', venue: 'Estadio Nueva York Nueva Jersey', knockout: true },
+    { id: 'm092', kickoffUtc: '2026-07-06T00:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 79', away: 'Ganador Partido 80', venue: 'Estadio Ciudad de Mexico', knockout: true },
+    { id: 'm093', kickoffUtc: '2026-07-06T19:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 83', away: 'Ganador Partido 84', venue: 'Estadio Dallas', knockout: true },
+    { id: 'm094', kickoffUtc: '2026-07-07T00:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 81', away: 'Ganador Partido 82', venue: 'Estadio Seattle', knockout: true },
+    { id: 'm095', kickoffUtc: '2026-07-07T16:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 86', away: 'Ganador Partido 88', venue: 'Estadio Atlanta', knockout: true },
+    { id: 'm096', kickoffUtc: '2026-07-07T22:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 85', away: 'Ganador Partido 87', venue: 'Estadio BC Place Vancouver', knockout: true },
+    { id: 'm097', kickoffUtc: '2026-07-09T20:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Ganador Partido 89', away: 'Ganador Partido 90', venue: 'Estadio Boston', knockout: true },
+    { id: 'm098', kickoffUtc: '2026-07-10T19:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Ganador Partido 93', away: 'Ganador Partido 94', venue: 'Estadio Los Angeles', knockout: true },
+    { id: 'm099', kickoffUtc: '2026-07-11T21:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Ganador Partido 91', away: 'Ganador Partido 92', venue: 'Estadio Miami', knockout: true },
+    { id: 'm100', kickoffUtc: '2026-07-12T01:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Ganador Partido 95', away: 'Ganador Partido 96', venue: 'Estadio Kansas City', knockout: true },
+    { id: 'm101', kickoffUtc: '2026-07-14T19:00:00Z', stage: 'Semifinales', round: 'Semifinales', home: 'Ganador Partido 97', away: 'Ganador Partido 98', venue: 'Estadio Dallas', knockout: true },
+    { id: 'm102', kickoffUtc: '2026-07-15T19:00:00Z', stage: 'Semifinales', round: 'Semifinales', home: 'Ganador Partido 99', away: 'Ganador Partido 100', venue: 'Estadio Atlanta', knockout: true },
+    { id: 'm103', kickoffUtc: '2026-07-18T21:00:00Z', stage: 'Tercer puesto', round: 'Tercer puesto', home: 'Perdedor Partido 101', away: 'Perdedor Partido 102', venue: 'Estadio Miami', knockout: true },
+    { id: 'm104', kickoffUtc: '2026-07-19T19:00:00Z', stage: 'Final', round: 'Final', home: 'Ganador Partido 101', away: 'Ganador Partido 102', venue: 'Estadio Nueva York Nueva Jersey', knockout: true }
   ];
 
   const TEAM_FLAGS = {
@@ -493,6 +526,17 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return isCompleteScore(prediction);
   }
 
+  function isPlaceholderTeam(team) {
+    const value = String(team || '').trim().toLowerCase();
+    return value === 'tbd'
+      || value.startsWith('ganador partido')
+      || value.startsWith('perdedor partido');
+  }
+
+  function hasPendingMatchup(match) {
+    return isPlaceholderTeam(match.home) || isPlaceholderTeam(match.away);
+  }
+
   function hasPredictionValue(prediction) {
     return prediction
       && (prediction.home !== '' || prediction.away !== '' || prediction.advances);
@@ -590,21 +634,48 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     return label.charAt(0).toUpperCase() + label.slice(1);
   }
 
+  function isGroupStageMatch(match) {
+    return String(match.stage || '').startsWith('Grupo ');
+  }
+
+  function sortGroupMatches(matches) {
+    return matches.sort((a, b) => {
+      const direction = matches.every(isGroupStageMatch) ? -1 : 1;
+      return direction * (getKickoffDate(a).getTime() - getKickoffDate(b).getTime());
+    });
+  }
+
+  function getDateGroupDisplayBucket(group) {
+    if (group.matches.every(isGroupStageMatch)) return 2;
+    if (group.matches.every(match => isCompleteResult(match, quinielaState.results[match.id]))) return 1;
+    return 0;
+  }
+
   function getMatchesByDate() {
-    return [...QUINIELA_MATCHES]
+    const groups = [...QUINIELA_MATCHES]
       .sort((a, b) => getKickoffDate(a).getTime() - getKickoffDate(b).getTime())
       .reduce((groups, match) => {
-        const dateKey = getMatchDateKey(match);
+        const dateKey = isGroupStageMatch(match) ? GROUP_STAGE_GROUP_KEY : getMatchDateKey(match);
         if (!groups.some(group => group.dateKey === dateKey)) {
           groups.push({
             dateKey,
-            stage: formatGroupDate(dateKey),
+            stage: dateKey === GROUP_STAGE_GROUP_KEY ? 'Fase de Grupos' : formatGroupDate(dateKey),
             matches: []
           });
         }
         groups.find(group => group.dateKey === dateKey).matches.push(match);
         return groups;
       }, []);
+
+    groups.forEach(group => sortGroupMatches(group.matches));
+
+    return groups.sort((a, b) => {
+      const bucketA = getDateGroupDisplayBucket(a);
+      const bucketB = getDateGroupDisplayBucket(b);
+      if (bucketA !== bucketB) return bucketA - bucketB;
+      const direction = bucketA === 0 ? 1 : -1;
+      return direction * (new Date(`${a.dateKey}T00:00:00-06:00`).getTime() - new Date(`${b.dateKey}T00:00:00-06:00`).getTime());
+    });
   }
 
   function getDefaultPredictionGroupIndex(groups) {
@@ -618,7 +689,8 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     const nextIndex = groups.findIndex(group => group.matches.some(match => getKickoffDate(match).getTime() >= now));
     if (nextIndex !== -1) return nextIndex;
 
-    return groups.length - 1;
+    const latestKnockoutIndex = groups.findIndex(group => group.dateKey !== GROUP_STAGE_GROUP_KEY);
+    return latestKnockoutIndex !== -1 ? latestKnockoutIndex : groups.length - 1;
   }
 
   function predictionCountForStage(participantId, matches) {
@@ -1008,12 +1080,13 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
   }
 
   function isPredictionLocked(match) {
-    return isMatchLocked(match) || Boolean(quinielaState.results[match.id]?.final);
+    return hasPendingMatchup(match) || isMatchLocked(match) || Boolean(quinielaState.results[match.id]?.final);
   }
 
   function predictionStatusFor(match) {
     const result = quinielaState.results[match.id];
     if (result?.final) return 'terminado';
+    if (hasPendingMatchup(match)) return 'por confirmar';
     if (isMatchLocked(match)) return 'iniciado';
     return 'haz tu predicción';
   }

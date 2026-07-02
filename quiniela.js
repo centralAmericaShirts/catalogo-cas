@@ -120,7 +120,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     { id: 'm091', kickoffUtc: '2026-07-05T22:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Brasil', away: 'Noruega', venue: 'Estadio Nueva York Nueva Jersey', knockout: true },
     { id: 'm092', kickoffUtc: '2026-07-06T00:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Mexico', away: 'Inglaterra', venue: 'Estadio Ciudad de Mexico', knockout: true },
     { id: 'm093', kickoffUtc: '2026-07-06T19:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 83', away: 'Ganador Partido 84', venue: 'Estadio Dallas', knockout: true },
-    { id: 'm094', kickoffUtc: '2026-07-07T00:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 81', away: 'Ganador Partido 82', venue: 'Estadio Seattle', knockout: true },
+    { id: 'm094', kickoffUtc: '2026-07-07T00:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Estados Unidos', away: 'Belgica', venue: 'Estadio Seattle', knockout: true },
     { id: 'm095', kickoffUtc: '2026-07-07T16:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 86', away: 'Ganador Partido 88', venue: 'Estadio Atlanta', knockout: true },
     { id: 'm096', kickoffUtc: '2026-07-07T22:00:00Z', stage: 'Octavos de final', round: 'Octavos de final', home: 'Ganador Partido 85', away: 'Ganador Partido 87', venue: 'Estadio BC Place Vancouver', knockout: true },
     { id: 'm097', kickoffUtc: '2026-07-09T20:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Ganador Partido 89', away: 'Ganador Partido 90', venue: 'Estadio Boston', knockout: true },

@@ -126,7 +126,7 @@ import { createFirebaseQuinielaStore } from './quiniela-firebase-store.js?v=2026
     { id: 'm097', kickoffUtc: '2026-07-09T20:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Francia', away: 'Marruecos', venue: 'Estadio Boston', knockout: true },
     { id: 'm098', kickoffUtc: '2026-07-10T19:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Espana', away: 'Belgica', venue: 'Estadio Los Angeles', knockout: true },
     { id: 'm099', kickoffUtc: '2026-07-11T21:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Noruega', away: 'Inglaterra', venue: 'Estadio Miami', knockout: true },
-    { id: 'm100', kickoffUtc: '2026-07-12T01:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Argentina', away: 'Ganador Partido 96', venue: 'Estadio Kansas City', knockout: true },
+    { id: 'm100', kickoffUtc: '2026-07-12T01:00:00Z', stage: 'Cuartos de final', round: 'Cuartos de final', home: 'Argentina', away: 'Suiza', venue: 'Estadio Kansas City', knockout: true },
     { id: 'm101', kickoffUtc: '2026-07-14T19:00:00Z', stage: 'Semifinales', round: 'Semifinales', home: 'Ganador Partido 97', away: 'Ganador Partido 98', venue: 'Estadio Dallas', knockout: true },
     { id: 'm102', kickoffUtc: '2026-07-15T19:00:00Z', stage: 'Semifinales', round: 'Semifinales', home: 'Ganador Partido 99', away: 'Ganador Partido 100', venue: 'Estadio Atlanta', knockout: true },
     { id: 'm103', kickoffUtc: '2026-07-18T21:00:00Z', stage: 'Tercer puesto', round: 'Tercer puesto', home: 'Perdedor Partido 101', away: 'Perdedor Partido 102', venue: 'Estadio Miami', knockout: true },

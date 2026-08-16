@@ -1,17 +1,18 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzUkviJwpsofs3vPBE5DT5uHmPgaiRH9_InHgR21jN2H4-je6NR0UH0py3u5AYpXHFXIg/exec"; 
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZnE0iOi5VMm3igxymEHK9p_Xe8QK0KJVVsCx-8yEs4bwiFN-KKVSvay-kY4rVKni1Hg/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
 
 let allItems = [];
 let filteredItems = [];
+let catalogCategories = [];
 let currentPage = 1;
 const DEFAULT_ITEMS_PER_PAGE = 24;
 let itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 let showAllProducts = false;
-let currentCategory = "Todas las Prendas"; // Estado de la categoría seleccionada
+let currentCategory = "Todo"; // Categoría seleccionada
 let randomGallerySeed = Date.now();
 let randomGalleryItems = [];
 let randomGalleryIndex = 0;
@@ -24,24 +25,46 @@ let editImages = [];
 let appendImages = [];
 let isLoading = true;
 let jsonpCounter = 0;
+let adminProducts = [];
+let adminProductsPage = 1;
+let adminProductsPerPage = 25;
+let adminAvailabilityFilter = 'all';
+let adminActiveTab = 'products';
+let adminPendingProductUpdates = new Map();
+let adminOriginalProductsBySku = new Map();
+let adminCategoriesDraft = [];
+let adminCategoriesDirty = false;
+let adminCategoriesOriginalSignature = '';
+let adminFirebase = null;
+let adminProductEditImages = [];
+let adminProductEditCurrentImages = [];
 
 // Helper para seleccionar elementos como en jQuery
 const $ = (id) => document.getElementById(id);
-const MENU_CATEGORIES = [
-  ['Ofertas', 'Ofertas'],
-  ['Todas las Prendas', 'Todas las prendas'],
-  ['Selecciones', 'Selecciones'],
-  ['Mundial 2026', 'Mundial 2026'],
-  ['Equipos Europeos', 'Equipos Europeos'],
-  ['Conmebol / Concacaf', 'Conmebol / Concacaf'],
-  ['Otros', 'Otros']
+const CATEGORY_ALL_NAME = 'Todo';
+const CATEGORY_OFFER_NAME = 'Ofertas';
+const DEFAULT_CATEGORY_IMAGE = 'assets/logo_cas.png';
+const DEFAULT_CATEGORIES = [
+  { imageUrl: 'assets/logo_cas.png', name: CATEGORY_ALL_NAME, priority: 10, isActive: true },
+  { imageUrl: 'categories/ofertas.png', name: CATEGORY_OFFER_NAME, priority: 20, isActive: true },
+  { imageUrl: 'assets/logo_cas.png', name: 'Exclusivo en línea', priority: 30, isActive: true },
+  { imageUrl: 'categories/selecciones.jpg', name: 'Selecciones', priority: 40, isActive: true },
+  { imageUrl: 'assets/logo_cas.png', name: 'Futbol Nacional (GT)', priority: 50, isActive: true },
+  { imageUrl: 'categories/europa.jpg', name: 'Equipos Europeos', priority: 60, isActive: true },
+  { imageUrl: 'categories/conmebol_concacaf.png', name: 'Conmebol/Concacaf', priority: 70, isActive: true },
+  { imageUrl: 'categories/otros.png', name: 'Otros', priority: 80, isActive: true },
+  { imageUrl: 'assets/logo_cas.png', name: 'Únicamente en Tienda', priority: 90, isActive: true }
 ];
-const PRODUCT_CATEGORIES = [
-  { value: 'Seleccion', label: 'Selección', aliases: ['selecciones'] },
-  { value: 'Mundial 2026', label: 'Mundial 2026', aliases: ['mundial'] },
-  { value: 'Europa', label: 'Europa', aliases: ['equipos europeos'] },
-  { value: 'Conmebol/Concacaf', label: 'Conmebol / Concacaf', aliases: ['conmebol / concacaf'] },
-  { value: 'Otros', label: 'Otros', aliases: ['otro'] }
+const CATEGORY_ALIAS_GROUPS = [
+  { name: CATEGORY_ALL_NAME, aliases: ['Todas las prendas', 'Todas las Prendas', 'Todos', 'All'] },
+  { name: CATEGORY_OFFER_NAME, aliases: ['Oferta', 'Ofertas'] },
+  { name: 'Exclusivo en línea', aliases: ['Exclusivo en linea', 'Exclusivo online', 'Online', 'En linea'] },
+  { name: 'Selecciones', aliases: ['Seleccion', 'Selección', 'selecciones'] },
+  { name: 'Futbol Nacional (GT)', aliases: ['Fútbol Nacional (GT)', 'Futbol Nacional', 'Fútbol Nacional', 'Nacional GT', 'Guatemala'] },
+  { name: 'Equipos Europeos', aliases: ['Europa', 'Europeos'] },
+  { name: 'Conmebol/Concacaf', aliases: ['Conmebol / Concacaf', 'Conmebol-Concacaf'] },
+  { name: 'Otros', aliases: ['Otro'] },
+  { name: 'Únicamente en Tienda', aliases: ['Unicamente en Tienda', 'Solo en tienda', 'Tienda'] }
 ];
 
 function ensurePageLoader() {
@@ -97,6 +120,208 @@ function getProductWhatsAppUrl(item, titleOverride = '') {
   return `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
 }
 
+function parseCategoryActive(value) {
+  if (value === undefined || value === null || value === '') return true;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  const clean = cleanText(value);
+  return !['0', 'false', 'falso', 'no', 'n', 'inactive', 'inactivo'].includes(clean);
+}
+
+function getCategoryAliasGroup(value) {
+  const selectedClean = cleanOptionText(value);
+  return CATEGORY_ALIAS_GROUPS.find(group => {
+    const values = [group.name, ...(group.aliases || [])];
+    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
+  }) || null;
+}
+
+function getBuiltInCategoryAliases(value) {
+  const group = getCategoryAliasGroup(value);
+  return group ? group.aliases : [];
+}
+
+function getBuiltInCategoryName(value) {
+  const group = getCategoryAliasGroup(value);
+  return group ? group.name : String(value || '').trim();
+}
+
+function getDefaultCategoryImage(value) {
+  const builtInName = getBuiltInCategoryName(value);
+  const category = DEFAULT_CATEGORIES.find(option => cleanOptionText(option.name) === cleanOptionText(builtInName));
+  return category?.imageUrl || DEFAULT_CATEGORY_IMAGE;
+}
+
+function normalizeCategoryList(categories) {
+  const source = Array.isArray(categories) && categories.length ? categories : DEFAULT_CATEGORIES;
+  const seen = new Set();
+
+  const normalized = source.map((category, index) => {
+    const name = String(category?.name ?? category?.Name ?? '').trim();
+    if (!name) return null;
+
+    const key = cleanOptionText(name);
+    if (!key || seen.has(key)) return null;
+    seen.add(key);
+
+    const priority = Number(category?.priority ?? category?.Priority);
+    const rawAliases = Array.isArray(category?.aliases) ? category.aliases : [];
+
+    return {
+      imageUrl: String(category?.imageUrl ?? category?.ImageUrl ?? category?.imageURL ?? category?.image_url ?? category?.image ?? '').trim() || getDefaultCategoryImage(name),
+      name,
+      priority: Number.isFinite(priority) ? priority : index + 1,
+      isActive: parseCategoryActive(category?.isActive ?? category?.IsActive ?? category?.active ?? category?.Activo ?? true),
+      aliases: [...new Set([...rawAliases, ...getBuiltInCategoryAliases(name)])]
+    };
+  }).filter(Boolean);
+
+  const finalCategories = normalized.length ? normalized : DEFAULT_CATEGORIES.map((category, index) => ({
+    ...category,
+    priority: category.priority || index + 1,
+    aliases: getBuiltInCategoryAliases(category.name)
+  }));
+
+  return finalCategories.sort((a, b) => {
+    if (a.priority !== b.priority) return a.priority - b.priority;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function normalizeCategoryPayload(data) {
+  if (Array.isArray(data?.categories)) return normalizeCategoryList(data.categories);
+  if (Array.isArray(data?.categoryRows)) return normalizeCategoryList(data.categoryRows);
+  return normalizeCategoryList(DEFAULT_CATEGORIES);
+}
+
+function setCatalogCategories(categories) {
+  catalogCategories = normalizeCategoryList(categories);
+  renderCategorySurfaces();
+}
+
+function getCatalogCategories(options = {}) {
+  const categories = catalogCategories.length ? catalogCategories : normalizeCategoryList(DEFAULT_CATEGORIES);
+  return options.includeInactive ? categories : categories.filter(category => category.isActive);
+}
+
+function isOfferCategory(category) {
+  return cleanOptionText(category) === cleanOptionText(CATEGORY_OFFER_NAME);
+}
+
+function getAssignableProductCategories() {
+  return getCatalogCategories().filter(category => !isAllCategory(category.name) && !isOfferCategory(category.name));
+}
+
+function getCategoryOption(value, options = {}) {
+  const selectedClean = cleanOptionText(value);
+  const categories = getCatalogCategories({ includeInactive: options.includeInactive !== false });
+  return categories.find(category => {
+    const values = [category.name, ...(category.aliases || []), ...getBuiltInCategoryAliases(category.name)];
+    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
+  }) || null;
+}
+
+function getCategoryLabel(value) {
+  const category = getCategoryOption(value);
+  const label = category?.name || getBuiltInCategoryName(value);
+  return isOfferCategory(label) ? label.toUpperCase() : label;
+}
+
+function getCategoryHref(category) {
+  const url = new URL('index.html', window.location.href);
+  url.searchParams.set('category', category);
+  return url.href;
+}
+
+function getCategoryMarkupLabel(category) {
+  const label = getCategoryLabel(category.name);
+  const className = isOfferCategory(category.name) ? ' class="category-offer-text"' : '';
+  return `<span${className}>${escapeHtml(label)}</span>`;
+}
+
+function renderCategorySurfaces() {
+  renderSideMenuCategories();
+  renderCategoryGrid();
+  renderCategorySwitcherBand();
+  renderProductCategoryPickers();
+  updateCurrentCategoryTitle();
+  updateStickyCategoryHeader();
+}
+
+function renderSideMenuCategories() {
+  const content = document.querySelector('.side-menu-accordion .accordion-content');
+  if (!content) return;
+
+  content.innerHTML = getCatalogCategories().map(category => `
+    <a href="${escapeHtml(getCategoryHref(category.name))}" class="${isOfferCategory(category.name) ? 'category-offer-link' : ''}" data-category-link="${escapeHtml(category.name)}">
+      ${getCategoryMarkupLabel(category)}
+    </a>
+  `).join('');
+}
+
+function renderCategoryGrid() {
+  const grid = $('categoryGrid');
+  if (!grid) return;
+
+  grid.innerHTML = getCatalogCategories().map(category => {
+    const image = category.imageUrl || getDefaultCategoryImage(category.name);
+    return `
+      <button type="button" class="cat-card${isOfferCategory(category.name) ? ' category-offer-card' : ''}" data-category-link="${escapeHtml(category.name)}" style="background-image: url(&quot;${escapeHtml(image)}&quot;)">
+        <span class="cat-overlay"></span>
+        <h3>${getCategoryMarkupLabel(category)}</h3>
+      </button>
+    `;
+  }).join('');
+}
+
+function renderCategorySwitcherBand() {
+  const band = $('categorySwitcherBand');
+  if (!band) return;
+
+  const categories = getCatalogCategories().filter(category => cleanOptionText(category.name) !== cleanOptionText(currentCategory));
+  band.innerHTML = categories.map(category => `
+    <button type="button" class="category-band-btn${isOfferCategory(category.name) ? ' category-offer-link' : ''}" data-category-link="${escapeHtml(category.name)}">
+      ${getCategoryMarkupLabel(category)}
+    </button>
+  `).join('');
+}
+
+function renderProductCategoryPickers() {
+  const pickers = document.querySelectorAll('[data-category-picker]');
+  if (!pickers.length) return;
+
+  const categories = getAssignableProductCategories();
+  pickers.forEach(grid => {
+    const selected = Array.from(grid.querySelectorAll('[data-product-category]:checked')).map(input => input.value);
+    grid.innerHTML = categories.length
+      ? categories.map(category => `
+        <label class="category-checkbox">
+          <input type="checkbox" data-product-category name="categorias" value="${escapeHtml(category.name)}">
+          ${escapeHtml(getCategoryLabel(category.name))}
+        </label>
+      `).join('')
+      : '<div class="category-picker-empty">No hay categorías activas para asignar.</div>';
+
+    if (selected.length) setCategoryGroupValues(grid.closest('form'), selected.join(','));
+  });
+}
+
+function updateCurrentCategoryTitle() {
+  const titleEl = $('currentCategoryTitle');
+  if (!titleEl) return;
+  titleEl.innerText = getCategoryLabel(currentCategory);
+  titleEl.classList.toggle('category-offer-title', isOfferCategory(currentCategory));
+}
+
+async function loadCategoriesForPage() {
+  try {
+    const data = await getJsonp({ action: 'getCategories' });
+    setCatalogCategories(normalizeCategoryPayload(data));
+  } catch (error) {
+    renderCategorySurfaces();
+  }
+}
+
 /* ==========================================================================
    2. ENRUTADOR AUTOMÁTICO (Detecta la página actual al cargar)
    ========================================================================== */
@@ -104,6 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSideMenu();
     setupSiteFooter();
     setupStickyCategoryHeader();
+    renderCategorySurfaces();
 
     // Si el body tiene la clase de la tienda (index.html)
     if (document.body.classList.contains('index-page')) {
@@ -126,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
         hidePageLoader();
         setupDragAndDrop();
         setupAdminForms();
+        initAdminCommerceManager();
     } 
     // Si el body tiene la clase de producto individual (product.html)
     else if (document.body.classList.contains('product-page')) {
@@ -138,6 +365,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     else {
         hidePageLoader();
+        loadCategoriesForPage();
     }
 });
 
@@ -148,12 +376,6 @@ function setupSideMenu() {
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') closeSideMenu();
   });
-}
-
-function getCategoryHref(category) {
-  const url = new URL('index.html', window.location.href);
-  url.searchParams.set('category', category);
-  return url.href;
 }
 
 function ensureSharedNavigation() {
@@ -216,9 +438,7 @@ function ensureSideMenuMarkup() {
     <nav class="side-menu-links">
       <details class="side-menu-accordion">
         <summary>Categorías</summary>
-        <div class="accordion-content">
-          ${MENU_CATEGORIES.map(([category, label]) => `<a href="${escapeHtml(getCategoryHref(category))}">${escapeHtml(label)}</a>`).join('')}
-        </div>
+        <div class="accordion-content"></div>
       </details>
       <a href="https://wa.me/50258656376" target="_blank" rel="noopener" class="menu-icon-link">
         <img src="assets/whatsapp_logo.jpg" alt="WhatsApp" class="menu-icon"> Contactar por Whatsapp
@@ -227,7 +447,6 @@ function ensureSideMenuMarkup() {
         <img src="assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
       </a>
       <a href="randomGallery.html">Galería Random</a>
-      <a href="quiniela.html">Quiniela CAS</a>
     </nav>
   `;
   document.body.appendChild(menu);
@@ -286,21 +505,31 @@ function updateStickyCategoryHeader() {
   if (!stickyHeader || !stickyTitle || !inventorySection) return;
 
   const visibleCategory = currentCategory || $('currentCategoryTitle')?.innerText || 'Categoría';
-  stickyTitle.innerText = visibleCategory;
+  stickyTitle.innerText = getCategoryLabel(visibleCategory);
+  stickyTitle.classList.toggle('category-offer-title', isOfferCategory(visibleCategory));
 
   const inventoryIsOpen = inventorySection.style.display !== 'none';
   stickyHeader.classList.toggle('show-category-title', inventoryIsOpen && window.scrollY > 12);
 }
 
-// Configura los clics en el acordeón del menú lateral
+// Configura los clics de categorías renderizadas dinámicamente
+let categoryButtonsReady = false;
 function setupCategoryButtons() {
-  const buttons = document.querySelectorAll('.accordion-content a');
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      // Remover emojis (como el 🔥) y limpiar espacios para tener el nombre real
-      let text = btn.innerText.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD00-\uDFFF]/g, "").trim();
-      selectCategory(text);
-    });
+  if (categoryButtonsReady) return;
+  categoryButtonsReady = true;
+
+  document.addEventListener('click', event => {
+    const trigger = event.target.closest('[data-category-link]');
+    if (!trigger) return;
+
+    const category = trigger.dataset.categoryLink;
+    if (!category) return;
+
+    if (document.body.classList.contains('index-page')) {
+      event.preventDefault();
+      selectCategory(category);
+      closeSideMenu();
+    }
   });
 }
 
@@ -322,7 +551,7 @@ function setupHomeSearch() {
     if ($('typeFilter')) $('typeFilter').value = '';
     if ($('sortOrder')) $('sortOrder').value = 'none';
     setFilterPanelOpen(false);
-    selectCategory('Todas las Prendas');
+    selectCategory(CATEGORY_ALL_NAME);
   });
 }
 
@@ -351,7 +580,7 @@ function getProductUrl(sku) {
 
 function getProductUrlFromCatalog(sku) {
   const url = new URL(getProductUrl(sku));
-  url.searchParams.set('category', currentCategory || 'Todas las Prendas');
+  url.searchParams.set('category', currentCategory || CATEGORY_ALL_NAME);
 
   const search = $('searchInput')?.value.trim();
   const size = $('sizeFilter')?.value;
@@ -369,12 +598,31 @@ function getProductUrlFromCatalog(sku) {
   return url.href;
 }
 
-function getProductImages(item) {
-  const gallery = item.galeria
-    ? (typeof item.galeria === 'string' ? item.galeria.split(',') : item.galeria)
-    : [item.imagen || 'assets/image_unavailable.png'];
+function isUsableProductImageSrc(src) {
+  const value = String(src || '').trim();
+  return /^(https?:\/\/|data:image\/|assets\/)/i.test(value);
+}
 
-  const images = gallery.map(src => String(src).trim()).filter(Boolean);
+function getProductImages(item) {
+  const gallery = typeof item?.galeria === 'string'
+    ? item.galeria.split(',')
+    : (Array.isArray(item?.galeria) ? item.galeria : []);
+  const candidates = [
+    ...gallery,
+    item?.imagen,
+    item?.Imagen_Url,
+    item?.imageUrl,
+    item?.estado
+  ];
+  const seen = new Set();
+  const images = candidates
+    .map(src => String(src || '').trim())
+    .filter(isUsableProductImageSrc)
+    .filter(src => {
+      if (seen.has(src)) return false;
+      seen.add(src);
+      return true;
+    });
   return images.length ? images : ['assets/image_unavailable.png'];
 }
 
@@ -418,6 +666,7 @@ async function loadInventory(){
   renderCatalogLoading();
   try {
     const data = await getJsonp({ action: 'getInventory' });
+    setCatalogCategories(normalizeCategoryPayload(data));
     allItems = normalizeInventoryPayload(data);
     isLoading = false;
     applyFilters();
@@ -462,39 +711,36 @@ function cleanOptionText(str) {
 }
 
 function getCategoryAliases(category) {
-  const selectedClean = cleanOptionText(category);
-  const match = PRODUCT_CATEGORIES.find(option => {
-    const values = [option.value, option.label, ...(option.aliases || [])];
-    return values.some(value => cleanOptionText(value) === selectedClean);
-  });
-
-  if (!match) return [selectedClean];
-  return [match.value, match.label, ...(match.aliases || [])].map(cleanOptionText);
+  const match = getCategoryOption(category);
+  const values = match
+    ? [match.name, ...(match.aliases || []), ...getBuiltInCategoryAliases(match.name)]
+    : [category, getBuiltInCategoryName(category), ...getBuiltInCategoryAliases(category)];
+  return [...new Set(values.map(cleanOptionText).filter(Boolean))];
 }
 
 function getCanonicalCategoryValue(value) {
-  const selectedClean = cleanOptionText(value);
-  const match = PRODUCT_CATEGORIES.find(option => {
-    const values = [option.value, option.label, ...(option.aliases || [])];
-    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
-  });
-
-  return match ? match.value : String(value || '').trim();
+  const match = getCategoryOption(value);
+  return match ? match.name : getBuiltInCategoryName(value);
 }
 
 function getCategoryDisplayLabel(value) {
-  const selectedClean = cleanOptionText(value);
-  const match = PRODUCT_CATEGORIES.find(option => {
-    const values = [option.value, option.label, ...(option.aliases || [])];
-    return values.some(candidate => cleanOptionText(candidate) === selectedClean);
-  });
+  return getCategoryLabel(value);
+}
 
-  return match ? match.label : String(value || '').trim();
+function getItemCategoryRaw(item) {
+  return item?.categorias
+    || item?.Categorias
+    || item?.['Categorías']
+    || item?.categoria
+    || item?.tipoRegion
+    || item?.tipo_region
+    || item?.Tipo_Region
+    || item?.TipoRegion
+    || "";
 }
 
 function getItemCategoryTokens(item) {
-  const itemRegionRaw = item?.tipoRegion || item?.tipo_region || item?.Tipo_Region || item?.TipoRegion || "";
-  return String(itemRegionRaw)
+  return String(getItemCategoryRaw(item))
     .split(',')
     .map(value => cleanOptionText(value))
     .filter(Boolean);
@@ -515,7 +761,9 @@ function normalizeSku(sku) {
 }
 
 function isAllCategory(category) {
-  return cleanOptionText(category) === cleanOptionText('Todas las Prendas');
+  const aliases = [CATEGORY_ALL_NAME, ...getBuiltInCategoryAliases(CATEGORY_ALL_NAME)];
+  const categoryClean = cleanOptionText(category);
+  return aliases.some(alias => cleanOptionText(alias) === categoryClean);
 }
 
 function isRandomGalleryCategory(category) {
@@ -557,11 +805,12 @@ function shuffleItems(items, seed) {
 function itemMatchesCategory(item, category) {
   if (!category || isAllCategory(category) || isRandomGalleryCategory(category)) return true;
 
-  const selectedCatClean = cleanOptionText(category);
-  if (selectedCatClean === "ofertas") return hasOffer(item);
+  const canonicalCategory = getCanonicalCategoryValue(category);
+  const selectedCatClean = cleanOptionText(canonicalCategory);
+  if (isOfferCategory(canonicalCategory)) return hasOffer(item);
 
   const itemCategoryTokens = getItemCategoryTokens(item);
-  const selectedAliases = getCategoryAliases(category);
+  const selectedAliases = getCategoryAliases(canonicalCategory);
 
   if (itemCategoryTokens.some(token => selectedAliases.includes(token))) return true;
 
@@ -610,7 +859,7 @@ function getCatalogContextFromControls() {
 function getCatalogContextFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return {
-    category: params.get('category') || 'Todas las Prendas',
+    category: params.get('category') || CATEGORY_ALL_NAME,
     search: params.get('search') || '',
     size: params.get('size') || '',
     type: params.get('type') || '',
@@ -808,6 +1057,7 @@ function renderEmptyCatalog() {
 async function loadRandomGalleryPage() {
   try {
     const data = await getJsonp({ action: 'getInventory' });
+    setCatalogCategories(normalizeCategoryPayload(data));
     const inventory = normalizeInventoryPayload(data).filter(isAvailableItem);
     randomGallerySeed = Date.now();
     randomGalleryItems = shuffleItems(inventory, randomGallerySeed);
@@ -950,15 +1200,12 @@ function selectCategory(categoryName, options = {}) {
   showAllProducts = false;
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 
-  if (categoryName.toLowerCase() === "todas las prendas") {
-    currentCategory = "Todas las Prendas";
-  } else {
-    currentCategory = categoryName;
-  }
+  currentCategory = isAllCategory(categoryName)
+    ? CATEGORY_ALL_NAME
+    : getCanonicalCategoryValue(categoryName);
 
-  const titleEl = $('currentCategoryTitle');
-  if (titleEl) titleEl.innerText = currentCategory;
-  updateStickyCategoryHeader();
+  updateCurrentCategoryTitle();
+  renderCategorySwitcherBand();
 
   $('categoryGrid').style.display = 'none';
   $('inventorySection').style.display = 'block';
@@ -967,7 +1214,7 @@ function selectCategory(categoryName, options = {}) {
   // Ocultar o mostrar el cintillo superior de imágenes
   const slider = document.querySelector('.slider-container');
   if (slider) {
-    if (currentCategory === "Todas las Prendas") {
+    if (isAllCategory(currentCategory)) {
       slider.style.display = "block";
     } else {
       slider.style.display = "none";
@@ -981,6 +1228,7 @@ function selectCategory(categoryName, options = {}) {
 function backToCategories() {
   showAllProducts = false;
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
+  currentCategory = CATEGORY_ALL_NAME;
   $('categoryGrid').style.display = 'grid';
   $('inventorySection').style.display = 'none';
   if ($('homeSearchForm')) $('homeSearchForm').style.display = 'grid';
@@ -1082,6 +1330,7 @@ async function loadProductPage() {
     productPageInventoryItems = inventoryResult.status === 'fulfilled'
       ? normalizeInventoryPayload(inventoryResult.value)
       : [];
+    if (inventoryResult.status === 'fulfilled') setCatalogCategories(normalizeCategoryPayload(inventoryResult.value));
 
     const inventoryItem = findProductInPageInventory(sku);
     const response = itemResult.status === 'fulfilled' ? itemResult.value : null;
@@ -1159,7 +1408,7 @@ function navigateProductInPlace(sku, url, options = {}) {
 function getProductNavigationUrl(sku) {
   const params = new URLSearchParams(window.location.search);
   params.set('sku', sku);
-  if (!params.has('category')) params.set('category', 'Todas las Prendas');
+  if (!params.has('category')) params.set('category', CATEGORY_ALL_NAME);
   return `product.html?${params.toString()}`;
 }
 
@@ -1175,7 +1424,7 @@ function getProductNavigation(item, requestedSku, inventoryItems) {
   if (!items.some(candidate => normalizeSku(candidate.sku) === currentSku)) {
     items = getCatalogItemsForContext(inventoryItems, {
       ...context,
-      category: 'Todas las Prendas',
+      category: CATEGORY_ALL_NAME,
       search: '',
       size: '',
       type: '',
@@ -1384,7 +1633,7 @@ function renderProductPage(item, requestedSku, inventoryItems = []) {
   const title = item.equipo || 'Equipo Desconocido';
   const sku = item.sku || requestedSku;
   const notes = item.notas || 'Sin descripción adicional.';
-  const region = item.tipoRegion || item.tipo_region || item.Tipo_Region || item.TipoRegion || '';
+  const region = getItemCategoryRaw(item);
   const regionDisplay = region ? formatCategoryDisplay(region) : '';
   const wsUrl = getProductWhatsAppUrl(item, title);
   const returnUrl = getCatalogReturnUrl();
@@ -1457,7 +1706,7 @@ function getCatalogReturnUrl() {
   const passthrough = ['category', 'search', 'size', 'type', 'sort', 'filters', 'seed'];
 
   if (!params.has('category')) {
-    url.searchParams.set('category', 'Todas las Prendas');
+    url.searchParams.set('category', CATEGORY_ALL_NAME);
   }
 
   passthrough.forEach(key => {
@@ -1485,6 +1734,961 @@ function showProductPageError(msg) {
 /* ==========================================================================
    6. PANEL DE ADMINISTRACIÓN (admin.html) - ENVÍOS POST Y BASE64
    ========================================================================== */
+async function initAdminCommerceManager() {
+  if (!$('adminLoginPanel')) return;
+
+  setupAdminCommerceControls();
+
+  if (!isAdminFirebaseConfigReady()) {
+    setAdminLoginState('Firebase todavía no está configurado para el admin. Completa firebase-config.js para habilitar Google Login.', {
+      canLogin: false
+    });
+    loadCategoriesForPage();
+    return;
+  }
+
+  try {
+    setAdminLoginState('Conectando con Google Login...', { canLogin: false });
+    const services = await loadAdminFirebaseServices();
+    services.onAuthStateChanged(services.auth, handleAdminAuthState);
+    setAdminLoginState('Inicia sesión para administrar Central America Shirts.', { canLogin: true });
+  } catch (error) {
+    console.error('Firebase admin init failed:', error);
+    setAdminLoginState('No se pudo conectar Firebase para el admin. Revisa la configuración.', { canLogin: false });
+  }
+}
+
+function setupAdminCommerceControls() {
+  $('adminGoogleLoginBtn')?.addEventListener('click', adminSignInWithGoogle);
+  $('adminLoginSignOutBtn')?.addEventListener('click', adminSignOut);
+  $('adminSignOutBtn')?.addEventListener('click', adminSignOut);
+
+  document.querySelectorAll('[data-admin-tab]').forEach(button => {
+    button.addEventListener('click', () => switchAdminTab(button.dataset.adminTab));
+  });
+
+  $('adminProductSearch')?.addEventListener('input', () => {
+    adminProductsPage = 1;
+    renderAdminProducts();
+  });
+
+  $('adminProductsPerPage')?.addEventListener('change', event => {
+    adminProductsPerPage = Number(event.target.value) || 25;
+    adminProductsPage = 1;
+    renderAdminProducts();
+  });
+
+  $('adminAvailabilityFilter')?.addEventListener('change', event => {
+    adminAvailabilityFilter = event.target.value || 'all';
+    adminProductsPage = 1;
+    renderAdminProducts();
+  });
+
+  $('adminAddProductsBtn')?.addEventListener('click', event => {
+    event.stopPropagation();
+    $('adminAddMenuOptions')?.classList.toggle('hidden');
+  });
+
+  $('adminAddSingleBtn')?.addEventListener('click', () => {
+    $('adminAddMenuOptions')?.classList.add('hidden');
+    openAddModal();
+  });
+
+  $('adminAddBulkBtn')?.addEventListener('click', () => {
+    $('adminAddMenuOptions')?.classList.add('hidden');
+    openAdminBulkUploadModal();
+  });
+
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.admin-add-menu')) $('adminAddMenuOptions')?.classList.add('hidden');
+  });
+
+  $('adminAddCategoryBtn')?.addEventListener('click', addAdminCategoryDraft);
+  $('adminCategoriesBody')?.addEventListener('click', handleAdminCategoryImageClick);
+  $('adminCategoriesBody')?.addEventListener('input', handleAdminCategoryDraftChange);
+  $('adminCategoriesBody')?.addEventListener('change', handleAdminCategoryDraftChange);
+  $('adminCategoriesBody')?.addEventListener('change', handleAdminCategoryImageChange);
+  $('adminSaveChangesBtn')?.addEventListener('click', saveAdminChanges);
+  $('adminDiscardChangesBtn')?.addEventListener('click', discardAdminChanges);
+  $('adminEditProductForm')?.addEventListener('submit', submitAdminProductEdit);
+  $('adminBulkUploadForm')?.addEventListener('submit', submitAdminBulkUpload);
+  $('adminDownloadBulkCsvBtn')?.addEventListener('click', downloadAdminBulkCsvExample);
+  document.querySelectorAll('input[name="image_mode"]').forEach(input => {
+    input.addEventListener('change', renderAdminProductImageChoices);
+  });
+}
+
+function getAdminFirebaseConfig() {
+  return window.CAS_FIREBASE_CONFIG || window.firebaseConfig || {};
+}
+
+function isAdminFirebaseConfigReady() {
+  const config = getAdminFirebaseConfig();
+  return Boolean(config.apiKey && config.authDomain && config.projectId && config.appId);
+}
+
+async function loadAdminFirebaseServices() {
+  if (adminFirebase) return adminFirebase;
+
+  const [appSdk, authSdk, firestoreSdk] = await Promise.all([
+    import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js'),
+    import('https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js')
+  ]);
+
+  const config = getAdminFirebaseConfig();
+  const app = appSdk.getApps().length ? appSdk.getApps()[0] : appSdk.initializeApp(config);
+
+  adminFirebase = {
+    app,
+    auth: authSdk.getAuth(app),
+    db: firestoreSdk.getFirestore(app),
+    provider: new authSdk.GoogleAuthProvider(),
+    signInWithPopup: authSdk.signInWithPopup,
+    signOut: authSdk.signOut,
+    onAuthStateChanged: authSdk.onAuthStateChanged,
+    doc: firestoreSdk.doc,
+    getDoc: firestoreSdk.getDoc
+  };
+
+  return adminFirebase;
+}
+
+async function adminSignInWithGoogle() {
+  try {
+    const services = await loadAdminFirebaseServices();
+    await services.signInWithPopup(services.auth, services.provider);
+  } catch (error) {
+    console.error('Google login failed:', error);
+    setAdminLoginState('No se pudo iniciar sesión con Google. Intenta de nuevo.', { canLogin: true });
+  }
+}
+
+async function adminSignOut() {
+  if (!adminFirebase) return;
+  try {
+    await adminFirebase.signOut(adminFirebase.auth);
+  } catch (error) {
+    console.error('Admin sign out failed:', error);
+  }
+}
+
+async function handleAdminAuthState(user) {
+  if (!user) {
+    setAdminLoginState('Inicia sesión para administrar Central America Shirts.', { canLogin: true });
+    showAdminLoginPanel();
+    return;
+  }
+
+  setAdminLoginState(`Validando acceso para ${user.email || 'esta cuenta'}...`, { canLogin: false, canSignOut: true });
+
+  try {
+    const hasAccess = await verifyAdminAccess(user.email);
+    if (!hasAccess) {
+      showAdminDenied(user);
+      return;
+    }
+
+    showAdminManager(user);
+    await loadAdminCommerceData();
+  } catch (error) {
+    console.error('Admin access validation failed:', error);
+    setAdminLoginState('No pudimos validar tu acceso. Solicita acceso a Central America Shirts.', {
+      canLogin: false,
+      canSignOut: true
+    });
+    showAdminLoginPanel();
+  }
+}
+
+async function verifyAdminAccess(email) {
+  const emailKey = String(email || '').trim().toLowerCase();
+  if (!emailKey || !adminFirebase) return false;
+
+  const collectionName = window.CAS_ADMIN_ACCESS_COLLECTION || 'adminAccess';
+  let directError = null;
+  let listError = null;
+
+  try {
+    const directRef = adminFirebase.doc(adminFirebase.db, collectionName, emailKey);
+    const directSnap = await adminFirebase.getDoc(directRef);
+    if (directSnap.exists()) {
+      const data = directSnap.data() || {};
+      return parseCategoryActive(data.isActive !== undefined ? data.isActive : data.active);
+    }
+  } catch (error) {
+    directError = error;
+  }
+
+  try {
+    const listRef = adminFirebase.doc(adminFirebase.db, collectionName, 'allowedEmails');
+    const listSnap = await adminFirebase.getDoc(listRef);
+    if (listSnap.exists()) {
+      const data = listSnap.data() || {};
+      const emails = Array.isArray(data.emails) ? data.emails : [];
+      const allowedEmails = Array.isArray(data.allowedEmails) ? data.allowedEmails : [];
+      return [...emails, ...allowedEmails]
+        .map(value => String(value || '').trim().toLowerCase())
+        .includes(emailKey);
+    }
+  } catch (error) {
+    listError = error;
+  }
+
+  if (directError && listError) throw directError;
+  return false;
+}
+
+function setAdminLoginState(message, options = {}) {
+  const loginBtn = $('adminGoogleLoginBtn');
+  const signOutBtn = $('adminLoginSignOutBtn');
+  const messageEl = $('adminAuthMessage');
+
+  if (messageEl) messageEl.innerText = message;
+  if (loginBtn) {
+    loginBtn.disabled = options.canLogin === false;
+    loginBtn.classList.toggle('hidden', options.showLogin === false);
+  }
+  if (signOutBtn) signOutBtn.classList.toggle('hidden', !options.canSignOut);
+}
+
+function showAdminLoginPanel() {
+  $('adminLoginPanel')?.classList.remove('hidden');
+  $('adminManager')?.classList.add('hidden');
+}
+
+function showAdminDenied(user) {
+  setAdminLoginState(`La cuenta ${user.email || ''} no tiene acceso. Solicita acceso a Central America Shirts.`, {
+    canLogin: false,
+    canSignOut: true,
+    showLogin: false
+  });
+  showAdminLoginPanel();
+}
+
+function showAdminManager(user) {
+  $('adminLoginPanel')?.classList.add('hidden');
+  $('adminManager')?.classList.remove('hidden');
+  if ($('adminUserLabel')) $('adminUserLabel').innerText = user?.email ? `Sesión: ${user.email}` : '';
+}
+
+async function loadAdminCommerceData() {
+  showLoader('Cargando commerce manager...');
+  try {
+    const data = await getJsonp({ action: 'getInventory' }, 20000);
+    setCatalogCategories(normalizeCategoryPayload(data));
+    adminProducts = normalizeInventoryPayload(data).filter(item => item?.sku);
+    adminOriginalProductsBySku = new Map(adminProducts.map(item => {
+      const snapshot = getAdminProductSnapshot(item);
+      return [snapshot.sku, snapshot];
+    }));
+    adminCategoriesDraft = getCatalogCategories({ includeInactive: true }).map(category => ({
+      imageUrl: category.imageUrl || '',
+      name: category.name || '',
+      priority: Number(category.priority) || 1,
+      isActive: category.isActive !== false
+    }));
+    adminCategoriesOriginalSignature = getAdminCategoriesSignature(adminCategoriesDraft);
+    adminProductsPage = 1;
+    adminPendingProductUpdates.clear();
+    adminCategoriesDirty = false;
+    renderAdminCurrentTab();
+    updateAdminSaveBar();
+  } catch (error) {
+    console.error('Admin inventory load failed:', error);
+    const body = $('adminProductsBody');
+    if (body) body.innerHTML = '<tr><td colspan="12" class="admin-empty-row">No se pudo cargar el inventario.</td></tr>';
+  } finally {
+    hideLoader();
+  }
+}
+
+function switchAdminTab(tab) {
+  adminActiveTab = tab === 'categories' ? 'categories' : 'products';
+
+  document.querySelectorAll('[data-admin-tab]').forEach(button => {
+    const isActive = button.dataset.adminTab === adminActiveTab;
+    button.classList.toggle('active', isActive);
+    button.setAttribute('aria-selected', String(isActive));
+  });
+
+  $('adminProductsPanel')?.classList.toggle('hidden', adminActiveTab !== 'products');
+  $('adminCategoriesPanel')?.classList.toggle('hidden', adminActiveTab !== 'categories');
+  renderAdminCurrentTab();
+}
+
+function renderAdminCurrentTab() {
+  if (adminActiveTab === 'categories') {
+    renderAdminCategories();
+  } else {
+    renderAdminProducts();
+  }
+}
+
+function getAdminFilteredProducts() {
+  const query = cleanText($('adminProductSearch')?.value || '');
+  const availability = adminAvailabilityFilter || $('adminAvailabilityFilter')?.value || 'all';
+
+  return adminProducts.filter(item => {
+    const isAvailable = isAvailableItem(item);
+    if (availability === 'available' && !isAvailable) return false;
+    if (availability === 'unavailable' && isAvailable) return false;
+    if (!query) return true;
+
+    const haystack = [
+      item.sku,
+      item.equipo,
+      item.year,
+      item.precio,
+      item.precioOferta,
+      item.talla,
+      item.tipo,
+      getItemCategoryRaw(item),
+      item.notas
+    ].map(cleanText).join(' ');
+    return haystack.includes(query);
+  });
+}
+
+function renderAdminProducts() {
+  const body = $('adminProductsBody');
+  if (!body) return;
+
+  const products = getAdminFilteredProducts();
+  const totalPages = Math.max(1, Math.ceil(products.length / adminProductsPerPage));
+  if (adminProductsPage > totalPages) adminProductsPage = totalPages;
+
+  const start = (adminProductsPage - 1) * adminProductsPerPage;
+  const pageItems = products.slice(start, start + adminProductsPerPage);
+
+  if ($('adminProductsCount')) {
+    $('adminProductsCount').innerText = `${products.length} producto${products.length === 1 ? '' : 's'}`;
+  }
+
+  if (!pageItems.length) {
+    body.innerHTML = '<tr><td colspan="12" class="admin-empty-row">No hay productos para mostrar.</td></tr>';
+  } else {
+    body.innerHTML = pageItems.map(item => getAdminProductRowHtml(item)).join('');
+  }
+
+  body.querySelectorAll('[data-admin-availability]').forEach(input => {
+    input.addEventListener('change', event => {
+      const sku = event.target.dataset.adminAvailability;
+      const disponible = event.target.checked;
+      updateAdminProductLocal(sku, { disponible });
+      queueAdminProductUpdate(sku, { disponible });
+      renderAdminProducts();
+    });
+  });
+
+  body.querySelectorAll('[data-admin-edit-product]').forEach(button => {
+    button.addEventListener('click', () => openAdminEditProductModal(button.dataset.adminEditProduct));
+  });
+
+  renderAdminProductPagination(products.length, totalPages);
+  updateAdminSaveBar();
+}
+
+function getAdminProductRowHtml(item) {
+  const sku = item.sku || '';
+  const image = getProductImages(item)[0];
+  const available = isAvailableItem(item);
+  const categories = formatCategoryDisplay(getItemCategoryRaw(item));
+
+  return `
+    <tr>
+      <td><img class="admin-product-thumb" src="${escapeHtml(image)}" alt="" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';"></td>
+      <td class="admin-sku-cell">${escapeHtml(sku)}</td>
+      <td class="admin-text-cell" title="${escapeHtml(item.equipo || '')}">${escapeHtml(item.equipo || '')}</td>
+      <td>${escapeHtml(item.year || '')}</td>
+      <td>Q${escapeHtml(item.precio || '')}</td>
+      <td>${item.precioOferta ? `Q${escapeHtml(item.precioOferta)}` : ''}</td>
+      <td>${escapeHtml(item.talla || '')}</td>
+      <td>${escapeHtml(item.tipo || '')}</td>
+      <td class="admin-text-cell" title="${escapeHtml(categories)}">${escapeHtml(categories)}</td>
+      <td>
+        <label class="admin-switch" title="Disponible">
+          <input type="checkbox" data-admin-availability="${escapeHtml(sku)}" ${available ? 'checked' : ''}>
+          <span></span>
+        </label>
+      </td>
+      <td class="admin-notes-cell" title="${escapeHtml(item.notas || '')}">${escapeHtml(item.notas || '')}</td>
+      <td><button type="button" class="admin-edit-btn" data-admin-edit-product="${escapeHtml(sku)}">Edit</button></td>
+    </tr>
+  `;
+}
+
+function renderAdminProductPagination(totalCount, totalPages) {
+  const pagination = $('adminProductsPagination');
+  if (!pagination) return;
+
+  if (totalCount <= adminProductsPerPage) {
+    pagination.innerHTML = '';
+    return;
+  }
+
+  pagination.innerHTML = `
+    <button type="button" data-admin-page-delta="-1" ${adminProductsPage <= 1 ? 'disabled' : ''}>&lt;</button>
+    <span>Página ${adminProductsPage} de ${totalPages}</span>
+    <button type="button" data-admin-page-delta="1" ${adminProductsPage >= totalPages ? 'disabled' : ''}>&gt;</button>
+  `;
+
+  pagination.querySelectorAll('[data-admin-page-delta]').forEach(button => {
+    button.addEventListener('click', () => {
+      adminProductsPage = Math.max(1, Math.min(totalPages, adminProductsPage + Number(button.dataset.adminPageDelta)));
+      renderAdminProducts();
+    });
+  });
+}
+
+function findAdminProduct(sku) {
+  const targetSku = normalizeSku(sku);
+  return adminProducts.find(item => normalizeSku(item.sku) === targetSku) || null;
+}
+
+function getAdminProductSnapshot(item) {
+  return {
+    sku: normalizeSku(item?.sku),
+    equipo: String(item?.equipo || '').trim(),
+    year: String(item?.year || '').trim(),
+    precio: String(item?.precio || '').trim(),
+    precioOferta: String(item?.precioOferta || item?.Precio_Oferta || '').trim(),
+    talla: String(item?.talla || '').trim(),
+    tipo: String(item?.tipo || '').trim(),
+    disponible: isAvailableItem(item),
+    categorias: String(getItemCategoryRaw(item) || '').split(',').map(value => value.trim()).filter(Boolean).join(','),
+    notas: String(item?.notas || '').trim(),
+    imagen: String(item?.imagen || item?.Imagen_Url || '').trim(),
+    galeria: String(item?.galeria || '').trim()
+  };
+}
+
+function getAdminOriginalProduct(sku) {
+  return adminOriginalProductsBySku.get(normalizeSku(sku)) || null;
+}
+
+function getAdminComparableProduct(item, update = {}) {
+  const merged = { ...(item || {}), ...(update || {}) };
+  const categorias = update.categorias ?? update.Categorías ?? update.Categorias ?? getItemCategoryRaw(merged);
+  return {
+    equipo: String(merged.equipo || '').trim(),
+    year: String(merged.year || '').trim(),
+    precio: String(merged.precio || '').trim(),
+    precioOferta: String(merged.precioOferta || merged.Precio_Oferta || '').trim(),
+    talla: String(merged.talla || '').trim(),
+    tipo: String(merged.tipo || '').trim(),
+    disponible: isAvailableItem(merged),
+    categorias: String(categorias || '').split(',').map(value => value.trim()).filter(Boolean).join(','),
+    notas: String(merged.notas || '').trim()
+  };
+}
+
+function getAdminRawProductImages(item) {
+  const gallery = String(item?.galeria || '')
+    .split(',')
+    .map(src => src.trim())
+    .filter(isUsableProductImageSrc);
+  const main = String(item?.imagen || item?.Imagen_Url || '').trim();
+  const candidates = [...gallery, main].filter(isUsableProductImageSrc);
+  return [...new Set(candidates)];
+}
+
+function getAdminSelectedExistingImage(item, selection) {
+  const match = String(selection || '').match(/^existing:(\d+)$/);
+  if (!match) return '';
+  return getAdminRawProductImages(item)[Number(match[1])] || '';
+}
+
+function getAdminChangedProductUpdate(sku, update) {
+  const original = getAdminOriginalProduct(sku);
+  if (!original) return { ...update, sku: normalizeSku(sku) };
+
+  const targetSku = normalizeSku(sku);
+  const originalComparable = getAdminComparableProduct(original);
+  const nextComparable = getAdminComparableProduct(original, update);
+  const changed = { sku: targetSku };
+  const fields = ['equipo', 'year', 'precio', 'precioOferta', 'talla', 'tipo', 'disponible', 'categorias', 'notas'];
+
+  fields.forEach(field => {
+    if (nextComparable[field] !== originalComparable[field]) {
+      changed[field] = nextComparable[field];
+    }
+  });
+
+  if (Object.prototype.hasOwnProperty.call(changed, 'categorias')) {
+    changed.tipoRegion = changed.categorias;
+  }
+
+  const images = getUploadImages(update.images || []);
+  const imageMode = update.imageMode === 'replace' ? 'replace' : 'add';
+  const mainImageSelection = String(update.mainImageSelection || '');
+  const selectedExistingImage = getAdminSelectedExistingImage(original, mainImageSelection);
+  const originalMainImage = String(original.imagen || original.Imagen_Url || '').trim();
+  const mainImageChanged = Boolean(selectedExistingImage && selectedExistingImage !== originalMainImage);
+
+  if (images.length || mainImageChanged) {
+    changed.imageMode = imageMode;
+    changed.mainImageSelection = mainImageSelection;
+    changed.images = images;
+  }
+
+  return Object.keys(changed).length > 1 ? changed : null;
+}
+
+function updateAdminProductLocal(sku, partial) {
+  const targetSku = normalizeSku(sku);
+  adminProducts = adminProducts.map(item => (
+    normalizeSku(item.sku) === targetSku
+      ? { ...item, ...partial }
+      : item
+  ));
+}
+
+function queueAdminProductUpdate(sku, partial) {
+  const targetSku = normalizeSku(sku);
+  if (!targetSku) return;
+  const current = adminPendingProductUpdates.get(targetSku) || { sku: targetSku };
+  const merged = { ...current, sku: targetSku, ...partial };
+  const changed = getAdminChangedProductUpdate(targetSku, merged);
+  if (changed) {
+    adminPendingProductUpdates.set(targetSku, changed);
+  } else {
+    adminPendingProductUpdates.delete(targetSku);
+  }
+  updateAdminSaveBar();
+}
+
+function getAdminImageMode() {
+  const form = $('adminEditProductForm');
+  return form?.image_mode?.value === 'replace' ? 'replace' : 'add';
+}
+
+function getAdminSelectedMainImageChoice() {
+  return document.querySelector('input[name="admin_main_image"]:checked')?.value || '';
+}
+
+function getAdminImageLabel(index, prefix) {
+  return `${prefix} ${index + 1}`;
+}
+
+function getAdminImageChoiceCard(image, value, label, checked) {
+  return `
+    <label class="admin-image-choice${checked ? ' selected' : ''}">
+      <input type="radio" name="admin_main_image" value="${escapeHtml(value)}" ${checked ? 'checked' : ''}>
+      <img src="${escapeHtml(image)}" alt="" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+      <span>${escapeHtml(label)}</span>
+    </label>
+  `;
+}
+
+function renderAdminProductImageChoices() {
+  const currentContainer = $('adminCurrentProductImages');
+  const uploadPreview = $('adminProductImageUploadPreview');
+  const uploadContainer = $('adminProductImageUploadContainer');
+  if (!currentContainer || !uploadPreview) return;
+
+  const mode = getAdminImageMode();
+  const selected = getAdminSelectedMainImageChoice();
+  const currentImages = adminProductEditCurrentImages.filter(Boolean);
+  const uploadedImages = adminProductEditImages.filter(image => image?.base64);
+  const fallbackChoice = mode === 'replace' && uploadedImages.length
+    ? 'uploaded:0'
+    : selected || 'existing:0';
+
+  currentContainer.innerHTML = currentImages.length
+    ? currentImages.map((image, index) => {
+      const value = `existing:${index}`;
+      const canSelect = mode !== 'replace';
+      const checked = canSelect && fallbackChoice === value;
+      return canSelect
+        ? getAdminImageChoiceCard(image, value, getAdminImageLabel(index, 'Actual'), checked)
+        : `
+          <div class="admin-image-choice disabled">
+            <img src="${escapeHtml(image)}" alt="" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">
+            <span>${escapeHtml(getAdminImageLabel(index, 'Actual'))}</span>
+          </div>
+        `;
+    }).join('')
+    : '<div class="admin-image-empty">Sin imágenes actuales</div>';
+
+  uploadPreview.innerHTML = uploadedImages.map((image, index) => {
+    const value = `uploaded:${index}`;
+    const checked = fallbackChoice === value || (!selected && mode === 'replace' && index === 0);
+    return `
+      <div class="admin-uploaded-image-wrap">
+        ${getAdminImageChoiceCard(image.base64, value, getAdminImageLabel(index, 'Nueva'), checked)}
+        <button type="button" class="admin-remove-image-btn" data-admin-remove-upload="${index}" aria-label="Quitar imagen">&times;</button>
+      </div>
+    `;
+  }).join('');
+
+  uploadPreview.classList.toggle('hidden', uploadedImages.length === 0);
+  uploadContainer?.classList.remove('hidden');
+
+  document.querySelectorAll('[data-admin-remove-upload]').forEach(button => {
+    button.addEventListener('click', () => {
+      adminProductEditImages.splice(Number(button.dataset.adminRemoveUpload), 1);
+      renderAdminProductImageChoices();
+    });
+  });
+}
+
+function openAdminEditProductModal(sku) {
+  const item = findAdminProduct(sku);
+  const modal = $('adminEditProductModal');
+  const form = $('adminEditProductForm');
+  if (!item || !modal || !form) return;
+
+  renderProductCategoryPickers();
+  adminProductEditImages.length = 0;
+  adminProductEditCurrentImages = getProductImages(item);
+  form.sku.value = item.sku || '';
+  form.equipo.value = item.equipo || '';
+  form.year.value = item.year || '';
+  form.precio.value = item.precio || '';
+  form.precio_oferta.value = item.precioOferta || item.Precio_Oferta || '';
+  setSelectValue(form.talla, item.talla);
+  setSelectValue(form.tipo, item.tipo);
+  form.venta.checked = isAvailableItem(item);
+  setCategoryGroupValues(form, getItemCategoryRaw(item));
+  form.notas.value = item.notas || '';
+  if (form.image_mode) form.image_mode.value = 'add';
+  renderAdminProductImageChoices();
+
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAdminEditProductModal() {
+  const modal = $('adminEditProductModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function submitAdminProductEdit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const categories = getSelectedProductCategories(form);
+  if (!categories.length) {
+    alert('Selecciona al menos una categoría para la prenda.');
+    return;
+  }
+
+  const categorias = categories.join(',');
+  const imageMode = getAdminImageMode();
+  const imageUploads = getUploadImages(adminProductEditImages);
+  let mainImageSelection = getAdminSelectedMainImageChoice() || 'existing:0';
+
+  if (imageMode === 'replace' && !imageUploads.length) {
+    alert('Selecciona al menos una imagen nueva para reemplazar la galería.');
+    return;
+  }
+
+  if (imageMode === 'replace' && !mainImageSelection.startsWith('uploaded:')) {
+    mainImageSelection = 'uploaded:0';
+  }
+
+  const update = {
+    equipo: form.equipo.value,
+    year: form.year.value,
+    precio: form.precio.value,
+    precioOferta: form.precio_oferta.value,
+    talla: form.talla.value,
+    tipo: form.tipo.value,
+    disponible: form.venta.checked,
+    categorias,
+    tipoRegion: categorias,
+    notas: form.notas.value,
+    imageMode,
+    mainImageSelection,
+    images: imageUploads
+  };
+
+  updateAdminProductLocal(form.sku.value, update);
+  queueAdminProductUpdate(form.sku.value, update);
+  closeAdminEditProductModal();
+  renderAdminProducts();
+}
+
+function getAdminCategoriesSignature(categories) {
+  return JSON.stringify((categories || []).map((category, index) => ({
+    imageUrl: String(category.imageUrl || '').trim(),
+    name: String(category.name || '').trim(),
+    priority: Number.isFinite(Number(category.priority)) ? Number(category.priority) : index + 1,
+    isActive: category.isActive !== false,
+    hasImageUpload: Boolean(category.imageUpload?.base64)
+  })));
+}
+
+function refreshAdminCategoriesDirty() {
+  adminCategoriesDirty = getAdminCategoriesSignature(adminCategoriesDraft) !== adminCategoriesOriginalSignature;
+  updateAdminSaveBar();
+}
+
+function renderAdminCategories() {
+  const body = $('adminCategoriesBody');
+  if (!body) return;
+
+  if (!adminCategoriesDraft.length) {
+    body.innerHTML = '<tr><td colspan="4" class="admin-empty-row">No hay categorías para mostrar.</td></tr>';
+    return;
+  }
+
+  body.innerHTML = adminCategoriesDraft.map((category, index) => {
+    const previewImage = category.imageUpload?.base64 || category.imageUrl || '';
+    return `
+    <tr>
+      <td>
+        <div class="admin-category-image-cell">
+          <input type="text" value="${escapeHtml(category.imageUrl || '')}" data-admin-category-index="${index}" data-admin-category-field="imageUrl">
+          <div class="admin-category-image-tools">
+            ${previewImage ? `<img src="${escapeHtml(previewImage)}" alt="" onerror="this.onerror=null; this.src='assets/image_unavailable.png';">` : ''}
+            <button type="button" class="admin-edit-btn" data-admin-category-image-btn="${index}">Reemplazar imagen</button>
+            <input type="file" id="adminCategoryImageUpload${index}" accept=".jpg,.jpeg,.png,.webp" style="display:none" data-admin-category-upload="${index}">
+          </div>
+        </div>
+      </td>
+      <td><input type="text" value="${escapeHtml(category.name || '')}" data-admin-category-index="${index}" data-admin-category-field="name"></td>
+      <td><input type="number" value="${escapeHtml(category.priority || '')}" min="1" step="1" data-admin-category-index="${index}" data-admin-category-field="priority"></td>
+      <td class="admin-category-active-cell"><input type="checkbox" ${category.isActive !== false ? 'checked' : ''} data-admin-category-index="${index}" data-admin-category-field="isActive"></td>
+    </tr>
+  `;
+  }).join('');
+}
+
+function handleAdminCategoryDraftChange(event) {
+  const target = event.target;
+  const index = Number(target.dataset.adminCategoryIndex);
+  const field = target.dataset.adminCategoryField;
+  if (!field || !adminCategoriesDraft[index]) return;
+
+  if (field === 'isActive') {
+    adminCategoriesDraft[index][field] = target.checked;
+  } else if (field === 'priority') {
+    adminCategoriesDraft[index][field] = target.value;
+  } else {
+    adminCategoriesDraft[index][field] = target.value;
+  }
+
+  refreshAdminCategoriesDirty();
+}
+
+function handleAdminCategoryImageClick(event) {
+  const button = event.target.closest('[data-admin-category-image-btn]');
+  if (!button) return;
+
+  const index = Number(button.dataset.adminCategoryImageBtn);
+  const input = $(`adminCategoryImageUpload${index}`);
+  input?.click();
+}
+
+function handleAdminCategoryImageChange(event) {
+  const target = event.target;
+  const index = Number(target.dataset.adminCategoryUpload);
+  if (!target.dataset.adminCategoryUpload || !adminCategoriesDraft[index] || !target.files?.length) return;
+
+  const loadedImages = [];
+  handleFiles(target.files, {
+    imagesArray: loadedImages,
+    previewId: '',
+    uploadId: '',
+    onLoad: () => {
+      if (!loadedImages.length) return;
+      adminCategoriesDraft[index].imageUpload = loadedImages[0];
+      refreshAdminCategoriesDirty();
+      renderAdminCategories();
+    }
+  });
+  target.value = '';
+}
+
+function addAdminCategoryDraft() {
+  const priorities = adminCategoriesDraft
+    .map(category => Number(category.priority))
+    .filter(value => Number.isFinite(value));
+  const nextPriority = priorities.length ? Math.max(...priorities) + 10 : 10;
+  adminCategoriesDraft.push({ imageUrl: '', name: '', priority: nextPriority, isActive: true });
+  refreshAdminCategoriesDirty();
+  renderAdminCategories();
+}
+
+function getAdminCategoriesForSave() {
+  const rows = adminCategoriesDraft.map((category, index) => {
+    const priority = Number(category.priority);
+    return {
+      imageUrl: String(category.imageUrl || '').trim(),
+      name: String(category.name || '').trim(),
+      priority: Number.isFinite(priority) ? priority : index + 1,
+      isActive: category.isActive !== false,
+      imageUpload: category.imageUpload || null
+    };
+  });
+
+  const invalid = rows.some(category => !category.name && category.imageUrl);
+  if (invalid) {
+    alert('Completa el Name de cada categoría que tenga imageUrl.');
+    return null;
+  }
+
+  const categories = rows
+    .filter(category => category.name)
+    .sort((a, b) => {
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.name.localeCompare(b.name);
+    });
+
+  if (!categories.length) {
+    alert('Debe existir al menos una categoría.');
+    return null;
+  }
+
+  return categories;
+}
+
+function hasAdminPendingChanges() {
+  return adminPendingProductUpdates.size > 0 || adminCategoriesDirty;
+}
+
+function updateAdminSaveBar() {
+  const saveBar = $('adminSaveBar');
+  const summary = $('adminPendingSummary');
+  const pendingCount = $('adminPendingProductsCount');
+  const productCount = adminPendingProductUpdates.size;
+  const changes = [];
+
+  if (productCount) changes.push(`${productCount} producto${productCount === 1 ? '' : 's'}`);
+  if (adminCategoriesDirty) changes.push('categorías');
+
+  if (pendingCount) pendingCount.innerText = productCount ? `${productCount} producto${productCount === 1 ? '' : 's'} con cambios pendientes` : '';
+  if (summary) summary.innerText = changes.length ? `Cambios pendientes: ${changes.join(' + ')}` : 'Sin cambios pendientes';
+  if (saveBar) saveBar.classList.toggle('hidden', !hasAdminPendingChanges());
+}
+
+async function saveAdminChanges() {
+  if (!hasAdminPendingChanges()) return;
+
+  const productUpdates = Array.from(adminPendingProductUpdates.values());
+  const categories = adminCategoriesDirty ? getAdminCategoriesForSave() : null;
+  if (adminCategoriesDirty && !categories) return;
+
+  showLoader('Guardando cambios...');
+
+  try {
+    if (productUpdates.length) {
+      await sendPostRequest({ action: 'batchUpdateProducts', updates: productUpdates });
+    }
+
+    if (adminCategoriesDirty) {
+      await sendPostRequest({ action: 'saveCategories', categories });
+    }
+
+    alert('Cambios guardados correctamente.');
+    await loadAdminCommerceData();
+  } catch (error) {
+    console.error('Admin save failed:', error);
+    alert('No se pudieron guardar los cambios.');
+  } finally {
+    hideLoader();
+  }
+}
+
+async function discardAdminChanges() {
+  if (!hasAdminPendingChanges()) return;
+  const shouldDiscard = confirm('¿Descartar los cambios pendientes?');
+  if (!shouldDiscard) return;
+  await loadAdminCommerceData();
+}
+
+function openAdminBulkUploadModal() {
+  const modal = $('adminBulkUploadModal');
+  const form = $('adminBulkUploadForm');
+  if (form) form.reset();
+  if (modal) modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeAdminBulkUploadModal() {
+  const modal = $('adminBulkUploadModal');
+  if (modal) modal.style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function downloadAdminBulkCsvExample() {
+  const csv = [
+    'imageName,Equipo,Año,Precio,Precio_Oferta,Talla,Tipo,Disponible,Categorías,Notas',
+    '300,Guatemala,2024,550,,M,Casa,Sí,"Selecciones,Exclusivo en línea","Condición nueva"'
+  ].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'cas_bulk_upload_example.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo.'));
+    reader.readAsText(file);
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(reader.error || new Error('No se pudo leer el archivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function submitAdminBulkUpload(event) {
+  event.preventDefault();
+  const csvFile = $('adminBulkCsvInput')?.files?.[0];
+  const zipFile = $('adminBulkZipInput')?.files?.[0];
+  const submitBtn = event.submitter || event.target.querySelector('button[type="submit"]');
+
+  if (!csvFile || !zipFile) {
+    alert('Selecciona el CSV y el ZIP de imágenes.');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  showLoader('Procesando carga en bulk...');
+
+  try {
+    const [csvText, zipBase64] = await Promise.all([
+      readFileAsText(csvFile),
+      readFileAsDataUrl(zipFile)
+    ]);
+
+    await sendPostRequest({
+      action: 'bulkAddItems',
+      csvText,
+      zipFile: {
+        name: zipFile.name,
+        type: zipFile.type || 'application/zip',
+        base64: zipBase64
+      }
+    });
+
+    alert('Carga enviada. Revisa el inventario en unos segundos para confirmar los productos.');
+    closeAdminBulkUploadModal();
+    await loadAdminCommerceData();
+  } catch (error) {
+    console.error('Bulk upload failed:', error);
+    alert('No se pudo procesar la carga en bulk.');
+  } finally {
+    hideLoader();
+    submitBtn.disabled = false;
+  }
+}
+
 function showLoader(text) {
   $('loaderText').innerText = text || "Procesando...";
   $('loaderOverlay').classList.add('active');
@@ -1498,7 +2702,8 @@ function setupDragAndDrop() {
   const pairs = [
     { zoneId: "addDropZone", fileId: "addFileInput", imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" },
     { zoneId: "editDropZone", fileId: "editFileInput", imagesArray: editImages, previewId: "editPreviewContainer", uploadId: "editUploadContainer" },
-    { zoneId: "appendDropZone", fileId: "appendFileInput", imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" }
+    { zoneId: "appendDropZone", fileId: "appendFileInput", imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" },
+    { zoneId: "adminProductImageDropZone", fileId: "adminProductImageInput", imagesArray: adminProductEditImages, previewId: "adminProductImageUploadPreview", uploadId: "adminProductImageUploadContainer", onLoad: renderAdminProductImageChoices }
   ];
 
   pairs.forEach(p => {
@@ -1555,7 +2760,11 @@ function handleFiles(files, config) {
         
         loadedCount++;
         if (loadedCount === filesArray.length) {
-          renderPreviews(config);
+          if (typeof config.onLoad === 'function') {
+            config.onLoad(config);
+          } else {
+            renderPreviews(config);
+          }
         }
       };
       img.src = e.target.result;
@@ -1651,6 +2860,11 @@ function setupAdminForms() {
       handleFiles(e.target.files, { imagesArray: appendImages, previewId: "appendPreviewContainer", uploadId: "appendUploadContainer" });
     }
   });
+  $("adminProductImageInput")?.addEventListener("change", (e) => {
+    if(e.target.files.length) {
+      handleFiles(e.target.files, { imagesArray: adminProductEditImages, previewId: "adminProductImageUploadPreview", uploadId: "adminProductImageUploadContainer", onLoad: renderAdminProductImageChoices });
+    }
+  });
 }
 
 function markEditDirty() {
@@ -1704,6 +2918,7 @@ async function submitAdd(e) {
     talla: formData.get("talla"),
     tipo: formData.get("tipo"),
     disponible: formData.get("venta") !== null, // Checkbox returns null if unchecked
+    categorias: categories.join(','),
     tipoRegion: categories.join(','),
     notas: formData.get("notas"),
     images: getUploadImages(addImages)
@@ -1716,6 +2931,9 @@ async function submitAdd(e) {
     addImages = [];
     renderPreviews({ imagesArray: addImages, previewId: "addPreviewContainer", uploadId: "addUploadContainer" });
     closeAddModal();
+    if ($('adminManager') && !$('adminManager').classList.contains('hidden')) {
+      await loadAdminCommerceData();
+    }
   } catch (err) {
     alert("Error de conexión al enviar.");
   }
@@ -1760,14 +2978,8 @@ async function lookupSku() {
               <div><strong>SKU:</strong> ${escapeHtml(itemData.sku)}</div>
               <div><strong>Talla:</strong> ${escapeHtml(itemData.talla)}</div>
               <div><strong>Tipo:</strong> ${escapeHtml(itemData.tipo)}</div>
-              <div style="grid-column: 1 / -1;"><strong>Categorías:</strong> ${escapeHtml(formatCategoryDisplay(itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || ""))}</div>
+              <div style="grid-column: 1 / -1;"><strong>Categorías:</strong> ${escapeHtml(formatCategoryDisplay(getItemCategoryRaw(itemData)))}</div>
               <div><strong>Disponibilidad:</strong> ${itemData.disponible ? 'SÍ' : 'NO'}</div>
-              <div style="grid-column: 1 / -1;">
-                <strong>Estado:</strong> 
-                <span style="color: ${itemData.estado === 'Activo' ? '#25D366' : '#ff4a4a'}; font-weight: bold;">
-                  ${escapeHtml(itemData.estado || 'Activo')}
-                </span>
-              </div>
             </div>
           </div>
         </div>
@@ -1786,7 +2998,7 @@ async function lookupSku() {
       setSelectValue(form.talla, itemData.talla);
       setSelectValue(form.tipo, itemData.tipo);
       form.venta.checked = itemData.disponible === true || String(itemData.disponible).toUpperCase() === 'SÍ'; 
-      setCategoryGroupValues(form, itemData.tipoRegion || itemData.tipo_region || itemData.Tipo_Region || itemData.TipoRegion || "");
+      setCategoryGroupValues(form, getItemCategoryRaw(itemData));
       form.notas.value = itemData.notas || "";
 
       // Render image previews in the edit form
@@ -1906,6 +3118,7 @@ async function confirmUpdate() {
     talla: form.talla.value,
     tipo: form.tipo.value,
     disponible: form.venta.checked, // Retrieves true/false from the checkbox
+    categorias: categories.join(','),
     tipoRegion: categories.join(','),
     notas: form.notas.value,
     images: getUploadImages(editImages)
@@ -1948,10 +3161,10 @@ function closeConfirmModal() {
 
 async function executeStatusChange(actionType) {
   closeConfirmModal();
-  showLoader("Modificando estado de la fila...");
+  showLoader("Modificando disponibilidad de la fila...");
   try {
     await sendPostRequest({ action: actionType, sku: currentItem.sku });
-    alert("El estado de la prenda se modificó correctamente en Google Sheets.");
+    alert("La disponibilidad de la prenda se modificó correctamente en Google Sheets.");
     closeManageModal();
   } catch (err) {
     alert("Error de red.");
@@ -1959,10 +3172,27 @@ async function executeStatusChange(actionType) {
   hideLoader();
 }
 
-function openAddModal() { $("addModal").style.display = "flex"; }
-function closeAddModal() { $("addModal").style.display = "none"; }
-function openManageModal() { $("manageModal").style.display = "flex"; resetManage(); }
-function closeManageModal() { $("manageModal").style.display = "none"; resetManage(); }
+function openAddModal() {
+  renderProductCategoryPickers();
+  const modal = $("addModal");
+  if (modal) modal.style.display = "flex";
+}
+function closeAddModal() {
+  const modal = $("addModal");
+  if (modal) modal.style.display = "none";
+}
+function openManageModal() {
+  const modal = $("manageModal");
+  if (!modal) return;
+  modal.style.display = "flex";
+  resetManage();
+}
+function closeManageModal() {
+  const modal = $("manageModal");
+  if (!modal) return;
+  modal.style.display = "none";
+  resetManage();
+}
 
 function resetManage() {
   currentItem = null;

@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Inventario de Camisolas</title>
+  <title>Commerce Manager | Central America Shirts</title>
 
   <link rel="icon" type="image/png" href="assets/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="style.css"> 
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="admin-page">
@@ -24,10 +23,134 @@
     <h3 id="loaderText" style="font-size: 20px; font-weight: 600;">Procesando...</h3>
   </div>
 
-  <div class="top-buttons">
-    <a href="index.html" class="secondary-btn" style="text-decoration: none; display: inline-flex; align-items: center;">← Regresar al catálogo</a>
-    <button class="primary-btn" onclick="openAddModal()">Agregar Prenda</button>
-    <button class="secondary-btn" onclick="openManageModal()">Modificar / Eliminar Prenda</button>
+  <main class="admin-commerce-shell">
+    <section class="admin-auth-panel" id="adminLoginPanel" aria-live="polite">
+      <div class="admin-auth-brand">CAS</div>
+      <h1>Commerce Manager</h1>
+      <p id="adminAuthMessage">Inicia sesión para administrar Central America Shirts.</p>
+      <div class="admin-auth-actions">
+        <button type="button" class="primary-btn admin-google-btn" id="adminGoogleLoginBtn">Continuar con Google</button>
+        <button type="button" class="secondary-btn hidden" id="adminLoginSignOutBtn">Usar otra cuenta</button>
+      </div>
+      <a href="index.html" class="admin-catalog-link">Volver al catálogo</a>
+    </section>
+
+    <section class="admin-commerce hidden" id="adminManager">
+      <header class="admin-commerce-header">
+        <div>
+          <span class="admin-eyebrow">Central America Shirts</span>
+          <h1>Commerce Manager</h1>
+          <p id="adminUserLabel"></p>
+        </div>
+        <div class="admin-header-actions">
+          <a href="index.html" class="secondary-btn admin-header-link">Catálogo</a>
+          <button type="button" class="secondary-btn admin-header-link" id="adminSignOutBtn">Salir</button>
+        </div>
+      </header>
+
+      <div class="admin-tab-band" role="tablist" aria-label="Commerce Manager">
+        <button type="button" class="admin-tab active" data-admin-tab="products" role="tab" aria-selected="true">Products</button>
+        <button type="button" class="admin-tab" data-admin-tab="categories" role="tab" aria-selected="false">Categories</button>
+      </div>
+
+      <section class="admin-panel" id="adminProductsPanel" role="tabpanel">
+        <div class="admin-toolbar">
+          <div class="admin-search-field">
+            <label for="adminProductSearch">Buscar productos</label>
+            <input type="search" id="adminProductSearch" placeholder="SKU, equipo, año, talla, categoría...">
+          </div>
+          <div class="admin-toolbar-controls">
+            <div class="field-group admin-availability-filter">
+              <label for="adminAvailabilityFilter">Disponible</label>
+              <select id="adminAvailabilityFilter">
+                <option value="all">Todos</option>
+                <option value="available">Disponibles</option>
+                <option value="unavailable">No Disponibles</option>
+              </select>
+            </div>
+            <div class="field-group admin-page-size">
+              <label for="adminProductsPerPage">Por página</label>
+              <select id="adminProductsPerPage">
+                <option value="25">25</option>
+                <option value="50">50</option>
+              </select>
+            </div>
+            <div class="admin-add-menu">
+              <button type="button" class="primary-btn" id="adminAddProductsBtn">Agregar Producto(s)</button>
+              <div class="admin-add-menu-options hidden" id="adminAddMenuOptions">
+                <button type="button" id="adminAddSingleBtn">Add single product</button>
+                <button type="button" id="adminAddBulkBtn">Add products in bulk</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-count-row">
+          <span id="adminProductsCount">0 productos</span>
+          <span id="adminPendingProductsCount"></span>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-data-table" aria-label="Productos">
+            <thead>
+              <tr>
+                <th>Imagen</th>
+                <th>SKU</th>
+                <th>Equipo</th>
+                <th>Año</th>
+                <th>Precio</th>
+                <th>Oferta</th>
+                <th>Talla</th>
+                <th>Tipo</th>
+                <th>Categorías</th>
+                <th>Disponible</th>
+                <th>Notas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="adminProductsBody">
+              <tr><td colspan="12" class="admin-empty-row">Cargando productos...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admin-pagination" id="adminProductsPagination"></div>
+      </section>
+
+      <section class="admin-panel hidden" id="adminCategoriesPanel" role="tabpanel">
+        <div class="admin-toolbar">
+          <div>
+            <h2>Categorías</h2>
+            <p class="admin-muted">Priority 1 se muestra primero. Empates se ordenan alfabéticamente.</p>
+          </div>
+          <button type="button" class="primary-btn" id="adminAddCategoryBtn">Agregar Categoría</button>
+        </div>
+
+        <div class="admin-table-wrap">
+          <table class="admin-data-table admin-category-table" aria-label="Categorías">
+            <thead>
+              <tr>
+                <th>imageUrl</th>
+                <th>Name</th>
+                <th>priority</th>
+                <th>isActive</th>
+              </tr>
+            </thead>
+            <tbody id="adminCategoriesBody">
+              <tr><td colspan="4" class="admin-empty-row">Cargando categorías...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="admin-save-bar hidden" id="adminSaveBar">
+    <span id="adminPendingSummary">Cambios pendientes</span>
+    <div class="admin-save-actions">
+      <button type="button" class="cancel-btn" id="adminDiscardChangesBtn">Descartar</button>
+      <button type="button" class="primary-btn" id="adminSaveChangesBtn">SAVE</button>
+    </div>
   </div>
 
   <div class="modal" id="addModal">
@@ -44,7 +167,7 @@
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
-              <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid"><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Seleccion">Selección</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Mundial 2026">Mundial 2026</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Europa">Europa</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Conmebol/Concacaf">Conmebol / Concacaf</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Otros">Otros</label></div></div>
+              <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid" data-category-picker></div></div>
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Talla</label><select name="talla" required><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
@@ -57,7 +180,7 @@
               <label>Imágenes de la prenda</label>
               <label class="upload-box" id="addDropZone">
                 <div id="addUploadContainer">
-                  <div class="upload-icon">⬆</div>
+                  <div class="upload-icon">+</div>
                   <div class="upload-text">Click para subir imágenes</div>
                   <div class="upload-sub">Selecciona una o más imágenes (JPG, PNG, WEBP)</div>
                 </div>
@@ -73,92 +196,90 @@
     </div>
   </div>
 
-  <div class="modal" id="manageModal">
+  <div class="modal" id="adminEditProductModal">
     <div class="modal-content">
-      <span class="close" onclick="closeManageModal()">&times;</span>
-      <div class="modal-title">Modificar / Eliminar Prenda</div>
-      <p class="helper-text">Ingresa el SKU para cargar sus datos desde Google Sheets.</p>
-      <div class="two-cols">
-        <div class="field-group"><label>SKU</label><input type="text" id="lookupSku" placeholder="e.g., C0001"></div>
-        <div class="field-group" style="justify-content:end"><button type="button" class="add-btn" id="lookupBtn" onclick="lookupSku()">Buscar SKU</button></div>
-      </div>
-      <div id="manageStatus" class="status-text"></div>
-      <div id="skuSummary" class="sku-summary hidden"></div>
-      
-      <form id="editForm" class="hidden">
+      <span class="close" onclick="closeAdminEditProductModal()">&times;</span>
+      <div class="modal-title">Editar Producto</div>
+      <form id="adminEditProductForm">
         <input type="hidden" name="sku">
-        <div class="form-grid">
+        <div class="form-grid admin-edit-grid">
           <div>
-            <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo"></div>
+            <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo" required></div>
             <div class="two-cols">
               <div class="field-group"><label>Año</label><input type="text" name="year"></div>
               <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio"></div>
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
-              <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid"><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Seleccion">Selección</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Mundial 2026">Mundial 2026</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Europa">Europa</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Conmebol/Concacaf">Conmebol / Concacaf</label><label class="category-checkbox"><input type="checkbox" data-product-category name="tipo_region" value="Otros">Otros</label></div></div>
+              <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
             </div>
             <div class="two-cols">
-              <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
               <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
+              <div class="field-group"></div>
             </div>
-            <div class="checkbox-row"><input type="checkbox" id="editDisponible" name="venta"><label for="editDisponible">Disponible para venta</label></div>
+            <div class="checkbox-row"><input type="checkbox" id="adminEditDisponible" name="venta"><label for="adminEditDisponible">Disponible para venta</label></div>
           </div>
           <div>
-            <div class="field-group">
-              <label>Imágenes actuales / nuevas imágenes</label>
-              <div id="editCurrentImages" class="existing-images hidden"></div>
-              <label class="upload-box" id="editDropZone">
-                <div id="editUploadContainer">
-                  <div class="upload-text">Click para subir nuevas imágenes</div>
-                  <div class="upload-sub">Si subes nuevas imágenes, reemplazarán la galería actual.</div>
-                  <img id="editImagePreview" class="preview-img" alt="Imagen actual">
+            <div class="field-group admin-product-images-panel">
+              <label>Imágenes</label>
+              <div class="admin-image-mode-row">
+                <label><input type="radio" name="image_mode" value="add" checked> Agregar imágenes</label>
+                <label><input type="radio" name="image_mode" value="replace"> Reemplazar galería</label>
+              </div>
+              <div class="admin-image-choice-grid" id="adminCurrentProductImages"></div>
+              <label class="upload-box admin-compact-upload" id="adminProductImageDropZone">
+                <div id="adminProductImageUploadContainer">
+                  <div class="upload-icon">+</div>
+                  <div class="upload-text">Click para subir imágenes</div>
+                  <div class="upload-sub">Las imágenes se guardarán al presionar SAVE.</div>
                 </div>
-                <div id="editPreviewContainer" class="hidden" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
-                <input type="file" id="editFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
+                <input type="file" id="adminProductImageInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" multiple>
               </label>
+              <div class="admin-image-choice-grid hidden" id="adminProductImageUploadPreview"></div>
             </div>
+            <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid" data-category-picker></div></div>
             <div class="field-group"><label>Notas</label><textarea name="notas"></textarea></div>
           </div>
         </div>
-      </form>
-      <form id="addPhotosForm" class="hidden admin-add-photos-form">
-        <div class="admin-inline-panel">
-          <h3>Agregar fotos secundarias</h3>
-          <p>Estas imágenes se sumarán al final de la galería actual sin reemplazar las fotos existentes.</p>
-          <label class="upload-box" id="appendDropZone">
-            <div id="appendUploadContainer">
-              <div class="upload-text">Click para agregar más imágenes</div>
-              <div class="upload-sub">Se guardarán como fotos secundarias de este SKU.</div>
-            </div>
-            <div id="appendPreviewContainer" class="hidden" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;"></div>
-            <input type="file" id="appendFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none" name="imagen" multiple>
-          </label>
+        <div class="modal-footer">
+          <button type="button" class="cancel-btn" onclick="closeAdminEditProductModal()">Cancelar</button>
+          <button type="submit" class="add-btn">Guardar en pendientes</button>
         </div>
       </form>
-      <div class="modal-footer" id="actionFooter">
-        <button type="button" class="cancel-btn" onclick="closeManageModal()">Cancelar</button>
-        <button type="button" class="add-btn hidden" id="updateBtn" onclick="showEditForm()">Actualizar</button>
-        <button type="button" class="secondary-btn hidden" id="addPhotosBtn" onclick="showAddPhotosForm()">Agregar fotos</button>
-        <button type="button" class="warning-btn hidden" id="soldBtn" onclick="openConfirmModal('sold')">Marcar Como Vendida</button>
-        <button type="button" class="danger-btn hidden" id="deleteBtn" onclick="openConfirmModal('delete')">Eliminar</button>
-        <button type="button" class="add-btn hidden" id="confirmUpdateBtn" onclick="confirmUpdate()" disabled>Confirmar</button>
-        <button type="button" class="add-btn hidden" id="confirmAddPhotosBtn" onclick="confirmAddPhotos()" disabled>Guardar fotos</button>
-      </div>
     </div>
   </div>
 
-  <div class="modal" id="confirmModal">
-    <div class="modal-content small-modal">
-      <div class="modal-title" id="confirmTitle">Confirmar</div>
-      <p class="status-text" id="confirmText"></p>
-      <div class="modal-footer" style="justify-content:center">
-        <button type="button" class="cancel-btn" onclick="closeConfirmModal()">Cancelar</button>
-        <button type="button" class="danger-btn" id="confirmActionBtn">Confirmar</button>
+  <div class="modal" id="adminBulkUploadModal">
+    <div class="modal-content">
+      <span class="close" onclick="closeAdminBulkUploadModal()">&times;</span>
+      <div class="modal-title">Agregar Productos en Bulk</div>
+      <p class="helper-text">Sube un CSV y un ZIP con las imágenes. El SKU se generará como CAS + imageName; por ejemplo, imageName 300 será SKU CAS300.</p>
+      <div class="admin-inline-panel admin-bulk-fields">
+        <h3>Columnas del CSV</h3>
+        <p>Requeridas: imageName, Equipo, Año, Precio, Talla, Tipo, Categorías. Opcionales: Precio_Oferta, Disponible, Notas. Si Categorías tiene varias, usa comillas: "Selecciones,Exclusivo en línea".</p>
+        <button type="button" class="secondary-btn admin-header-link" id="adminDownloadBulkCsvBtn">Descargar CSV de ejemplo</button>
       </div>
+      <form id="adminBulkUploadForm">
+        <div class="form-grid">
+          <div class="field-group">
+            <label>CSV de productos</label>
+            <input type="file" id="adminBulkCsvInput" accept=".csv,text/csv" required>
+          </div>
+          <div class="field-group">
+            <label>ZIP de imágenes</label>
+            <input type="file" id="adminBulkZipInput" accept=".zip,application/zip" required>
+          </div>
+        </div>
+        <p class="helper-text">El ZIP debe incluir imágenes cuyo nombre coincida con imageName. Ejemplo: imageName 300 puede usar 300.jpg; imágenes adicionales como 300-back.jpg se agregarán a la galería.</p>
+        <div class="modal-footer">
+          <button type="button" class="cancel-btn" onclick="closeAdminBulkUploadModal()">Cancelar</button>
+          <button type="submit" class="add-btn">Subir productos</button>
+        </div>
+      </form>
     </div>
   </div>
 
-<script src="app.js?v=20260623-admin-categories"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js?v=20260816-dirty-diff"></script>
 </body>
 </html>

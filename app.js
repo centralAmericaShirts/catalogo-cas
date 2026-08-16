@@ -1,7 +1,7 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwiVIm4FrofKrCKerYgKFnZn85xZ0l8R-UfoB1YjtaGNssyvbyFeAzN3u_xhZ0QmIVcMw/exec"; 
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzUkviJwpsofs3vPBE5DT5uHmPgaiRH9_InHgR21jN2H4-je6NR0UH0py3u5AYpXHFXIg/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
 

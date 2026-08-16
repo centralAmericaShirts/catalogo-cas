@@ -45,13 +45,15 @@
       <details class="side-menu-accordion">
         <summary>Categorías</summary>
         <div class="accordion-content">
-          <a href="#" onclick="selectCategory('Ofertas'); closeSideMenu(); return false;">🔥 Ofertas</a>
-          <a href="#" onclick="selectCategory('Todas las prendas'); closeSideMenu(); return false;">Todas las Prendas</a>
-          <a href="#" onclick="selectCategory('Selecciones'); closeSideMenu(); return false;">Selecciones</a>
-          <a href="#" onclick="selectCategory('Mundial 2026'); closeSideMenu(); return false;">Mundial 2026</a>
-          <a href="#" onclick="selectCategory('Equipos Europeos'); closeSideMenu(); return false;">Equipos Europeos</a>
-          <a href="#" onclick="selectCategory('Conmebol/Concacaf'); closeSideMenu(); return false;">Conmebol / Concacaf</a>
-          <a href="#" onclick="selectCategory('Otros'); closeSideMenu(); return false;">Otros</a>
+          <a href="index.html?category=Todo" data-category-link="Todo">Todo</a>
+          <a href="index.html?category=Ofertas" class="category-offer-link" data-category-link="Ofertas"><span class="category-offer-text">OFERTAS</span></a>
+          <a href="index.html?category=Exclusivo%20en%20l%C3%ADnea" data-category-link="Exclusivo en línea">Exclusivo en línea</a>
+          <a href="index.html?category=Selecciones" data-category-link="Selecciones">Selecciones</a>
+          <a href="index.html?category=Futbol%20Nacional%20(GT)" data-category-link="Futbol Nacional (GT)">Futbol Nacional (GT)</a>
+          <a href="index.html?category=Equipos%20Europeos" data-category-link="Equipos Europeos">Equipos Europeos</a>
+          <a href="index.html?category=Conmebol%2FConcacaf" data-category-link="Conmebol/Concacaf">Conmebol/Concacaf</a>
+          <a href="index.html?category=Otros" data-category-link="Otros">Otros</a>
+          <a href="index.html?category=%C3%9Anicamente%20en%20Tienda" data-category-link="Únicamente en Tienda">Únicamente en Tienda</a>
         </div>
       </details>
       <a href="https://wa.me/50258656376" target="_blank" rel="noopener" class="menu-icon-link">
@@ -61,7 +63,6 @@
         <img src="assets/instagram_logo.svg" alt="Instagram" class="menu-icon"> Ver Instagram
       </a>
       <a href="randomGallery.html" onclick="closeSideMenu()">Galería Random</a>
-      <a href="quiniela.html" onclick="closeSideMenu()">Quiniela CAS</a>
     </nav>
   </aside>
 
@@ -101,37 +102,19 @@
     </form>
 
     <div class="category-cards-grid" id="categoryGrid">
-		<div class="cat-card" onclick="selectCategory('Todas las prendas')" style="background-image: url('assets/logo_cas.png')">
-            <div class="cat-overlay"></div>
-            <h3>Todas las prendas</h3>
-        </div>
-		<div class="cat-card" onclick="selectCategory('Ofertas')" style="background-image: url('categories/ofertas.png')">
-            <div class="cat-overlay"></div>
-            <h3>Ofertas</h3>
-        </div>
-        <div class="cat-card" onclick="selectCategory('Selecciones')" style="background-image: url('categories/selecciones.jpg')">
-            <div class="cat-overlay"></div>
-            <h3>Selecciones</h3>
-        </div>
-        <div class="cat-card" onclick="selectCategory('Mundial 2026')" style="background-image: url('categories/mundial2026.jpg')">
-            <div class="cat-overlay"></div>
-            <h3>Mundial 2026</h3>
-        </div>
-        <div class="cat-card" onclick="selectCategory('Equipos Europeos')" style="background-image: url('categories/europa.jpg')">
-            <div class="cat-overlay"></div>
-            <h3>Equipos Europeos</h3>
-        </div>
-        <div class="cat-card" onclick="selectCategory('Conmebol / Concacaf')" style="background-image: url('categories/conmebol_concacaf.png')">
-            <div class="cat-overlay"></div>
-            <h3>Conmebol / Concacaf</h3>
-        </div>
-        <div class="cat-card" onclick="selectCategory('Otros')" style="background-image: url('categories/otros.png')">
-            <div class="cat-overlay"></div>
-            <h3>Otros</h3>
-        </div>
+        <button type="button" class="cat-card" data-category-link="Todo" style="background-image: url(&quot;assets/logo_cas.png&quot;)"><span class="cat-overlay"></span><h3><span>Todo</span></h3></button>
+        <button type="button" class="cat-card category-offer-card" data-category-link="Ofertas" style="background-image: url(&quot;categories/ofertas.png&quot;)"><span class="cat-overlay"></span><h3><span class="category-offer-text">OFERTAS</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Exclusivo en línea" style="background-image: url(&quot;assets/logo_cas.png&quot;)"><span class="cat-overlay"></span><h3><span>Exclusivo en línea</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Selecciones" style="background-image: url(&quot;categories/selecciones.jpg&quot;)"><span class="cat-overlay"></span><h3><span>Selecciones</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Futbol Nacional (GT)" style="background-image: url(&quot;assets/logo_cas.png&quot;)"><span class="cat-overlay"></span><h3><span>Futbol Nacional (GT)</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Equipos Europeos" style="background-image: url(&quot;categories/europa.jpg&quot;)"><span class="cat-overlay"></span><h3><span>Equipos Europeos</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Conmebol/Concacaf" style="background-image: url(&quot;categories/conmebol_concacaf.png&quot;)"><span class="cat-overlay"></span><h3><span>Conmebol/Concacaf</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Otros" style="background-image: url(&quot;categories/otros.png&quot;)"><span class="cat-overlay"></span><h3><span>Otros</span></h3></button>
+        <button type="button" class="cat-card" data-category-link="Únicamente en Tienda" style="background-image: url(&quot;assets/logo_cas.png&quot;)"><span class="cat-overlay"></span><h3><span>Únicamente en Tienda</span></h3></button>
     </div>
 
     <div id="inventorySection" style="display: none;">
+        <div class="category-switcher-band" id="categorySwitcherBand" aria-label="Cambiar categoría"></div>
         <div class="active-category-header">
             <button type="button" class="secondary-btn category-back-btn" onclick="backToCategories()" aria-label="Volver a categorías">
               <img src="assets/flecha.png" alt="" class="btn-icon back-icon">
@@ -237,6 +220,6 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260623-admin-categories"></script>
+  <script src="app.js?v=20260816-dirty-diff"></script>
 </body>
 </html>

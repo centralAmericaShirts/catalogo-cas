@@ -329,23 +329,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSideMenu();
     setupSiteFooter();
     setupStickyCategoryHeader();
-    renderCategorySurfaces();
+
+    const isIndexPage = document.body.classList.contains('index-page');
+    if (!isIndexPage) renderCategorySurfaces();
 
     // Si el body tiene la clase de la tienda (index.html)
-    if (document.body.classList.contains('index-page')) {
-        hidePageLoader();
-        setupCategoryButtons(); 
-        setupHomeSearch();
-        restoreCatalogStateFromUrl();
-        loadInventory(); 
-        
-        // Listener para cerrar modal de producto al hacer clic afuera
-        window.addEventListener('click', function(e) {
-            const modal = $('productModal');
-            if (e.target === modal) {
-                closeProductModal();
-            }
-        });
+    if (isIndexPage) {
+        initIndexPage();
     } 
     // Si el body tiene la clase de administración (admin.html)
     else if (document.body.classList.contains('admin-page')) {
@@ -368,6 +358,24 @@ document.addEventListener('DOMContentLoaded', () => {
         loadCategoriesForPage();
     }
 });
+
+async function initIndexPage() {
+  showPageLoader();
+  setupCategoryButtons();
+  setupHomeSearch();
+  await loadCategoriesForPage();
+  restoreCatalogStateFromUrl();
+  hidePageLoader();
+  loadInventory();
+
+  // Listener para cerrar modal de producto al hacer clic afuera
+  window.addEventListener('click', function(e) {
+    const modal = $('productModal');
+    if (e.target === modal) {
+      closeProductModal();
+    }
+  });
+}
 
 function setupSideMenu() {
   ensureSharedNavigation();

@@ -1,7 +1,7 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwZnE0iOi5VMm3igxymEHK9p_Xe8QK0KJVVsCx-8yEs4bwiFN-KKVSvay-kY4rVKni1Hg/exec"; 
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmz3jGEe0exU50UYJtiCjTCsUafPze3Z78wJb3XdLzOK1ObtjdxpJZOrv0PyiFD1eX/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
 
@@ -25,6 +25,7 @@ let editImages = [];
 let appendImages = [];
 let isLoading = true;
 let jsonpCounter = 0;
+let pageLoaderTimer = 0;
 let adminProducts = [];
 let adminProductsPage = 1;
 let adminProductsPerPage = 25;
@@ -44,6 +45,10 @@ const $ = (id) => document.getElementById(id);
 const CATEGORY_ALL_NAME = 'Todo';
 const CATEGORY_OFFER_NAME = 'Ofertas';
 const DEFAULT_CATEGORY_IMAGE = 'assets/logo_cas.png';
+const AVAILABILITY_STORE = 'Tienda';
+const AVAILABILITY_ONLINE = 'Online';
+const AVAILABILITY_SOLD_OUT = 'Sold Out';
+const AVAILABILITY_NO = 'No';
 const DEFAULT_CATEGORIES = [
   { imageUrl: 'assets/logo_cas.png', name: CATEGORY_ALL_NAME, priority: 10, isActive: true },
   { imageUrl: 'categories/ofertas.png', name: CATEGORY_OFFER_NAME, priority: 20, isActive: true },
@@ -85,15 +90,39 @@ function ensurePageLoader() {
 }
 
 function showPageLoader() {
+  cancelPageLoader();
   ensurePageLoader().classList.add('active');
   document.body.classList.add('page-is-loading');
 }
 
 function hidePageLoader() {
+  cancelPageLoader();
   const overlay = $('pageLoadingOverlay');
   if (overlay) overlay.classList.remove('active');
   document.body.classList.remove('page-is-loading');
 }
+
+function schedulePageLoader(delayMs = 350) {
+  cancelPageLoader();
+  pageLoaderTimer = window.setTimeout(() => {
+    pageLoaderTimer = 0;
+    showPageLoader();
+  }, delayMs);
+}
+
+function cancelPageLoader() {
+  if (!pageLoaderTimer) return;
+  window.clearTimeout(pageLoaderTimer);
+  pageLoaderTimer = 0;
+}
+
+window.addEventListener('pagehide', () => {
+  hidePageLoader();
+});
+
+window.addEventListener('pageshow', event => {
+  if (event.persisted) hidePageLoader();
+});
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -118,6 +147,76 @@ function getProductWhatsAppUrl(item, titleOverride = '') {
   const productUrl = getPublicProductUrl(sku);
   const message = `¡Hola! Me interesa la camisola de ${title} (Talla: ${size}, SKU: ${sku}) que vi en su catálogo web. ¿Está disponible?\n\nLink de la prenda: ${productUrl}`;
   return `https://wa.me/${WS_NUMBER.replace('+', '')}?text=${encodeURIComponent(message)}`;
+}
+
+function getAvailabilityInputValue(source) {
+  if (source && typeof source === 'object' && !Array.isArray(source)) {
+    if (Object.prototype.hasOwnProperty.call(source, 'disponible')) return source.disponible;
+    if (Object.prototype.hasOwnProperty.call(source, 'Disponible')) return source.Disponible;
+    if (Object.prototype.hasOwnProperty.call(source, 'disponibilidad')) return source.disponibilidad;
+    if (Object.prototype.hasOwnProperty.call(source, 'Disponibilidad')) return source.Disponibilidad;
+    if (Object.prototype.hasOwnProperty.call(source, 'availability')) return source.availability;
+  }
+  return source;
+}
+
+function normalizeAvailabilityValue(source) {
+  const value = getAvailabilityInputValue(source);
+  if (value === true) return AVAILABILITY_STORE;
+  if (value === false || value === undefined || value === null || value === '') return AVAILABILITY_NO;
+  if (typeof value === 'number') return value === 0 ? AVAILABILITY_NO : AVAILABILITY_STORE;
+
+  const text = cleanText(value);
+  if (['sold out', 'soldout', 'sold-out', 'sold_out', 'out of stock', 'agotado', 'vendido', 'sin stock'].includes(text)) return AVAILABILITY_SOLD_OUT;
+  if (['online', 'en linea', 'linea', 'disponible en linea', 'exclusivo en linea'].includes(text)) return AVAILABILITY_ONLINE;
+  if (['tienda', 'en tienda', 'disponible en tienda', 'store', 'in store', 'si', 'yes', 'true', '1', 'disponible'].includes(text)) return AVAILABILITY_STORE;
+  return AVAILABILITY_NO;
+}
+
+function isAvailableItem(item) {
+  return normalizeAvailabilityValue(item) !== AVAILABILITY_NO;
+}
+
+function getAvailabilityLabel(item) {
+  const availability = normalizeAvailabilityValue(item);
+  if (availability === AVAILABILITY_STORE) return 'Disponible en Tienda';
+  if (availability === AVAILABILITY_ONLINE) return 'Disponible en línea';
+  if (availability === AVAILABILITY_SOLD_OUT) return 'Sold Out';
+  return '';
+}
+
+function getAvailabilityClass(item) {
+  const availability = normalizeAvailabilityValue(item);
+  if (availability === AVAILABILITY_SOLD_OUT) return 'availability-sold-out';
+  if (availability === AVAILABILITY_ONLINE) return 'availability-online';
+  if (availability === AVAILABILITY_STORE) return 'availability-store';
+  return 'availability-none';
+}
+
+function getAvailabilityTagHtml(item, extraClass = '') {
+  const label = getAvailabilityLabel(item);
+  if (!label) return '';
+  const className = ['availability-tag', getAvailabilityClass(item), extraClass].filter(Boolean).join(' ');
+  return `<span class="${escapeHtml(className)}">${escapeHtml(label)}</span>`;
+}
+
+function getAvailabilitySelectOptions(value) {
+  const selected = normalizeAvailabilityValue(value);
+  return [AVAILABILITY_STORE, AVAILABILITY_ONLINE, AVAILABILITY_SOLD_OUT, AVAILABILITY_NO].map(option => (
+    `<option value="${escapeHtml(option)}" ${selected === option ? 'selected' : ''}>${escapeHtml(option)}</option>`
+  )).join('');
+}
+
+function setAvailabilitySelectValue(field, value) {
+  if (!field) return;
+  field.value = normalizeAvailabilityValue(value);
+}
+
+function getFormAvailabilityValue(form) {
+  const field = form?.venta;
+  if (!field) return AVAILABILITY_NO;
+  if (field.type === 'checkbox') return field.checked ? AVAILABILITY_STORE : AVAILABILITY_NO;
+  return normalizeAvailabilityValue(field.value);
 }
 
 function parseCategoryActive(value) {
@@ -635,7 +734,7 @@ function getProductImages(item) {
 }
 
 function openProductPage(sku) {
-  showPageLoader();
+  schedulePageLoader();
   window.location.href = getProductUrlFromCatalog(sku);
 }
 
@@ -776,10 +875,6 @@ function isAllCategory(category) {
 
 function isRandomGalleryCategory(category) {
   return cleanOptionText(category) === cleanOptionText('Galería Random');
-}
-
-function isAvailableItem(item) {
-  return item.disponible === true || String(item.disponible).toUpperCase() === 'SÍ';
 }
 
 function hasOffer(item) {
@@ -969,7 +1064,10 @@ function render() {
           <img src="${escapeHtml(images[0])}" alt="${escapeHtml(item.equipo)}" loading="lazy" onerror="this.onerror=null; this.src='assets/image_unavailable.png';" style="width: 100%; height: 100%; object-fit: cover;">
         </div>
         <div class="product-info" style="padding: 15px; display:flex; flex-direction:column; flex:1;">
-          <div class="product-sku" style="color: #9eb1ca; font-size: 12px; margin-bottom: 5px;">${escapeHtml(item.sku)}</div>
+          <div class="product-sku-row">
+            <span class="product-sku">${escapeHtml(item.sku)}</span>
+            ${getAvailabilityTagHtml(item)}
+          </div>
           <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)} | ${escapeHtml(item.year)}</h3>
           <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${escapeHtml(item.talla)} | ${escapeHtml(item.tipo)}</div>
           
@@ -1201,6 +1299,7 @@ function updateRandomGalleryItem(index, animate = true) {
    ========================================================================== */
 function selectCategory(categoryName, options = {}) {
   if (isRandomGalleryCategory(categoryName)) {
+    schedulePageLoader();
     window.location.href = 'randomGallery.html';
     return;
   }
@@ -1337,6 +1436,7 @@ async function loadProductPage() {
 
     productPageInventoryItems = inventoryResult.status === 'fulfilled'
       ? normalizeInventoryPayload(inventoryResult.value)
+        .filter(isAvailableItem)
       : [];
     if (inventoryResult.status === 'fulfilled') setCatalogCategories(normalizeCategoryPayload(inventoryResult.value));
 
@@ -1344,7 +1444,7 @@ async function loadProductPage() {
     const response = itemResult.status === 'fulfilled' ? itemResult.value : null;
     const itemData = inventoryItem || (response && response.success !== false ? response.item : null);
 
-    if (!itemData) {
+    if (!itemData || !isAvailableItem(itemData)) {
       showProductPageError("La camisola solicitada no existe, fue eliminada o ya fue vendida.");
       return;
     }
@@ -1398,7 +1498,7 @@ function setupProductHistoryNavigation() {
 function navigateProductInPlace(sku, url, options = {}) {
   const item = findProductInPageInventory(sku);
   if (!item) {
-    showPageLoader();
+    schedulePageLoader();
     window.location.href = url;
     return;
   }
@@ -1539,7 +1639,7 @@ function setupProductNavigationLinks() {
     link.addEventListener('click', event => {
       const href = link.getAttribute('href');
       if (!href || !productPageInventoryItems.length) {
-        showPageLoader();
+        schedulePageLoader();
         return;
       }
 
@@ -1547,7 +1647,7 @@ function setupProductNavigationLinks() {
       const sku = url.searchParams.get('sku');
       const item = findProductInPageInventory(sku);
       if (!sku || !item) {
-        showPageLoader();
+        schedulePageLoader();
         return;
       }
 
@@ -1669,7 +1769,7 @@ function renderProductPage(item, requestedSku, inventoryItems = []) {
       </div>
 
       <aside class="random-info-panel product-info-panel-v2">
-        <div class="random-counter">${navigation.total ? `${navigation.position} de ${navigation.total}` : escapeHtml(sku)}</div>
+        <div class="random-counter product-availability-counter">${getAvailabilityTagHtml(item, 'product-availability-tag') || escapeHtml(sku)}</div>
         <h1 id="productTitle">${escapeHtml(title)}</h1>
         <div class="product-gallery-price-row">
           <div id="productPrice" class="random-price">${getProductPriceHtml(item, 18)}</div>
@@ -2038,9 +2138,11 @@ function getAdminFilteredProducts() {
   const availability = adminAvailabilityFilter || $('adminAvailabilityFilter')?.value || 'all';
 
   return adminProducts.filter(item => {
-    const isAvailable = isAvailableItem(item);
-    if (availability === 'available' && !isAvailable) return false;
-    if (availability === 'unavailable' && isAvailable) return false;
+    const itemAvailability = normalizeAvailabilityValue(item);
+    if (availability === 'available' && itemAvailability === AVAILABILITY_NO) return false;
+    if (availability === 'unavailable' && itemAvailability !== AVAILABILITY_NO) return false;
+    if (availability === AVAILABILITY_NO && itemAvailability !== AVAILABILITY_NO) return false;
+    if ([AVAILABILITY_STORE, AVAILABILITY_ONLINE, AVAILABILITY_SOLD_OUT].includes(availability) && itemAvailability !== availability) return false;
     if (!query) return true;
 
     const haystack = [
@@ -2082,7 +2184,7 @@ function renderAdminProducts() {
   body.querySelectorAll('[data-admin-availability]').forEach(input => {
     input.addEventListener('change', event => {
       const sku = event.target.dataset.adminAvailability;
-      const disponible = event.target.checked;
+      const disponible = normalizeAvailabilityValue(event.target.value);
       updateAdminProductLocal(sku, { disponible });
       queueAdminProductUpdate(sku, { disponible });
       renderAdminProducts();
@@ -2100,7 +2202,7 @@ function renderAdminProducts() {
 function getAdminProductRowHtml(item) {
   const sku = item.sku || '';
   const image = getProductImages(item)[0];
-  const available = isAvailableItem(item);
+  const availability = normalizeAvailabilityValue(item);
   const categories = formatCategoryDisplay(getItemCategoryRaw(item));
 
   return `
@@ -2115,10 +2217,9 @@ function getAdminProductRowHtml(item) {
       <td>${escapeHtml(item.tipo || '')}</td>
       <td class="admin-text-cell" title="${escapeHtml(categories)}">${escapeHtml(categories)}</td>
       <td>
-        <label class="admin-switch" title="Disponible">
-          <input type="checkbox" data-admin-availability="${escapeHtml(sku)}" ${available ? 'checked' : ''}>
-          <span></span>
-        </label>
+        <select class="admin-availability-select" data-admin-availability="${escapeHtml(sku)}" aria-label="Disponibilidad ${escapeHtml(sku)}">
+          ${getAvailabilitySelectOptions(availability)}
+        </select>
       </td>
       <td class="admin-notes-cell" title="${escapeHtml(item.notas || '')}">${escapeHtml(item.notas || '')}</td>
       <td><button type="button" class="admin-edit-btn" data-admin-edit-product="${escapeHtml(sku)}">Edit</button></td>
@@ -2163,7 +2264,7 @@ function getAdminProductSnapshot(item) {
     precioOferta: String(item?.precioOferta || item?.Precio_Oferta || '').trim(),
     talla: String(item?.talla || '').trim(),
     tipo: String(item?.tipo || '').trim(),
-    disponible: isAvailableItem(item),
+    disponible: normalizeAvailabilityValue(item),
     categorias: String(getItemCategoryRaw(item) || '').split(',').map(value => value.trim()).filter(Boolean).join(','),
     notas: String(item?.notas || '').trim(),
     imagen: String(item?.imagen || item?.Imagen_Url || '').trim(),
@@ -2185,7 +2286,7 @@ function getAdminComparableProduct(item, update = {}) {
     precioOferta: String(merged.precioOferta || merged.Precio_Oferta || '').trim(),
     talla: String(merged.talla || '').trim(),
     tipo: String(merged.tipo || '').trim(),
-    disponible: isAvailableItem(merged),
+    disponible: normalizeAvailabilityValue(merged),
     categorias: String(categorias || '').split(',').map(value => value.trim()).filter(Boolean).join(','),
     notas: String(merged.notas || '').trim()
   };
@@ -2357,7 +2458,7 @@ function openAdminEditProductModal(sku) {
   form.precio_oferta.value = item.precioOferta || item.Precio_Oferta || '';
   setSelectValue(form.talla, item.talla);
   setSelectValue(form.tipo, item.tipo);
-  form.venta.checked = isAvailableItem(item);
+  setAvailabilitySelectValue(form.venta, item);
   setCategoryGroupValues(form, getItemCategoryRaw(item));
   form.notas.value = item.notas || '';
   if (form.image_mode) form.image_mode.value = 'add';
@@ -2403,7 +2504,7 @@ function submitAdminProductEdit(event) {
     precioOferta: form.precio_oferta.value,
     talla: form.talla.value,
     tipo: form.tipo.value,
-    disponible: form.venta.checked,
+    disponible: getFormAvailabilityValue(form),
     categorias,
     tipoRegion: categorias,
     notas: form.notas.value,
@@ -2624,7 +2725,7 @@ function closeAdminBulkUploadModal() {
 function downloadAdminBulkCsvExample() {
   const csv = [
     'imageName,Equipo,Año,Precio,Precio_Oferta,Talla,Tipo,Disponible,Categorías,Notas',
-    '300,Guatemala,2024,550,,M,Casa,Sí,"Selecciones,Exclusivo en línea","Condición nueva"'
+    '300,Guatemala,2024,550,,M,Casa,Tienda,"Selecciones,Exclusivo en línea","Condición nueva"'
   ].join('\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -2915,8 +3016,6 @@ async function submitAdd(e) {
 
   const formData = new FormData(e.target);
   
-  // Note: We changed action to 'addItem' to match code.gs
-  // and added the missing year, precioOferta, and disponible fields.
   const payload = {
     action: "addItem", 
     equipo: formData.get("equipo"),
@@ -2925,7 +3024,7 @@ async function submitAdd(e) {
     precioOferta: formData.get("precio_oferta"),
     talla: formData.get("talla"),
     tipo: formData.get("tipo"),
-    disponible: formData.get("venta") !== null, // Checkbox returns null if unchecked
+    disponible: normalizeAvailabilityValue(formData.get("venta") || AVAILABILITY_STORE),
     categorias: categories.join(','),
     tipoRegion: categories.join(','),
     notas: formData.get("notas"),
@@ -2987,7 +3086,7 @@ async function lookupSku() {
               <div><strong>Talla:</strong> ${escapeHtml(itemData.talla)}</div>
               <div><strong>Tipo:</strong> ${escapeHtml(itemData.tipo)}</div>
               <div style="grid-column: 1 / -1;"><strong>Categorías:</strong> ${escapeHtml(formatCategoryDisplay(getItemCategoryRaw(itemData)))}</div>
-              <div><strong>Disponibilidad:</strong> ${itemData.disponible ? 'SÍ' : 'NO'}</div>
+              <div><strong>Disponibilidad:</strong> ${escapeHtml(normalizeAvailabilityValue(itemData))}</div>
             </div>
           </div>
         </div>
@@ -3005,7 +3104,7 @@ async function lookupSku() {
       form.precio_oferta.value = itemData.precioOferta || itemData.Precio_Oferta || ""; 
       setSelectValue(form.talla, itemData.talla);
       setSelectValue(form.tipo, itemData.tipo);
-      form.venta.checked = itemData.disponible === true || String(itemData.disponible).toUpperCase() === 'SÍ'; 
+      setAvailabilitySelectValue(form.venta, itemData);
       setCategoryGroupValues(form, getItemCategoryRaw(itemData));
       form.notas.value = itemData.notas || "";
 
@@ -3114,8 +3213,6 @@ async function confirmUpdate() {
 
   showLoader("Guardando cambios y procesando imágenes en el Excel...");
 
-  // Changed action to 'updateItem' to match code.gs
-  // and added the missing year, precioOferta, and disponible fields.
   const payload = {
     action: "updateItem",
     sku: currentItem.sku, // The original SKU is sent so code.gs can find the correct row
@@ -3125,7 +3222,7 @@ async function confirmUpdate() {
     precioOferta: form.precio_oferta.value,
     talla: form.talla.value,
     tipo: form.tipo.value,
-    disponible: form.venta.checked, // Retrieves true/false from the checkbox
+    disponible: getFormAvailabilityValue(form),
     categorias: categories.join(','),
     tipoRegion: categories.join(','),
     notas: form.notas.value,

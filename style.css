@@ -118,6 +118,15 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .category-offer-text,
 .category-offer-title { color: #ffdb4d; background: linear-gradient(90deg, #ffe45c 0%, #ff4f88 48%, #38d8ff 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; font-weight: 900; filter: drop-shadow(0 2px 8px rgba(0,0,0,.45)); }
 .category-offer-link { font-weight: 900 !important; }
+.product-sku-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
+.product-sku { color: #9eb1ca; font-size: 12px; font-weight: 800; line-height: 1.2; }
+.availability-tag { min-height: 22px; display: inline-flex; align-items: center; justify-content: center; margin-left: auto; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; line-height: 1.15; letter-spacing: 0; border: 1px solid transparent; white-space: nowrap; text-align: center; }
+.availability-store { color: #7dffb2; background: rgba(17,145,82,.22); border-color: rgba(40,220,119,.52); }
+.availability-online { color: #2490ff; background: rgba(36,144,255,.18); border-color: rgba(36,144,255,.58); }
+.availability-sold-out { color: #ff7b7b; background: rgba(214,69,69,.18); border-color: rgba(255,96,96,.54); }
+.product-availability-counter { min-height: 24px; }
+.product-availability-counter .availability-tag { margin-left: 0; }
+.product-availability-tag { font-size: 12px; padding: 5px 10px; }
 .category-switcher-band { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 14px; margin: -2px 0 12px; border-bottom: 1px solid #1f3350; scrollbar-width: none; }
 .category-switcher-band::-webkit-scrollbar { display: none; }
 .category-band-btn { flex: 0 0 auto; min-height: 38px; padding: 0 13px; color: #d9e5f5; background: #081426; border: 1px solid #1f3350; border-radius: 10px; font-size: 13px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
@@ -225,6 +234,7 @@ input, select, textarea { background: #07101d; border: 1px solid #203552; color:
 .admin-data-table select { min-height: 36px; padding: 8px 10px; border-radius: 6px; font-size: 12px; }
 .admin-product-thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #1f3350; background: #050d18; display: block; }
 .admin-sku-cell { font-weight: 900; color: #fff; white-space: nowrap; }
+.admin-availability-select { min-width: 112px; }
 .admin-text-cell { max-width: 180px; min-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-notes-cell { max-width: 260px; min-width: 160px; color: #9eb1ca; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-edit-btn { min-height: 34px; padding: 0 12px; border-radius: 7px; color: #fff; background: #142238; border: 1px solid #23344f; font-weight: 900; }

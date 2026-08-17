@@ -82,6 +82,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .field-group { display: flex; flex-direction: column; gap: 8px; }
 label { font-size: 14px; color: #d9e5f5; font-weight: 600; }
 input, select, textarea { background: #07101d; border: 1px solid #203552; color: white; padding: 14px 16px; border-radius: 14px; outline: none; width: 100%; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 .sticky-header { position: sticky; top: 70px; z-index: 99; background: #050d18; padding-top: 15px; margin-bottom: 10px; }
 .home-message-group { text-align: center; padding: 10px; }
 .home-message-group h2 { font-size: 24px; color: #d9e5f5; }

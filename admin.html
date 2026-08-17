@@ -165,15 +165,15 @@
             <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo" placeholder="e.g., Argentina" required></div>
             <div class="two-cols">
               <div class="field-group"><label>Año</label><input type="text" name="year" placeholder="e.g., 2022-23" required></div>
-              <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio" placeholder="e.g., 500" required></div>
+              <div class="field-group"><label>Precio (GTQ)</label><input type="text" name="precio" inputmode="decimal" placeholder="e.g., 500" required></div>
             </div>
             <div class="two-cols">
-              <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
+              <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="text" name="precio_oferta" inputmode="decimal" placeholder="Opcional"></div>
               <div class="field-group product-category-picker"><label>Categorías</label><div class="category-checkbox-grid" data-category-picker></div></div>
             </div>
             <div class="two-cols">
               <div class="field-group"><label>Talla</label><select name="talla" required><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
-              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Tercera</option><option>Entrenamiento</option><option>Portero</option><option>Otros</option></select></div>
             </div>
             <div class="field-group">
               <label for="addDisponible">Disponibilidad</label>
@@ -217,14 +217,14 @@
             <div class="field-group"><label>Equipo / Selección</label><input type="text" name="equipo" required></div>
             <div class="two-cols">
               <div class="field-group"><label>Año</label><input type="text" name="year"></div>
-              <div class="field-group"><label>Precio (GTQ)</label><input type="number" name="precio"></div>
+              <div class="field-group"><label>Precio (GTQ)</label><input type="text" name="precio" inputmode="decimal"></div>
             </div>
             <div class="two-cols">
-              <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="number" name="precio_oferta" placeholder="Opcional"></div>
+              <div class="field-group"><label>Precio de oferta (GTQ)</label><input type="text" name="precio_oferta" inputmode="decimal" placeholder="Opcional"></div>
               <div class="field-group"><label>Talla</label><select name="talla"><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
             </div>
             <div class="two-cols">
-              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
+              <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>Tercera</option><option>Entrenamiento</option><option>Portero</option><option>Otros</option></select></div>
               <div class="field-group"></div>
             </div>
             <div class="field-group">
@@ -298,6 +298,6 @@
   </div>
 
   <script src="firebase-config.js"></script>
-  <script src="app.js?v=20260817-loader-recovery"></script>
+  <script src="app.js?v=20260817-admin-form-options"></script>
 </body>
 </html>

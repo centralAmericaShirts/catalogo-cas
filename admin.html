@@ -61,11 +61,13 @@
           </div>
           <div class="admin-toolbar-controls">
             <div class="field-group admin-availability-filter">
-              <label for="adminAvailabilityFilter">Disponible</label>
+              <label for="adminAvailabilityFilter">Disponibilidad</label>
               <select id="adminAvailabilityFilter">
                 <option value="all">Todos</option>
-                <option value="available">Disponibles</option>
-                <option value="unavailable">No Disponibles</option>
+                <option value="Tienda">Tienda</option>
+                <option value="Online">Online</option>
+                <option value="Sold Out">Sold Out</option>
+                <option value="No">No</option>
               </select>
             </div>
             <div class="field-group admin-page-size">
@@ -103,7 +105,7 @@
                 <th>Talla</th>
                 <th>Tipo</th>
                 <th>Categorías</th>
-                <th>Disponible</th>
+                <th>Disponibilidad</th>
                 <th>Notas</th>
                 <th></th>
               </tr>
@@ -173,7 +175,15 @@
               <div class="field-group"><label>Talla</label><select name="talla" required><option value="">Seleccionar</option><option>XXS</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option><option>XXXL</option></select></div>
               <div class="field-group"><label>Tipo de Prenda</label><select name="tipo" required><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
             </div>
-            <div class="checkbox-row"><input type="checkbox" id="addDisponible" name="venta" checked><label for="addDisponible">Disponible para venta</label></div>
+            <div class="field-group">
+              <label for="addDisponible">Disponibilidad</label>
+              <select id="addDisponible" name="venta">
+                <option value="Tienda" selected>Tienda</option>
+                <option value="Online">Online</option>
+                <option value="Sold Out">Sold Out</option>
+                <option value="No">No</option>
+              </select>
+            </div>
           </div>
           <div>
             <div class="field-group">
@@ -217,7 +227,15 @@
               <div class="field-group"><label>Tipo de Prenda</label><select name="tipo"><option value="">Seleccionar</option><option>Casa</option><option>Visita</option><option>V. Jugador</option><option>Usada en Juego</option><option>Firmada</option><option>Entrenamiento</option><option>Otro</option><option>Otros</option></select></div>
               <div class="field-group"></div>
             </div>
-            <div class="checkbox-row"><input type="checkbox" id="adminEditDisponible" name="venta"><label for="adminEditDisponible">Disponible para venta</label></div>
+            <div class="field-group">
+              <label for="adminEditDisponible">Disponibilidad</label>
+              <select id="adminEditDisponible" name="venta">
+                <option value="Tienda">Tienda</option>
+                <option value="Online">Online</option>
+                <option value="Sold Out">Sold Out</option>
+                <option value="No">No</option>
+              </select>
+            </div>
           </div>
           <div>
             <div class="field-group admin-product-images-panel">
@@ -256,7 +274,7 @@
       <p class="helper-text">Sube un CSV y un ZIP con las imágenes. El SKU se generará como CAS + imageName; por ejemplo, imageName 300 será SKU CAS300.</p>
       <div class="admin-inline-panel admin-bulk-fields">
         <h3>Columnas del CSV</h3>
-        <p>Requeridas: imageName, Equipo, Año, Precio, Talla, Tipo, Categorías. Opcionales: Precio_Oferta, Disponible, Notas. Si Categorías tiene varias, usa comillas: "Selecciones,Exclusivo en línea".</p>
+        <p>Requeridas: imageName, Equipo, Año, Precio, Talla, Tipo, Categorías. Opcionales: Precio_Oferta, Disponible, Notas. Disponible acepta Tienda, Online, Sold Out o No. Si Categorías tiene varias, usa comillas: "Selecciones,Exclusivo en línea".</p>
         <button type="button" class="secondary-btn admin-header-link" id="adminDownloadBulkCsvBtn">Descargar CSV de ejemplo</button>
       </div>
       <form id="adminBulkUploadForm">
@@ -280,6 +298,6 @@
   </div>
 
   <script src="firebase-config.js"></script>
-  <script src="app.js?v=20260816-category-first"></script>
+  <script src="app.js?v=20260817-loader-recovery"></script>
 </body>
 </html>

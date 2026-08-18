@@ -486,6 +486,9 @@ input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 
 @media (max-width: 520px) {
   body.random-gallery-page { padding-top: 82px; }
+  .product-card .product-sku { display: none; }
+  .product-card .product-sku-row { justify-content: flex-end; }
+  .product-card .availability-tag { max-width: 100%; margin-left: 0; font-size: 9px; white-space: normal; }
   .random-gallery-stage,
   .random-main-image-frame { min-height: 360px; }
   .random-main-image-frame img { max-height: 340px; }

@@ -1055,6 +1055,7 @@ function render() {
     const images = getProductImages(item);
     
     const priceHTML = getProductPriceHtml(item, 14);
+    const availabilityTag = getAvailabilityTagHtml(item);
 
     const wsUrl = getProductWhatsAppUrl(item);
 
@@ -1066,10 +1067,10 @@ function render() {
         <div class="product-info" style="padding: 15px; display:flex; flex-direction:column; flex:1;">
           <div class="product-sku-row">
             <span class="product-sku">${escapeHtml(item.sku)}</span>
-            ${getAvailabilityTagHtml(item)}
           </div>
           <h3 class="product-title" style="color: #fff; margin-bottom: 5px; font-size: 16px;">${escapeHtml(item.equipo)} | ${escapeHtml(item.year)}</h3>
           <div class="product-meta" style="color: #d9e5f5; font-size: 13px; margin-bottom: 10px;">Talla: ${escapeHtml(item.talla)} | ${escapeHtml(item.tipo)}</div>
+          ${availabilityTag ? `<div class="product-card-availability-row">${availabilityTag}</div>` : ''}
           
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
             <div class="product-price" style="color: #2490ff; font-size: 18px; font-weight: bold;">

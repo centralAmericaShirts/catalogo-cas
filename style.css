@@ -121,9 +121,10 @@ input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 .category-offer-text,
 .category-offer-title { color: #ffdb4d; background: linear-gradient(90deg, #ffe45c 0%, #ff4f88 48%, #38d8ff 100%); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-transform: uppercase; font-weight: 900; filter: drop-shadow(0 2px 8px rgba(0,0,0,.45)); }
 .category-offer-link { font-weight: 900 !important; }
-.product-sku-row { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 7px; }
+.product-sku-row { width: 100%; display: flex; align-items: center; margin-bottom: 7px; }
 .product-sku { color: #9eb1ca; font-size: 12px; font-weight: 800; line-height: 1.2; }
-.availability-tag { min-height: 22px; display: inline-flex; align-items: center; justify-content: center; margin-left: auto; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; line-height: 1.15; letter-spacing: 0; border: 1px solid transparent; white-space: nowrap; text-align: center; }
+.product-card-availability-row { display: flex; justify-content: flex-start; align-items: center; min-height: 22px; margin: -2px 0 12px; }
+.availability-tag { min-height: 22px; display: inline-flex; align-items: center; justify-content: center; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; line-height: 1.15; letter-spacing: 0; border: 1px solid transparent; white-space: nowrap; text-align: center; }
 .availability-store { color: #7dffb2; background: rgba(17,145,82,.22); border-color: rgba(40,220,119,.52); }
 .availability-online { color: #2490ff; background: rgba(36,144,255,.18); border-color: rgba(36,144,255,.58); }
 .availability-sold-out { color: #ff7b7b; background: rgba(214,69,69,.18); border-color: rgba(255,96,96,.54); }
@@ -487,8 +488,8 @@ input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
 @media (max-width: 520px) {
   body.random-gallery-page { padding-top: 82px; }
   .product-card .product-sku { display: none; }
-  .product-card .product-sku-row { justify-content: flex-end; }
-  .product-card .availability-tag { max-width: 100%; margin-left: 0; font-size: 9px; white-space: normal; }
+  .product-card .product-sku-row { display: none; }
+  .product-card .availability-tag { max-width: 100%; font-size: 9px; white-space: normal; }
   .random-gallery-stage,
   .random-main-image-frame { min-height: 360px; }
   .random-main-image-frame img { max-height: 340px; }

@@ -5,6 +5,7 @@ const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwdFRtak-8fr-SxXPL0
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
 const MAINTENANCE_MODE = false; // false: sitio normal | true: solo muestra la página de mantenimiento
+const INVENTORY_TIMEOUT_MS = 120000; // Apps Script puede tardar cuando Google está bajo carga
 
 let allItems = [];
 let filteredItems = [];
@@ -789,7 +790,7 @@ async function loadInventory(){
   isLoading = true;
   renderCatalogLoading();
   try {
-    const data = await getJsonp({ action: 'getInventory' });
+    const data = await getJsonp({ action: 'getInventory' }, INVENTORY_TIMEOUT_MS);
     setCatalogCategories(normalizeCategoryPayload(data));
     allItems = normalizeInventoryPayload(data);
     isLoading = false;
@@ -1180,7 +1181,7 @@ function renderEmptyCatalog() {
    ========================================================================== */
 async function loadRandomGalleryPage() {
   try {
-    const data = await getJsonp({ action: 'getInventory' });
+    const data = await getJsonp({ action: 'getInventory' }, INVENTORY_TIMEOUT_MS);
     setCatalogCategories(normalizeCategoryPayload(data));
     const inventory = normalizeInventoryPayload(data).filter(isAvailableItem);
     randomGallerySeed = Date.now();
@@ -1449,7 +1450,7 @@ async function loadProductPage() {
   try {
     const [itemResult, inventoryResult] = await Promise.allSettled([
       getJsonp({ action: 'getSku', sku: sku }),
-      getJsonp({ action: 'getInventory' })
+      getJsonp({ action: 'getInventory' }, INVENTORY_TIMEOUT_MS)
     ]);
 
     productPageInventoryItems = inventoryResult.status === 'fulfilled'
@@ -2101,7 +2102,7 @@ function showAdminManager(user) {
 async function loadAdminCommerceData() {
   showLoader('Cargando commerce manager...');
   try {
-    const data = await getJsonp({ action: 'getInventory' }, 20000);
+    const data = await getJsonp({ action: 'getInventory' }, INVENTORY_TIMEOUT_MS);
     setCatalogCategories(normalizeCategoryPayload(data));
     adminProducts = normalizeInventoryPayload(data).filter(item => item?.sku);
     adminOriginalProductsBySku = new Map(adminProducts.map(item => {

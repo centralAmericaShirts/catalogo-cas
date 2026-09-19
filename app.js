@@ -2696,7 +2696,7 @@ async function saveAdminChanges() {
     await loadAdminCommerceData();
   } catch (error) {
     console.error('Admin save failed:', error);
-    alert('No se pudieron guardar los cambios.');
+    alert(`No se pudieron guardar los cambios. ${error.message || 'Error desconocido.'}`);
   } finally {
     hideLoader();
   }
@@ -2777,7 +2777,7 @@ async function submitAdminBulkUpload(event) {
       readFileAsDataUrl(zipFile)
     ]);
 
-    await sendPostRequest({
+    const result = await sendPostRequest({
       action: 'bulkAddItems',
       csvText,
       zipFile: {
@@ -2787,12 +2787,16 @@ async function submitAdminBulkUpload(event) {
       }
     });
 
-    alert('Carga enviada. Revisa el inventario en unos segundos para confirmar los productos.');
+    const skipped = Array.isArray(result.skipped) ? result.skipped : [];
+    const skippedSummary = skipped.length
+      ? ` Se omitieron ${skipped.length}: ${skipped.map(item => `${item.imageName || item.sku} (${item.reason})`).join(', ')}.`
+      : '';
+    alert(`Carga completada: ${result.added} producto${result.added === 1 ? '' : 's'} agregado${result.added === 1 ? '' : 's'}.${skippedSummary}`);
     closeAdminBulkUploadModal();
     await loadAdminCommerceData();
   } catch (error) {
     console.error('Bulk upload failed:', error);
-    alert('No se pudo procesar la carga en bulk.');
+    alert(`No se pudo completar la carga en bulk. ${error.message || 'Error desconocido.'}`);
   } finally {
     hideLoader();
     submitBtn.disabled = false;
@@ -2993,12 +2997,24 @@ function getUploadImages(images) {
 }
 
 async function sendPostRequest(payload) {
-  return fetch(WEB_APP_URL, {
+  const response = await fetch(WEB_APP_URL, {
     method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=UTF-8" },
     body: JSON.stringify(payload)
   });
+
+  const responseText = await response.text();
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (error) {
+    throw new Error(`Apps Script devolvió una respuesta inválida (HTTP ${response.status}).`);
+  }
+
+  if (!response.ok || !result || result.success !== true) {
+    throw new Error((result && result.error) || `La solicitud falló (HTTP ${response.status}).`);
+  }
+  return result;
 }
 
 async function submitAdd(e) {
@@ -3043,7 +3059,8 @@ async function submitAdd(e) {
       await loadAdminCommerceData();
     }
   } catch (err) {
-    alert("Error de conexión al enviar.");
+    console.error("Add item failed:", err);
+    alert(`No se guardó la prenda. ${err.message || "Error desconocido."}`);
   }
   hideLoader();
   btn.disabled = false;
@@ -3192,7 +3209,8 @@ async function confirmAddPhotos() {
     alert("¡Las fotos nuevas se agregaron a la galería de la prenda!");
     closeManageModal();
   } catch (err) {
-    alert("Error de conexión al agregar las fotos.");
+    console.error("Append images failed:", err);
+    alert(`No se agregaron las fotos. ${err.message || "Error desconocido."}`);
   }
 
   hideLoader();
@@ -3235,7 +3253,8 @@ async function confirmUpdate() {
     alert("¡Los datos de la prenda se actualizaron correctamente!");
     closeManageModal();
   } catch (err) {
-    alert("Error de conexión al procesar cambios.");
+    console.error("Update item failed:", err);
+    alert(`No se guardaron los cambios. ${err.message || "Error desconocido."}`);
   }
   hideLoader();
   btn.disabled = false;
@@ -3273,7 +3292,8 @@ async function executeStatusChange(actionType) {
     alert("La disponibilidad de la prenda se modificó correctamente en Google Sheets.");
     closeManageModal();
   } catch (err) {
-    alert("Error de red.");
+    console.error("Status change failed:", err);
+    alert(`No se modificó la disponibilidad. ${err.message || "Error desconocido."}`);
   }
   hideLoader();
 }

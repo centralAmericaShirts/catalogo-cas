@@ -334,6 +334,20 @@ function getCategoryHref(category) {
   return url.href;
 }
 
+function replaceCatalogUrl(category) {
+  const url = new URL(window.location.href);
+
+  if (category) {
+    url.searchParams.set('category', category);
+  } else {
+    ['category', 'search', 'size', 'type', 'sort', 'filters', 'seed'].forEach(param => {
+      url.searchParams.delete(param);
+    });
+  }
+
+  window.history.replaceState(window.history.state, '', url.href);
+}
+
 function getCategoryMarkupLabel(category) {
   const label = getCategoryLabel(category.name);
   const className = isOfferCategory(category.name) ? ' class="category-offer-text"' : '';
@@ -651,6 +665,7 @@ function setupCategoryButtons() {
     if (!category) return;
 
     if (document.body.classList.contains('index-page')) {
+      if (trigger.matches('a') && (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey)) return;
       event.preventDefault();
       selectCategory(category);
       closeSideMenu();
@@ -1323,12 +1338,21 @@ function selectCategory(categoryName, options = {}) {
     return;
   }
 
+  const selectedCategory = isAllCategory(categoryName)
+    ? CATEGORY_ALL_NAME
+    : getCategoryOption(categoryName, { includeInactive: false })?.name;
+
+  if (!selectedCategory) {
+    backToCategories();
+    return;
+  }
+
   showAllProducts = false;
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
 
-  currentCategory = isAllCategory(categoryName)
-    ? CATEGORY_ALL_NAME
-    : getCanonicalCategoryValue(categoryName);
+  currentCategory = selectedCategory;
+
+  if (options.updateUrl !== false) replaceCatalogUrl(currentCategory);
 
   updateCurrentCategoryTitle();
   renderCategorySwitcherBand();
@@ -1351,7 +1375,7 @@ function selectCategory(categoryName, options = {}) {
   applyFilters();
 }
 
-function backToCategories() {
+function backToCategories(options = {}) {
   showAllProducts = false;
   itemsPerPage = DEFAULT_ITEMS_PER_PAGE;
   currentCategory = CATEGORY_ALL_NAME;
@@ -1369,6 +1393,7 @@ function backToCategories() {
   $('typeFilter').value = '';
   $('sortOrder').value = 'none';
   setFilterPanelOpen(false);
+  if (options.updateUrl !== false) replaceCatalogUrl('');
   updateStickyCategoryHeader();
 }
 

@@ -1,9 +1,10 @@
 /* ==========================================================================
    1. CONFIGURACIÓN Y VARIABLES GLOBALES (Compartidas por los html)
    ========================================================================== */
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwmz3jGEe0exU50UYJtiCjTCsUafPze3Z78wJb3XdLzOK1ObtjdxpJZOrv0PyiFD1eX/exec"; 
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwdFRtak-8fr-SxXPL0epGB5JHZPh2E-HzZa7QkDPpJACy24a1HmaiED5iXwBJF-7gsaA/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
+const MAINTENANCE_MODE = false; // false: sitio normal | true: solo muestra la página de mantenimiento
 
 let allItems = [];
 let filteredItems = [];
@@ -421,10 +422,26 @@ async function loadCategoriesForPage() {
   }
 }
 
+function renderMaintenancePage() {
+  document.title = 'Página en mantenimiento | Central America Shirts';
+  document.body.className = 'maintenance-page';
+  document.body.innerHTML = `
+    <main class="maintenance-screen" role="status" aria-live="polite">
+      <img src="assets/loading_gif.gif" alt="" class="maintenance-gif">
+      <h1>Página en mantenimiento, por favor intenta más tarde.</h1>
+    </main>
+  `;
+}
+
 /* ==========================================================================
    2. ENRUTADOR AUTOMÁTICO (Detecta la página actual al cargar)
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
+    if (MAINTENANCE_MODE) {
+        renderMaintenancePage();
+        return;
+    }
+
     setupSideMenu();
     setupSiteFooter();
     setupStickyCategoryHeader();

@@ -4,7 +4,7 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwdFRtak-8fr-SxXPL0epGB5JHZPh2E-HzZa7QkDPpJACy24a1HmaiED5iXwBJF-7gsaA/exec"; 
 const WS_NUMBER = "+50258656376"; // Número de WhatsApp de la tienda
 const SITE_BASE_URL = "https://centralamericashirts.com/";
-const MAINTENANCE_MODE = false; // false: sitio normal | true: solo muestra la página de mantenimiento
+const MAINTENANCE_MODE = true; // false: sitio normal | true: solo muestra la página de mantenimiento
 
 let allItems = [];
 let filteredItems = [];

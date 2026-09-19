@@ -288,7 +288,7 @@
             <input type="file" id="adminBulkZipInput" accept=".zip,application/zip" required>
           </div>
         </div>
-        <p class="helper-text">El ZIP debe incluir imágenes cuyo nombre coincida con imageName. Ejemplo: imageName 300 puede usar 300.jpg; imágenes adicionales como 300-back.jpg se agregarán a la galería.</p>
+        <p class="helper-text">El ZIP debe incluir una imagen principal con el mismo nombre que imageName y las secundarias con sufijo numérico. Ejemplo: imageName 1788 usa 1788.jpg, 1788_2.jpg, 1788_3.jpg, etc.</p>
         <div class="modal-footer">
           <button type="button" class="cancel-btn" onclick="closeAdminBulkUploadModal()">Cancelar</button>
           <button type="submit" class="add-btn">Subir productos</button>
@@ -298,6 +298,6 @@
   </div>
 
   <script src="firebase-config.js"></script>
-  <script src="app.js?v=20260819-card-tag-position"></script>
+  <script src="app.js?v=20260918-reliable-writes"></script>
 </body>
 </html>
